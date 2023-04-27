@@ -1,0 +1,17 @@
+{
+  "name": "signalling-server",
+  "version": "0.0.1",
+  "description": "Signalling server for Nabto WebRTC",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^18.16.0"
+  },
+  "dependencies": {
+    "edge-client-node": "github:nabto/edge-client-node"
+  }
+}

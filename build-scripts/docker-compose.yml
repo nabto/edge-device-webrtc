@@ -1,0 +1,10 @@
+version: "3"
+name: webrtc-dev
+services:
+  device:
+    build: .
+    network_mode: "host"
+    volumes:
+      - ../:/workspace:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: /bin/sh -c "tail -f /dev/null"
