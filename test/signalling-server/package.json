@@ -9,9 +9,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^18.16.0"
+    "@types/node": "^18.16.0",
+    "@types/websocket": "^1.0.5"
   },
   "dependencies": {
-    "edge-client-node": "github:nabto/edge-client-node"
+    "edge-client-node": "github:nabto/edge-client-node",
+    "websocket": "^1.0.34"
   }
 }

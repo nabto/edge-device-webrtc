@@ -1,6 +1,7 @@
 
 
 import { NabtoClientFactory } from 'edge-client-node'
+import { WebSocketServer } from './websocket_listener';
 
 
 const productId = "pr-4nmagfvj";
@@ -76,15 +77,19 @@ async function main()
   console.log("writing turn", turnObj.byteLength);
   await stream.write(turnObj);
 
-  // await stream.close();
-  // await conn.close();
-  // await cli.stop();
+  await stream.close();
+  await conn.close();
+  await cli.stop();
 
 }
 
+async function main2() {
+  let serve = new WebSocketServer();
+}
 
 try {
-  main();
+  //main();
+  main2();
 } catch (e) {
   console.log("FAILURE: ", e);
 }
