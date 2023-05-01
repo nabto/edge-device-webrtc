@@ -1,5 +1,6 @@
 set(src
     webrtc.cpp
+    webrtc_libdatachannel.cpp
 )
 
 add_library(nabto_webrtc STATIC "${src}")

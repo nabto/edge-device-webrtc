@@ -1,34 +1,64 @@
 #pragma once
 
+#include "rtc/rtc.hpp"
+
 #include <iostream>
 
 namespace nabto {
 
-class WebrtcChannel {
+class WebrtcChannel: public std::enable_shared_from_this<WebrtcChannel> {
 public:
-    WebrtcChannel() {
+    enum ConnectionEvent {
+        CONNECTED = 0,
+        FAILED
+    };
 
+    WebrtcChannel()
+    { }
+
+    void setEventHandler(std::function<void(enum ConnectionEvent)> eventHandler)
+    {
+        eventHandler_ = eventHandler;
     }
 
-    void handleOffer(std::string& offer) {
-        std::cout << "Got Offer: " << offer << std::endl;
+    void setSignalSender(std::function<void(std::string&)> sendSignal)
+    {
+        sendSignal_ = sendSignal;
     }
 
-    void handleAnswer(std::string& offer) {
-        std::cout << "Got Answer: " << offer << std::endl;
+    void handleOffer(std::string& offer);
 
-    }
+    void handleAnswer(std::string& answer);
 
-    void handleIce(std::string& offer) {
-        std::cout << "Got ICE: " << offer << std::endl;
-
-    }
+    void handleIce(std::string& ice);
 
     void handleTurnReq() {
         std::cout << "Got Turn Req" << std::endl;
+        // TODO: implement turn request/response
 
     }
 
+    void sendVideoData(uint8_t* buffer, size_t len)
+    {
+        if (len < sizeof(rtc::RtpHeader) || !track_->isOpen())
+            return;
+
+        auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
+        rtp->setSsrc(ssrc_);
+
+        track_->send(reinterpret_cast<const std::byte*>(buffer), len);
+    }
+
+private:
+    void createPeerConnection();
+    void setupVideoDescription();
+
+    std::function<void(std::string&)> sendSignal_;
+    std::function<void(enum ConnectionEvent)> eventHandler_;
+    std::shared_ptr<rtc::PeerConnection> pc_ = nullptr;
+    rtc::SSRC ssrc_ = 42;
+    std::shared_ptr<rtc::Track> track_;
+    rtc::PeerConnection::GatheringState state_ = rtc::PeerConnection::GatheringState::New;
 };
 
 

@@ -22,29 +22,42 @@ NabtoWebrtc::~NabtoWebrtc()
     nabto_device_future_free(streamListenFuture_);
 }
 
-void NabtoWebrtc::run()
+void NabtoWebrtc::start()
 {
-    NabtoDeviceStream* stream;
     NabtoDeviceError ec;
-    // WebrtcStream stream;
-    while (true)
+    nabto_device_listener_new_stream(streamListener_, streamListenFuture_, &stream_);
+    nabto_device_future_set_callback(streamListenFuture_, newStream, this);
+}
+
+void NabtoWebrtc::newStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+{
+    (void)ec;
+    nabto_device_future_free(future);
+    NabtoWebrtc* self = (NabtoWebrtc*)userData;
+    if (ec != NABTO_DEVICE_EC_OK)
     {
-        // TODO: This should also handle read from UDP socket
-        nabto_device_listener_new_stream(streamListener_, streamListenFuture_, &stream);
-        ec = nabto_device_future_wait(streamListenFuture_);
-        if (ec != NABTO_DEVICE_EC_OK)
-        {
-            std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
-            break;
-        }
-        if (accessCb_(nabto_device_stream_get_connection_ref(stream), streamAction, accessUserData_))
-        {
-            WebrtcStreamPtr s = std::make_shared<WebrtcStream>(device_, stream);
-            streams_.push_back(s);
-            s->start();
-            stream = NULL;
-        } else {
-            nabto_device_stream_free(stream);
+        std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        return;
+    }
+    if (self->accessCb_(nabto_device_stream_get_connection_ref(self->stream_), streamAction, self->accessUserData_))
+    {
+        WebrtcStreamPtr s = std::make_shared<WebrtcStream>(self->device_, self->stream_);
+        self->streams_.push_back(s);
+        s->start();
+    }
+    else {
+        nabto_device_stream_free(self->stream_);
+    }
+    self->stream_ = NULL;
+    self->start();
+}
+
+void NabtoWebrtc::handleVideoData(uint8_t* buffer, size_t len)
+{
+    for (auto s : streams_) {
+        auto stream = s.lock();
+        if (stream) {
+            stream->handleVideoData(buffer, len);
         }
     }
 }

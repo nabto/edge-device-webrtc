@@ -30,6 +30,7 @@ public:
         stream_ = stream;
         fut_ = nabto_device_future_new(device);
         objectBuffer_ = NULL;
+        channel_ = std::make_shared<WebrtcChannel>();
     }
 
     ~WebrtcStream() {
@@ -42,9 +43,28 @@ public:
     }
 
     void start() {
+        auto self = shared_from_this();
+        channel_->setSignalSender(
+        [self](std::string& data) {
+            self->sendSignalligObject(data);
+        });
+        channel_->setEventHandler(
+            [self](enum WebrtcChannel::ConnectionEvent ev) {
+                std::cout << "Got WebrtcChannel Connection Event: " << ev << std::endl;
+                if (ev == WebrtcChannel::ConnectionEvent::CONNECTED) {
+                    self->connected_ = true;
+                }
+        });
         nabto_device_stream_accept(stream_, fut_);
         self_ = shared_from_this();
         nabto_device_future_set_callback(fut_, streamAccepted, this);
+    }
+
+    void handleVideoData(uint8_t* buffer, size_t len)
+    {
+        if (connected_) {
+            channel_->sendVideoData(buffer, len);
+        }
     }
 
 private:
@@ -136,15 +156,15 @@ private:
             enum ObjectType type = static_cast<enum ObjectType>(obj["type"].get<int>());
             if (type == WEBRTC_OFFER) {
                 auto offer = obj["data"].get<std::string>();
-                channel_.handleOffer(offer);
+                channel_->handleOffer(offer);
             } else if (type == WEBRTC_ANSWER) {
                 auto answer = obj["data"].get<std::string>();
-                channel_.handleAnswer(answer);
+                channel_->handleAnswer(answer);
             } else if (type == WEBRTC_ICE) {
                 auto ice = obj["data"].get<std::string>();
-                channel_.handleIce(ice);
+                channel_->handleIce(ice);
             } else if (type == TURN_REQUEST) {
-                channel_.handleTurnReq();
+                channel_->handleTurnReq();
             } else {
                 std::cout << "Unknown object type: " << type << std::endl;
             }
@@ -160,8 +180,24 @@ private:
 
     }
 
+    // TODO: should this be fire-and-forget by webrtc?
+    void sendSignalligObject(std::string& data)
+    {
+        NabtoDeviceFuture* fut = nabto_device_future_new(device_);
+        uint32_t size = data.size();
+        void* buf = calloc(1, size+4);
+        memcpy(buf, &size, 4);
+        memcpy(buf+4, data.data(), size);
+        nabto_device_stream_write(stream_, fut, buf, size+4);
+        nabto_device_future_set_callback(fut, written, buf);
+    }
 
-
+    static void written(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+    {
+        (void)ec;
+        nabto_device_future_free(future);
+        free(userData);
+    }
 
     void startClose()
     {
@@ -181,12 +217,13 @@ private:
     NabtoDevice* device_;
     NabtoDeviceStream* stream_;
     NabtoDeviceFuture* fut_;
-    WebrtcChannel channel_;
+    std::shared_ptr<WebrtcChannel> channel_;
 
     std::shared_ptr<WebrtcStream> self_;
     size_t readLength_;
     uint32_t objectLength_;
     uint8_t* objectBuffer_;
+    bool connected_ = false;
 
 };
 

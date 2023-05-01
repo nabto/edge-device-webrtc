@@ -84,6 +84,7 @@ async function main()
 }
 
 async function main2() {
+  // TODO: this crashes if a device is closed with an active connection
   let serve = new WebSocketServer();
 }
 

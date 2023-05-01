@@ -406,13 +406,11 @@ async function invite() {
 // stream, then create and send an answer to the caller.
 
 async function handleVideoOfferMsg(msg) {
-  targetUsername = msg.name;
-
   // If we're not already connected, create an RTCPeerConnection
   // to be linked to the caller.
 
   boxLog(`Recieved WebRTC offer from device! Sending answer`);
-  console.log("Received video chat offer from ", targetUsername, " With SDP: ", msg.sdp);
+  console.log("Received video chat offer With SDP: ", msg.data);
   if (!myPeerConnection) {
     createPeerConnection();
   }
@@ -420,7 +418,7 @@ async function handleVideoOfferMsg(msg) {
   // We need to set the remote description to the received SDP offer
   // so that our local WebRTC layer knows how to talk to the caller.
 
-  var desc = new RTCSessionDescription(msg.sdp);
+  var desc = new RTCSessionDescription(msg.data);
 
   // If the connection isn't stable yet, wait for it...
 
@@ -442,10 +440,8 @@ async function handleVideoOfferMsg(msg) {
   await myPeerConnection.setLocalDescription(await myPeerConnection.createAnswer());
 
   sendToServer({
-    name: myUsername,
-    target: targetUsername,
-    type: "video-answer",
-    sdp: myPeerConnection.localDescription
+    type: 1,
+    data: JSON.stringify(myPeerConnection.localDescription)
   });
 }
 
