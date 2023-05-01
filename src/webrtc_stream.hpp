@@ -34,6 +34,7 @@ public:
     }
 
     ~WebrtcStream() {
+        std::cout << "WebrtcStream Destructor" << std::endl;
         nabto_device_stream_free(stream_);
         nabto_device_future_free(fut_);
     }
@@ -53,6 +54,9 @@ public:
                 std::cout << "Got WebrtcChannel Connection Event: " << ev << std::endl;
                 if (ev == WebrtcChannel::ConnectionEvent::CONNECTED) {
                     self->connected_ = true;
+                }
+                else if (ev == WebrtcChannel::ConnectionEvent::CLOSED) {
+                    self->self_ = nullptr;
                 }
         });
         nabto_device_stream_accept(stream_, fut_);

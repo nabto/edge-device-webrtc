@@ -7,7 +7,6 @@ const char* streamAction = "Webrtc:Stream";
 
 NabtoWebrtc::NabtoWebrtc(NabtoDevice* dev, check_access checkAccess, void* userData)
 {
-    std::cout << "HELLO WORLD" << std::endl;
     device_ = dev;
     accessCb_ = checkAccess;
     accessUserData_ = userData;
@@ -18,6 +17,7 @@ NabtoWebrtc::NabtoWebrtc(NabtoDevice* dev, check_access checkAccess, void* userD
 
 NabtoWebrtc::~NabtoWebrtc()
 {
+    std::cout << "NabtoWebrtc Destructor" << std::endl;
     nabto_device_listener_free(streamListener_);
     nabto_device_future_free(streamListenFuture_);
 }
@@ -32,7 +32,6 @@ void NabtoWebrtc::start()
 void NabtoWebrtc::newStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
     (void)ec;
-    nabto_device_future_free(future);
     NabtoWebrtc* self = (NabtoWebrtc*)userData;
     if (ec != NABTO_DEVICE_EC_OK)
     {
@@ -54,10 +53,12 @@ void NabtoWebrtc::newStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void
 
 void NabtoWebrtc::handleVideoData(uint8_t* buffer, size_t len)
 {
-    for (auto s : streams_) {
-        auto stream = s.lock();
+    for (auto s = streams_.begin(); s < streams_.end(); s++) {
+        auto stream = s->lock();
         if (stream) {
             stream->handleVideoData(buffer, len);
+        } else {
+            streams_.erase(s);
         }
     }
 }

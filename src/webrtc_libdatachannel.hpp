@@ -10,11 +10,17 @@ class WebrtcChannel: public std::enable_shared_from_this<WebrtcChannel> {
 public:
     enum ConnectionEvent {
         CONNECTED = 0,
+        CLOSED,
         FAILED
     };
 
     WebrtcChannel()
     { }
+
+    ~WebrtcChannel()
+    {
+        std::cout << "WebrtcChannel Destructor" << std::endl;
+    }
 
     void setEventHandler(std::function<void(enum ConnectionEvent)> eventHandler)
     {

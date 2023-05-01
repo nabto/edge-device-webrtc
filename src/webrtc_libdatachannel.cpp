@@ -27,6 +27,12 @@ void WebrtcChannel::createPeerConnection()
         std::cout << "State: " << state << std::endl;
         if (state == rtc::PeerConnection::State::Connected) {
             //			self->offerPromise_.set_value();
+        } else if (state == rtc::PeerConnection::State::Closed) {
+            if (self->eventHandler_) {
+                self->eventHandler_(ConnectionEvent::CLOSED);
+            }
+            self->eventHandler_ = nullptr;
+            self->sendSignal_ = nullptr;
         }
         });
 

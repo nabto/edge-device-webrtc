@@ -21,6 +21,7 @@ bool start_device(NabtoDevice* dev);
 void handle_device_error(NabtoDevice* d, NabtoDeviceListener* l, std::string msg);
 
 NabtoDevice* device;
+bool stopped = false;
 
 void signal_handler(int s)
 {
@@ -34,6 +35,7 @@ void signal_handler(int s)
     nabto_device_future_wait(fut);
     nabto_device_future_free(fut);
     nabto_device_stop(device);
+    stopped = true;
 }
 
 bool check_access(NabtoDeviceConnectionRef ref, const char* action, void* userData) {
@@ -68,7 +70,7 @@ int main() {
     char buffer[RTSP_BUFFER_SIZE];
     int len;
     int count = 0;
-    while ((len = recv(sock, buffer, RTSP_BUFFER_SIZE, 0)) >= 0) {
+    while ((len = recv(sock, buffer, RTSP_BUFFER_SIZE, 0)) >= 0 && !stopped) {
         count++;
         if (count % 100 == 0) {
             std::cout << ".";

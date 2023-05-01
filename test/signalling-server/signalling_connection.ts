@@ -49,23 +49,27 @@ export class NabtoConnection {
 
   async readStream() {
     // TODO: catch all promise rejections
-    while (true) {
-      let objLenData = await this.stream?.readAll(4);
-      if (!objLenData || objLenData.byteLength != 4) {
-        // Stream failed
-        // TODO: close the stream
-        return;
-      }
-      let objLenView = new Uint32Array(objLenData);
-      let objLen = objLenView[0];
+    try {
+      while (true) {
+        let objLenData = await this.stream?.readAll(4);
+        if (!objLenData || objLenData.byteLength != 4) {
+          // Stream failed
+          // TODO: close the stream
+          return;
+        }
+        let objLenView = new Uint32Array(objLenData);
+        let objLen = objLenView[0];
 
-      let objData = await this.stream?.readAll(objLen);
-      if (!objData || objData.byteLength != objLen) {
-        // Stream failed
-        // TODO: close the stream
-        return;
+        let objData = await this.stream?.readAll(objLen);
+        if (!objData || objData.byteLength != objLen) {
+          // Stream failed
+          // TODO: close the stream
+          return;
+        }
+        await this.wsConn.sendMessage(objData);
       }
-      await this.wsConn.sendMessage(objData);
+    } catch (e) {
+      console.log("readStream() exception: ", e);
     }
   }
 
@@ -77,28 +81,28 @@ export class NabtoConnection {
 
   async writeStreamBinary(data: ArrayBuffer) {
     let dataView = new Uint8Array(data);
-    let buf = new ArrayBuffer(data.byteLength+4);
+    let buf = new ArrayBuffer(data.byteLength + 4);
     let bufView = new Uint8Array(buf);
     bufView[0] = data.byteLength & 0xFF;
     bufView[1] = (data.byteLength & 0xFF00) >> 8;
     bufView[2] = (data.byteLength & 0xFF0000) >> 16;
     bufView[3] = (data.byteLength & 0xFF000000) >> 24;
-    for (let i = 0; i  < data.byteLength; i++) {
-      bufView[i+4] = dataView[i];
+    for (let i = 0; i < data.byteLength; i++) {
+      bufView[i + 4] = dataView[i];
     }
     await this.stream?.write(buf);
   }
 
 
   stringToStreamObject(data: string): ArrayBuffer {
-    let buf = new ArrayBuffer(data.length+4);
+    let buf = new ArrayBuffer(data.length + 4);
     let bufView = new Uint8Array(buf);
     bufView[0] = data.length & 0xFF;
     bufView[1] = (data.length & 0xFF00) >> 8;
     bufView[2] = (data.length & 0xFF0000) >> 16;
     bufView[3] = (data.length & 0xFF000000) >> 24;
-    for (let i = 0; i  < data.length; i++) {
-      bufView[i+4] = data.charCodeAt(i);
+    for (let i = 0; i < data.length; i++) {
+      bufView[i + 4] = data.charCodeAt(i);
     }
     return buf;
   }
@@ -124,7 +128,7 @@ export class WebSocketConnection {
   conn: connection;
   nabtoClient: NabtoClient;
   privateKey: string;
-  nabtoConn: NabtoConnection|undefined;
+  nabtoConn: NabtoConnection | undefined;
 
 
   async handleMessage(message: Message): Promise<void> {
