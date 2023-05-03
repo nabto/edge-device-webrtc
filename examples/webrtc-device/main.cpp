@@ -8,8 +8,6 @@ typedef int SOCKET;
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-const int RTSP_BUFFER_SIZE = 2048;
-
 
 const char* productId = "pr-4nmagfvj";
 const char* deviceId = "de-sw9unmnn";
@@ -53,15 +51,10 @@ int main() {
     start_device(device);
     nabto::NabtoWebrtc webrtc(device, &check_access, NULL);
     signal(SIGINT, &signal_handler);
-    RtspClient rtsp("rtsp://127.0.0.1:8554/video");
-    rtsp.init();
+    auto rtsp = std::make_shared<nabto::RtspClient>("rtsp://127.0.0.1:8554/video");
+    rtsp->init();
     webrtc.start();
-    rtsp.run([self](char* buffer, int len) {
-        if (len < sizeof(rtc::RtpHeader) || !self->track_->isOpen())
-            return;
-
-        auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
-        rtp->setSsrc(self->ssrc_);
+    rtsp->run([&webrtc](char* buffer, int len) {
         webrtc.handleVideoData((uint8_t*)buffer, len);
         });
 

@@ -19,7 +19,7 @@ mkdir ${EXAMPLE_BUILD_DIR}
 
 cd ${MBEDTLS_BUILD_DIR}
 cp ${SCRIPT_DIR}/mbedtls-config/mbedtls_config.h ${MBEDTLS_SRC_DIR}/include/mbedtls
-cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${MBEDTLS_SRC_DIR}
+cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DCMAKE_POSITION_INDEPENDENT_CODE=ON ${MBEDTLS_SRC_DIR}
 make -j 16
 make install
 

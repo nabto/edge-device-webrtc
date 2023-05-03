@@ -15,7 +15,7 @@ void WebrtcChannel::createPeerConnection()
     // TODO: this can probably be removed since we do not do auth over datachannel as in the POC
     conf.forceMediaTransport = true;
 
-    rtc::IceServer turn("3.252.194.140", 3478, "1675935678:foo", "D/9Nw9yGzXGL+qy/mvwLlXfOgVI=");
+    //rtc::IceServer turn("3.252.194.140", 3478, "1675935678:foo", "D/9Nw9yGzXGL+qy/mvwLlXfOgVI=");
     //rtc::IceServer turn("127.0.0.1", 3478, "1675935678:foo","D/9Nw9yGzXGL+qy/mvwLlXfOgVI=");
     //rtc::IceServer turn("127.0.0.1", 3478, "foo", "bar123");
     //		conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
