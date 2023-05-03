@@ -3,6 +3,7 @@
 #include <nabto/nabto_device_experimental.h>
 #include <signal.h>
 #include <sys/socket.h>
+#include "rtsp_client.hpp"
 typedef int SOCKET;
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -52,36 +53,45 @@ int main() {
     start_device(device);
     nabto::NabtoWebrtc webrtc(device, &check_access, NULL);
     signal(SIGINT, &signal_handler);
-
+    RtspClient rtsp("rtsp://127.0.0.1:8554/video");
+    rtsp.init();
     webrtc.start();
+    rtsp.run([self](char* buffer, int len) {
+        if (len < sizeof(rtc::RtpHeader) || !self->track_->isOpen())
+            return;
 
-    SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
-    struct sockaddr_in addr = {};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    addr.sin_port = htons(6000);
-    if (bind(sock, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0)
-        throw std::runtime_error("Failed to bind UDP socket on 127.0.0.1:6000");
-
-    int rcvBufSize = 212992;
-    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&rcvBufSize),
-        sizeof(rcvBufSize));
-    // Receive from UDP
-    char buffer[RTSP_BUFFER_SIZE];
-    int len;
-    int count = 0;
-    while ((len = recv(sock, buffer, RTSP_BUFFER_SIZE, 0)) >= 0 && !stopped) {
-        count++;
-        if (count % 100 == 0) {
-            std::cout << ".";
-        }
-        if (count % 1600 == 0) {
-            std::cout << std::endl;
-            count = 0;
-        }
-        //            std::cout << "Received packet size: " << len << std::endl;
+        auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
+        rtp->setSsrc(self->ssrc_);
         webrtc.handleVideoData((uint8_t*)buffer, len);
-    }
+        });
+
+    // SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
+    // struct sockaddr_in addr = {};
+    // addr.sin_family = AF_INET;
+    // addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    // addr.sin_port = htons(6000);
+    // if (bind(sock, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0)
+    //     throw std::runtime_error("Failed to bind UDP socket on 127.0.0.1:6000");
+
+    // int rcvBufSize = 212992;
+    // setsockopt(sock, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&rcvBufSize),
+    //     sizeof(rcvBufSize));
+    // // Receive from UDP
+    // char buffer[RTSP_BUFFER_SIZE];
+    // int len;
+    // int count = 0;
+    // while ((len = recv(sock, buffer, RTSP_BUFFER_SIZE, 0)) >= 0 && !stopped) {
+    //     count++;
+    //     if (count % 100 == 0) {
+    //         std::cout << ".";
+    //     }
+    //     if (count % 1600 == 0) {
+    //         std::cout << std::endl;
+    //         count = 0;
+    //     }
+    //     //            std::cout << "Received packet size: " << len << std::endl;
+    //     webrtc.handleVideoData((uint8_t*)buffer, len);
+    // }
 
 
 }
