@@ -1,2 +1,3 @@
 /build
 /test/signalling-server/node_modules/
+/tmp

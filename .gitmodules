@@ -4,3 +4,6 @@
 [submodule "3rdparty/libdatachannel"]
 	path = 3rdparty/libdatachannel
 	url = https://github.com/paullouisageneau/libdatachannel.git
+[submodule "3rdparty/mbedtls"]
+	path = 3rdparty/mbedtls
+	url = https://github.com/Mbed-TLS/mbedtls

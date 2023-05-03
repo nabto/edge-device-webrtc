@@ -14,6 +14,12 @@ set(DEVICE_BUILD_EXAMPLES OFF)
 set(DEVICE_BUILD_TESTS OFF)
 set(DEVICE_BUILD_APPS OFF)
 
+set(USE_MBEDTLS ON CACHE BOOL "use mbedtls in libdatachannel")
+set(USE_WEBSOCKET OFF CACHE BOOL "use websocket in libdatachannel")
+set(ENABLE_MBEDTLS ON CACHE BOOL "use mbedtls in libdatachannel")
+
+add_subdirectory(3rdparty/mbedtls)
+
 add_subdirectory(nabto-embedded-sdk)
 
 add_subdirectory(3rdparty/libdatachannel)
