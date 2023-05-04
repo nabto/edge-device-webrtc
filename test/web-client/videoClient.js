@@ -47,6 +47,8 @@ var myPeerConnection = null;    // RTCPeerConnection
 var transceiver = null;         // RTCRtpTransceiver
 var webcamStream = null;        // MediaStream from webcam
 
+var iceServers = [{ urls: "stun:stun.nabto.net" }]; // Servers to use for Turn/stun
+
 // Output logging information to console.
 
 function log(text) {
@@ -83,9 +85,6 @@ function sendToServer(msg) {
 
 
 function reset() {
-  var productId = null;
-  var deviceId = null;
-  var sct = null;
   myPeerConnection = null;    // RTCPeerConnection
   transceiver = null;         // RTCRtpTransceiver
   webcamStream = null;        // MediaStream from webcam
@@ -105,15 +104,15 @@ function connect() {
   boxLog(`Connecting to server: ${serverUrl}`);
   connection = new WebSocket(serverUrl, "json");
 
-  connection.onerror = function(evt) {
+  connection.onerror = function (evt) {
     console.dir(evt);
   }
 
-  connection.onmessage = function(evt) {
+  connection.onmessage = function (evt) {
     console.log("Message received: ", evt.data);
     var msg = JSON.parse(evt.data);
 
-    switch(msg.type) {
+    switch (msg.type) {
       case 21: // WEBSOCK_LOGIN_RESPONSE
         handleLoginResponse(msg);
         break;
@@ -129,6 +128,10 @@ function connect() {
         handleNewICECandidateMsg(msg);
         break;
 
+      case 4: // TURN response
+        handleTurnResponse(msg);
+        break;
+
       default:
         log_error("Unknown message received:");
         log_error(msg);
@@ -140,7 +143,7 @@ function connect() {
   deviceId = document.getElementById("device").value;
   sct = document.getElementById("sct").value;
 
-  connection.onopen = function(evt) {
+  connection.onopen = function (evt) {
     let loginReq = {
       type: 20,
       productId: productId,
@@ -168,7 +171,8 @@ function createPeerConnection() {
   // STUN server.
 
   myPeerConnection = new RTCPeerConnection({
-    iceServers: [     // Information about ICE servers - Use your own!
+    iceServers: //iceServers,
+    [     // Information about ICE servers - Use your own!
       // {
       //   urls: "turn:" + myHostname,  // A TURN server
       //   username: "1675854660:foo",
@@ -183,7 +187,7 @@ function createPeerConnection() {
         urls: "stun:stun.nabto.net",
       },
     ],
-//    iceTransportPolicy: "relay",
+//       iceTransportPolicy: "relay",
   });
 
   // Set up event handlers for the ICE negotiation process.
@@ -202,36 +206,36 @@ function createPeerConnection() {
 async function handleNegotiationNeededEvent() {
   log("*** Negotiation needed");
 
-  try {
-    log("---> Creating offer");
-    const offer = await myPeerConnection.createOffer();
+  // try {
+  //   log("---> Creating offer");
+  //   const offer = await myPeerConnection.createOffer();
 
-    // If the connection hasn't yet achieved the "stable" state,
-    // return to the caller. Another negotiationneeded event
-    // will be fired when the state stabilizes.
+  //   // If the connection hasn't yet achieved the "stable" state,
+  //   // return to the caller. Another negotiationneeded event
+  //   // will be fired when the state stabilizes.
 
-    if (myPeerConnection.signalingState != "stable") {
-      log("     -- The connection isn't stable yet; postponing...")
-      return;
-    }
+  //   if (myPeerConnection.signalingState != "stable") {
+  //     log("     -- The connection isn't stable yet; postponing...")
+  //     return;
+  //   }
 
-    // Establish the offer as the local peer's current
-    // description.
+  //   // Establish the offer as the local peer's current
+  //   // description.
 
-    await myPeerConnection.setLocalDescription(offer);
-    console.log("---> Setting local description: ", myPeerConnection.localDescription);
+  //   await myPeerConnection.setLocalDescription(offer);
+  //   console.log("---> Setting local description: ", myPeerConnection.localDescription);
 
-    // Send the offer to the remote peer.
-    boxLog(`Sending WebRTC offer to device`);
+  //   // Send the offer to the remote peer.
+  //   boxLog(`Sending WebRTC offer to device`);
 
-    sendToServer({
-      type: 0,
-      data: JSON.stringify(myPeerConnection.localDescription)
-    });
-  } catch(err) {
-    log("*** The following error occurred while handling the negotiationneeded event:");
-    reportError(err);
-  };
+  //   sendToServer({
+  //     type: 0,
+  //     data: JSON.stringify(myPeerConnection.localDescription)
+  //   });
+  // } catch (err) {
+  //   log("*** The following error occurred while handling the negotiationneeded event:");
+  //   reportError(err);
+  // };
 }
 
 // Called by the WebRTC layer when events occur on the media tracks
@@ -248,15 +252,35 @@ async function handleNegotiationNeededEvent() {
 // In our case, we're just taking the first stream found and attaching
 // it to the <video> element for incoming media.
 
-function handleTrackEvent(event) {
-  log("*** Track event");
-  document.getElementById("received_video").srcObject = event.streams[0];
+async function handleTrackEvent(event) {
+  log("*** Track event. streams length: " + event.streams.length);
+  var stream = event.streams[0];
+  console.log("   Track event: ", event);
+  console.log("  event Stream: ", stream);
+  console.log("  event Stream.tracks: ", stream.getTracks());
+  if (event.track.kind != "video") {
+    console.log("Not video track, ignoring");
+    return;
+  }
+
+  var video = document.getElementById("received_video");
+  if ("srcObject" in video) {
+    try {
+      video.srcObject = stream;
+    } catch(err) {
+      console.log("Caught error: ", err);
+      video.src = URL.createObjectURL(stream);
+    }
+  } else {
+    video.src = URL.createObjectURL(stream);
+  }
+  // await video.play();
+  // video.srcObject = stream;
 }
 
 // Handles |icecandidate| events by forwarding the specified
 // ICE candidate (created by our local ICE agent) to the other
 // peer through the signaling server.
-
 function handleICECandidateEvent(event) {
   if (event.candidate) {
     log("*** Outgoing ICE candidate: " + event.candidate.candidate);
@@ -276,7 +300,7 @@ function handleICECandidateEvent(event) {
 function handleICEConnectionStateChangeEvent(event) {
   log("*** ICE connection state changed to " + myPeerConnection.iceConnectionState);
 
-  switch(myPeerConnection.iceConnectionState) {
+  switch (myPeerConnection.iceConnectionState) {
     case "closed":
     case "failed":
     case "disconnected":
@@ -292,9 +316,9 @@ function handleICEConnectionStateChangeEvent(event) {
 // returned in the property RTCPeerConnection.connectionState when
 // browsers catch up with the latest version of the specification!
 
-function handleSignalingStateChangeEvent(event) {
+async function handleSignalingStateChangeEvent(event) {
   log("*** WebRTC signaling state changed to: " + myPeerConnection.signalingState);
-  switch(myPeerConnection.signalingState) {
+  switch (myPeerConnection.signalingState) {
     case "closed":
       closeVideoCall();
       break;
@@ -315,8 +339,36 @@ function handleICEGatheringStateChangeEvent(event) {
   log("*** ICE gathering state changed to: " + myPeerConnection.iceGatheringState);
 }
 
+
 async function handleLoginResponse(msg) {
-  invite();
+  sendToServer({ type: 3 });
+}
+
+async function handleTurnResponse(msg) {
+  boxLog(`Received TURN Server Configuration:`);
+  boxLog("[");
+  for (let s of msg.servers) {
+    // TODO: add port somewhere
+    // iceServers.push({
+    //   urls: `turn:${s.hostname}`,
+    //   username: s.username,
+    //   credential: s.password,
+    // });
+    boxLog(`{`);
+    boxLog(`  hostname: ${s.hostname},`);
+    boxLog(`  port: ${s.port},`);
+    boxLog(`  username: ${s.username},`);
+    boxLog(`  password: ${s.password},`);
+    boxLog(`},`);
+  }
+  boxLog("]");
+
+  createPeerConnection();
+  // const offer = await myPeerConnection.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: true});
+  // const offer = await myPeerConnection.createOffer({ offerToReceiveVideo: true});
+  // myPeerConnection.createDataChannel("foo");
+
+  myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
   const offer = await myPeerConnection.createOffer();
 
   if (myPeerConnection.signalingState != "stable") {
@@ -385,21 +437,21 @@ function hangUpCall() {
 // a |notificationneeded| event, so we'll let our handler for that
 // make the offer.
 
-async function invite() {
-  log("Starting to prepare an invitation");
-  if (myPeerConnection) {
-    alert("You can't start a call because you already have one open!");
-  } else {
+// async function invite() {
+//   log("Starting to prepare an invitation");
+//   if (myPeerConnection) {
+//     alert("You can't start a call because you already have one open!");
+//   } else {
 
-    createPeerConnection();
-    // log("Asking device " + targetUsername + " for video-offer");
-    // sendToServer({
-    //   name: myUsername,
-    //   target: targetUsername,
-    //   type: "get-feed"
-    // });
-  }
-}
+//     createPeerConnection();
+//     // log("Asking device " + targetUsername + " for video-offer");
+//     // sendToServer({
+//     //   name: myUsername,
+//     //   target: targetUsername,
+//     //   type: "get-feed"
+//     // });
+//   }
+// }
 
 // Accept an offer to video chat. We configure our local settings,
 // create our RTCPeerConnection, get and attach our local camera
@@ -422,21 +474,20 @@ async function handleVideoOfferMsg(msg) {
 
   // If the connection isn't stable yet, wait for it...
 
-  if (myPeerConnection.signalingState != "stable") {
-    log("  - But the signaling state isn't stable, so triggering rollback");
+  // if (myPeerConnection.signalingState != "stable") {
+  //   log("  - But the signaling state isn't stable, so triggering rollback");
 
-    // Set the local and remove descriptions for rollback; don't proceed
-    // until both return.
-    await Promise.all([
-      myPeerConnection.setLocalDescription({type: "rollback"}),
-      myPeerConnection.setRemoteDescription(desc)
-    ]);
-    return;
-  } else {
-    log ("  - Setting remote description");
-    await myPeerConnection.setRemoteDescription(desc);
-  }
+  //   // Set the local and remove descriptions for rollback; don't proceed
+  //   // until both return.
+  //   await Promise.all([
+  //     myPeerConnection.setLocalDescription({ type: "rollback" }),
+  //     myPeerConnection.setRemoteDescription(desc)
+  //   ]);
+  //   return;
+  // }
 
+  log("  - Setting remote description");
+  await myPeerConnection.setRemoteDescription(desc);
   await myPeerConnection.setLocalDescription(await myPeerConnection.createAnswer());
 
   sendToServer({
@@ -455,7 +506,7 @@ async function handleVideoAnswerMsg(msg) {
   // in our "video-answer" message.
 
   boxLog(`Recieved WebRTC answer from device!`);
-  var desc = new RTCSessionDescription(msg.sdp);
+  var desc = new RTCSessionDescription(msg.data);
   await myPeerConnection.setRemoteDescription(desc).catch(reportError);
 }
 
@@ -464,12 +515,12 @@ async function handleVideoAnswerMsg(msg) {
 // local ICE framework.
 
 async function handleNewICECandidateMsg(msg) {
-  var candidate = new RTCIceCandidate(msg.candidate);
 
-  log("*** Adding received ICE candidate: " + JSON.stringify(candidate));
+  log("*** Adding received ICE candidate: " + msg.data);
   try {
+    var candidate = new RTCIceCandidate(msg.data);
     await myPeerConnection.addIceCandidate(candidate)
-  } catch(err) {
+  } catch (err) {
     reportError(err);
   }
 }

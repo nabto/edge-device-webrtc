@@ -20,13 +20,16 @@ void WebrtcChannel::createPeerConnection()
     //rtc::IceServer turn("127.0.0.1", 3478, "foo", "bar123");
     //		conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
     //		conf.iceServers = {turn};
+    conf.disableAutoNegotiation = true;
 
     pc_ = std::make_shared<rtc::PeerConnection>(conf);
 
     pc_->onStateChange([self](rtc::PeerConnection::State state) {
         std::cout << "State: " << state << std::endl;
         if (state == rtc::PeerConnection::State::Connected) {
-            //			self->offerPromise_.set_value();
+            if (self->eventHandler_) {
+                self->eventHandler_(ConnectionEvent::CONNECTED);
+            }
         } else if (state == rtc::PeerConnection::State::Closed) {
             if (self->eventHandler_) {
                 self->eventHandler_(ConnectionEvent::CLOSED);
@@ -45,7 +48,6 @@ void WebrtcChannel::createPeerConnection()
                 json message = {
                     {"type", description->typeString()},
                     {"sdp", std::string(description.value())} };
-                std::cout << message << std::endl;
                 auto type =
                     description->type() ==
                     rtc::Description::Type::Answer
@@ -55,7 +57,34 @@ void WebrtcChannel::createPeerConnection()
                     {"type", type},
                     {"data", message}
                 };
-                std::cout << "SENDING " << type << std::endl;
+                std::cout << "SENDING " << type << " message: " << message << std::endl;
+                auto data = offer.dump();
+                self->sendSignal_(data);
+            }
+            if (state ==
+                rtc::PeerConnection::SignalingState::HaveRemoteOffer) {
+                try {
+                    self->pc_->setLocalDescription();//(rtc::Description::Type::Answer);
+                }
+                catch (std::logic_error ex) {
+                    std::cout << "EXCEPTION!!!! " << ex.what() << std::endl;
+                }
+
+                auto description = self->pc_->localDescription();
+                std::cout << "local desc is type: " << description->typeString() << std::endl;
+                json message = {
+                    {"type", description->typeString()},
+                    {"sdp", std::string(description.value())} };
+                auto type =
+                    description->type() ==
+                    rtc::Description::Type::Answer
+                    ? WebrtcStream::ObjectType::WEBRTC_ANSWER
+                    : WebrtcStream::ObjectType::WEBRTC_OFFER;
+                json offer = {
+                    {"type", type},
+                    {"data", message}
+                };
+                std::cout << "SENDING " << type << " message: " << message << std::endl;
                 auto data = offer.dump();
                 self->sendSignal_(data);
                 self->eventHandler_(ConnectionEvent::CONNECTED);
@@ -95,7 +124,7 @@ void WebrtcChannel::createPeerConnection()
         candidate["candidate"] = cand.candidate();
         json answer = { {"type", WebrtcStream::ObjectType::WEBRTC_ICE},
                         {"data", candidate} };
-        if (self->state_ ==
+        if (true || self->state_ ==
             rtc::PeerConnection::GatheringState::Complete) {
             std::cout << "SENDING NEW-ICE-CANDIDATE" << std::endl;
             auto data = answer.dump();
@@ -103,7 +132,7 @@ void WebrtcChannel::createPeerConnection()
         }
         });
 
-    self->setupVideoDescription();
+    // self->setupVideoDescription();
 }
 
 
@@ -124,11 +153,16 @@ void WebrtcChannel::handleOffer(std::string& offer) {
     std::cout << "Got Offer: " << offer << std::endl;
     if (!pc_) {
         createPeerConnection();
+        setupVideoDescription();
     }
     // TODO: handle json exceptions
     json sdp = json::parse(offer);
     rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
+    try {
     pc_->setRemoteDescription(remDesc);
+    } catch (std::invalid_argument& ex) {
+        std::cout << "GOT INVALID ARGUMENT: " << ex.what() << std::endl;
+    }
 }
 
 void WebrtcChannel::handleAnswer(std::string& answer) {

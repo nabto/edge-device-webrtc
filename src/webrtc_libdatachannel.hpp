@@ -8,14 +8,24 @@ namespace nabto {
 
 class WebrtcChannel: public std::enable_shared_from_this<WebrtcChannel> {
 public:
+
+    struct TurnServer {
+        std::string hostname;
+        uint16_t port;
+        std::string username;
+        std::string password;
+    };
+
     enum ConnectionEvent {
         CONNECTED = 0,
         CLOSED,
         FAILED
     };
 
-    WebrtcChannel()
-    { }
+    WebrtcChannel(std::vector<struct TurnServer> servers)
+    {
+        turnServers_ = servers;
+    }
 
     ~WebrtcChannel()
     {
@@ -65,6 +75,8 @@ private:
     rtc::SSRC ssrc_ = 42;
     std::shared_ptr<rtc::Track> track_;
     rtc::PeerConnection::GatheringState state_ = rtc::PeerConnection::GatheringState::New;
+
+    std::vector<struct TurnServer> turnServers_;
 };
 
 

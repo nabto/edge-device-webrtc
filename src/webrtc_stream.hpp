@@ -30,7 +30,13 @@ public:
         stream_ = stream;
         fut_ = nabto_device_future_new(device);
         objectBuffer_ = NULL;
-        channel_ = std::make_shared<WebrtcChannel>();
+
+//        WebrtcChannel::TurnServer turn = { "3.252.194.140", 3478, "1675935678:foo", "D/9Nw9yGzXGL+qy/mvwLlXfOgVI=" };
+        WebrtcChannel::TurnServer turn = { "34.245.62.208", 3478, "1683106892:foo", "QIskpuemhPk3phNFwsBHQLonciI=" };
+
+        turnServers_.push_back(turn);
+
+        channel_ = std::make_shared<WebrtcChannel>(turnServers_);
     }
 
     ~WebrtcStream() {
@@ -168,12 +174,14 @@ private:
                 auto ice = obj["data"].get<std::string>();
                 channel_->handleIce(ice);
             } else if (type == TURN_REQUEST) {
-                channel_->handleTurnReq();
+                sendTurnServers();
+                //channel_->handleTurnReq();
             } else {
                 std::cout << "Unknown object type: " << type << std::endl;
             }
-        } catch(std::exception ex) {
+        } catch(json::parse_error& ex) {
             std::cout << "Failed to parse JSON: " << ex.what() << std::endl;
+            std::cout << "parsing: " << std::string((char*)objectBuffer_, objectLength_) << std::endl;
             free(objectBuffer_);
             objectBuffer_ = NULL;
             return readObjLength();
@@ -185,6 +193,7 @@ private:
     }
 
     // TODO: should this be fire-and-forget by webrtc?
+    // TODO: fix if write returns OPERATION IN PROGRESS
     void sendSignalligObject(std::string& data)
     {
         NabtoDeviceFuture* fut = nabto_device_future_new(device_);
@@ -201,6 +210,25 @@ private:
         (void)ec;
         nabto_device_future_free(future);
         free(userData);
+    }
+
+    void sendTurnServers()
+    {
+        json resp = {
+            {"type", ObjectType::TURN_RESPONSE},
+            {"servers", json::array()}
+        };
+        for (auto t : turnServers_) {
+            json turn = {
+                {"hostname", t.hostname},
+                {"port", t.port},
+                {"username", t.username},
+                {"password", t.password}
+            };
+            resp["servers"].push_back(turn);
+        }
+        auto str = resp.dump();
+        sendSignalligObject(str);
     }
 
     void startClose()
@@ -228,6 +256,7 @@ private:
     uint32_t objectLength_;
     uint8_t* objectBuffer_;
     bool connected_ = false;
+    std::vector<WebrtcChannel::TurnServer> turnServers_;
 
 };
 
