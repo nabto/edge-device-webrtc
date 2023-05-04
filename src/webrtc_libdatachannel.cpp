@@ -15,11 +15,15 @@ void WebrtcChannel::createPeerConnection()
     // TODO: this can probably be removed since we do not do auth over datachannel as in the POC
     conf.forceMediaTransport = true;
 
-    rtc::IceServer turn("3.252.194.140", 3478, "1675935678:foo", "D/9Nw9yGzXGL+qy/mvwLlXfOgVI=");
+    // for (auto t : turnServers_) {
+    //     conf.iceServers.push_back(rtc::IceServer(t.hostname, t.port, t.username, t.password));
+    // }
+
+    // rtc::IceServer turn("3.252.194.140", 3478, "1675935678:foo", "D/9Nw9yGzXGL+qy/mvwLlXfOgVI=");
     //rtc::IceServer turn("127.0.0.1", 3478, "1675935678:foo","D/9Nw9yGzXGL+qy/mvwLlXfOgVI=");
     //rtc::IceServer turn("127.0.0.1", 3478, "foo", "bar123");
-    //		conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
-    //		conf.iceServers = {turn};
+    // conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
+
     conf.disableAutoNegotiation = true;
 
     pc_ = std::make_shared<rtc::PeerConnection>(conf);
@@ -27,6 +31,8 @@ void WebrtcChannel::createPeerConnection()
     pc_->onStateChange([self](rtc::PeerConnection::State state) {
         std::cout << "State: " << state << std::endl;
         if (state == rtc::PeerConnection::State::Connected) {
+            self->setupVideoDescription();
+            self->pc_->setLocalDescription();
             if (self->eventHandler_) {
                 self->eventHandler_(ConnectionEvent::CONNECTED);
             }
@@ -87,7 +93,6 @@ void WebrtcChannel::createPeerConnection()
                 std::cout << "SENDING " << type << " message: " << message << std::endl;
                 auto data = offer.dump();
                 self->sendSignal_(data);
-                self->eventHandler_(ConnectionEvent::CONNECTED);
             }
         });
 
@@ -95,26 +100,26 @@ void WebrtcChannel::createPeerConnection()
         [self](rtc::PeerConnection::GatheringState state) {
             std::cout << "Gathering State: " << state << std::endl;
             self->state_ = state;
-            if (state ==
-                rtc::PeerConnection::GatheringState::Complete) {
-                auto description = self->pc_->localDescription();
-                json message = {
-                    {"type", description->typeString()},
-                    {"sdp", std::string(description.value())} };
-                std::cout << message << std::endl;
-                auto type =
-                    description->type() ==
-                    rtc::Description::Type::Answer
-                    ? WebrtcStream::ObjectType::WEBRTC_ANSWER
-                    : WebrtcStream::ObjectType::WEBRTC_OFFER;
-                json offer = {
-                    {"type", type},
-                    {"data", message}
-                };
-                std::cout << "SENDING " << type << std::endl;
-                auto data = offer.dump();
-                self->sendSignal_(data);
-            }
+            // if (state ==
+            //     rtc::PeerConnection::GatheringState::Complete) {
+            //     auto description = self->pc_->localDescription();
+            //     json message = {
+            //         {"type", description->typeString()},
+            //         {"sdp", std::string(description.value())} };
+            //     std::cout << message << std::endl;
+            //     auto type =
+            //         description->type() ==
+            //         rtc::Description::Type::Answer
+            //         ? WebrtcStream::ObjectType::WEBRTC_ANSWER
+            //         : WebrtcStream::ObjectType::WEBRTC_OFFER;
+            //     json offer = {
+            //         {"type", type},
+            //         {"data", message}
+            //     };
+            //     std::cout << "SENDING " << type << std::endl;
+            //     auto data = offer.dump();
+            //     self->sendSignal_(data);
+            // }
         });
 
     pc_->onLocalCandidate([self](rtc::Candidate cand) {
@@ -145,7 +150,7 @@ void WebrtcChannel::setupVideoDescription()
     media.addSSRC(ssrc_, "video-send");
     track_ = pc_->addTrack(media);
 
-    pc_->setLocalDescription();
+    // pc_->setLocalDescription();
 }
 
 

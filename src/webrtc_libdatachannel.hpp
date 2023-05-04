@@ -56,7 +56,7 @@ public:
 
     void sendVideoData(uint8_t* buffer, size_t len)
     {
-        if (len < sizeof(rtc::RtpHeader) || !track_->isOpen())
+        if (len < sizeof(rtc::RtpHeader) || !track_ || !track_->isOpen())
             return;
 
         auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);

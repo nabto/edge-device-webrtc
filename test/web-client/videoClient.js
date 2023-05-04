@@ -18,28 +18,6 @@ var myHostname = "localhost";
 // WebSocket chat/signaling channel variables.
 var connection = null;
 
-// The media constraints object describes what sort of stream we want
-// to request from the local A/V hardware (typically a webcam and
-// microphone). Here, we specify only that we want both audio and
-// video; however, you can be more specific. It's possible to state
-// that you would prefer (or require) specific resolutions of video,
-// whether to prefer the user-facing or rear-facing camera (if available),
-// and so on.
-//
-// See also:
-// https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamConstraints
-// https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
-//
-
-var mediaConstraints = {
-  audio: true,            // We want an audio track
-  video: {
-    aspectRatio: {
-      ideal: 1.333333     // 3:2 aspect is preferred
-    }
-  }
-};
-
 var productId = null;
 var deviceId = null;
 var sct = null;
