@@ -21,6 +21,7 @@ add_subdirectory(3rdparty/libdatachannel)
 include_directories(src)
 include_directories(nabto-embedded-sdk/include)
 include_directories(3rdparty/libdatachannel/deps/json/include)
+include_directories(3rdparty/)
 
 add_subdirectory(src)
 add_subdirectory(examples/webrtc-device)

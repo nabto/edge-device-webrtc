@@ -175,7 +175,6 @@ private:
                 channel_->handleIce(ice);
             } else if (type == TURN_REQUEST) {
                 sendTurnServers();
-                //channel_->handleTurnReq();
             } else {
                 std::cout << "Unknown object type: " << type << std::endl;
             }

@@ -1,6 +1,6 @@
 FROM debian:bookworm
 
-RUN apt-get update && apt-get install -y git build-essential autoconf libtool pkg-config libssl-dev wget vim host gdb ninja-build valgrind sudo clang gcc
+RUN apt-get update && apt-get install -y git build-essential autoconf libtool pkg-config libssl-dev wget vim host gdb ninja-build valgrind sudo clang gcc libcurl4-openssl-dev
 
 ARG CMAKE_VERSION=3.19.6
 

@@ -48,12 +48,6 @@ public:
 
     void handleIce(std::string& ice);
 
-    void handleTurnReq() {
-        std::cout << "Got Turn Req" << std::endl;
-        // TODO: implement turn request/response
-
-    }
-
     void sendVideoData(uint8_t* buffer, size_t len)
     {
         if (len < sizeof(rtc::RtpHeader) || !track_ || !track_->isOpen())
@@ -67,7 +61,6 @@ public:
 
 private:
     void createPeerConnection();
-    void setupVideoDescription();
 
     std::function<void(std::string&)> sendSignal_;
     std::function<void(enum ConnectionEvent)> eventHandler_;
