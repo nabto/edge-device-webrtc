@@ -31,8 +31,6 @@ void WebrtcChannel::createPeerConnection()
     pc_->onStateChange([self](rtc::PeerConnection::State state) {
         std::cout << "State: " << state << std::endl;
         if (state == rtc::PeerConnection::State::Connected) {
-            self->setupVideoDescription();
-            self->pc_->setLocalDescription();
             if (self->eventHandler_) {
                 self->eventHandler_(ConnectionEvent::CONNECTED);
             }
@@ -137,20 +135,31 @@ void WebrtcChannel::createPeerConnection()
         }
         });
 
-    // self->setupVideoDescription();
+    pc_->onTrack([self](std::shared_ptr<rtc::Track> track) {
+        std::cout << "Got Track event" << std::endl;
+        try {
+            auto media = track->description();
+            rtc::Description::Media::RtpMap* rtp = media.rtpMap(108);
+            media.addSSRC(self->ssrc_, "video-send");
+            self->track_ = self->pc_->addTrack(media);
+        } catch (std::exception ex) {
+            std::cout << "GOT EXCEPTION!!! " << ex.what() << std::endl;
+        }
+    });
 }
 
 
 void WebrtcChannel::setupVideoDescription()
 {
+    // TODO: This function is unused
     // TODO: rtsp_.init();
     // TODO: more flexible codec and video ID
     rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
-    media.addH264Codec(96); // Must match the payload type of the external h264 RTP stream
+    media.addH264Codec(108); // Must match the payload type of the external h264 RTP stream
     media.addSSRC(ssrc_, "video-send");
     track_ = pc_->addTrack(media);
 
-    // pc_->setLocalDescription();
+    pc_->setLocalDescription();
 }
 
 
@@ -158,7 +167,6 @@ void WebrtcChannel::handleOffer(std::string& offer) {
     std::cout << "Got Offer: " << offer << std::endl;
     if (!pc_) {
         createPeerConnection();
-        setupVideoDescription();
     }
     // TODO: handle json exceptions
     json sdp = json::parse(offer);
@@ -180,6 +188,7 @@ void WebrtcChannel::handleAnswer(std::string& answer) {
 
 void WebrtcChannel::handleIce(std::string& ice) {
     std::cout << "Got ICE: " << ice << std::endl;
+    //return;
     // TODO: handle json exceptions
     json candidate = json::parse(ice);
     rtc::Candidate cand(candidate["candidate"].get<std::string>(), candidate["sdpMid"].get<std::string>());
