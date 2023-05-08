@@ -32,7 +32,7 @@ public:
         objectBuffer_ = NULL;
 
 //        WebrtcChannel::TurnServer turn = { "3.252.194.140", 3478, "1675935678:foo", "D/9Nw9yGzXGL+qy/mvwLlXfOgVI=" };
-        WebrtcChannel::TurnServer turn = { "34.245.62.208", 3478, "1683106892:foo", "QIskpuemhPk3phNFwsBHQLonciI=" };
+        WebrtcChannel::TurnServer turn = { "34.245.62.208", 3478, "1683617751:foo", "ZdAQAp+mY+m0o+3WBVzxuS/g7Dk=" };
 
         turnServers_.push_back(turn);
 

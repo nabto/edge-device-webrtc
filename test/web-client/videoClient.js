@@ -149,23 +149,23 @@ function createPeerConnection() {
   // STUN server.
 
   myPeerConnection = new RTCPeerConnection({
-    iceServers: //iceServers,
-    [     // Information about ICE servers - Use your own!
-      // {
-      //   urls: "turn:" + myHostname,  // A TURN server
-      //   username: "1675854660:foo",
-      //   credential: "gTDTZxG+R4BCJRk0NEkkB1DUYyw="
-      // },
-      // {
-      //   urls: "turn:34.245.62.208",  // A TURN server
-      //   username: "1675935678:foo",
-      //   credential: "D/9Nw9yGzXGL+qy/mvwLlXfOgVI="
-      // },
-      {
-        urls: "stun:stun.nabto.net",
-      },
-    ],
-//       iceTransportPolicy: "relay",
+    iceServers: iceServers,
+    // [     // Information about ICE servers - Use your own!
+    //   // {
+    //   //   urls: "turn:" + myHostname,  // A TURN server
+    //   //   username: "1675854660:foo",
+    //   //   credential: "gTDTZxG+R4BCJRk0NEkkB1DUYyw="
+    //   // },
+    //   // {
+    //   //   urls: "turn:34.245.62.208",  // A TURN server
+    //   //   username: "1675935678:foo",
+    //   //   credential: "D/9Nw9yGzXGL+qy/mvwLlXfOgVI="
+    //   // },
+    //   {
+    //     urls: "stun:stun.nabto.net",
+    //   },
+    // ],
+      // iceTransportPolicy: "relay",
   });
 
   // Set up event handlers for the ICE negotiation process.
@@ -327,11 +327,11 @@ async function handleTurnResponse(msg) {
   boxLog("[");
   for (let s of msg.servers) {
     // TODO: add port somewhere
-    // iceServers.push({
-    //   urls: `turn:${s.hostname}`,
-    //   username: s.username,
-    //   credential: s.password,
-    // });
+    iceServers.push({
+      urls: `turn:${s.hostname}`,
+      username: s.username,
+      credential: s.password,
+    });
     boxLog(`{`);
     boxLog(`  hostname: ${s.hostname},`);
     boxLog(`  port: ${s.port},`);
