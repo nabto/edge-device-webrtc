@@ -10,7 +10,7 @@ typedef int SOCKET;
 const int RTSP_BUFFER_SIZE = 2048;
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
+#include <unistd.h>
 
 namespace nabto {
 
@@ -25,6 +25,15 @@ public:
         }
 
         return setupRtsp();
+    }
+
+    void stop()
+    {
+      stopped_ = true;
+      if (sock_ != 0) {
+        close(sock_);
+      }
+
     }
 
     void run(std::function<void (char*, int)> sender) {
@@ -46,7 +55,7 @@ public:
 		char buffer[RTSP_BUFFER_SIZE];
 		int len;
         int count = 0;
-		while ((len = recv(sock_, buffer, RTSP_BUFFER_SIZE, 0)) >= 0) {
+		while ((len = recv(sock_, buffer, RTSP_BUFFER_SIZE, 0)) >= 0 && !stopped_) {
             count++;
             if (count%100 == 0) {
                 std::cout << ".";
@@ -224,8 +233,9 @@ private:
     }
 
     CURL* curl_;
-	SOCKET sock_;
+	SOCKET sock_ = 0;
     std::string url_;
+    bool stopped_ = false;
 };
 
 

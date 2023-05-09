@@ -146,6 +146,7 @@ void WebrtcChannel::createPeerConnection()
             // for (auto fb : rtp->fmtps) {
             //     std::cout << "   " << fb << std::endl;
             // }
+            // TODO: not-hardcoded srcPayloadType
             self->srcPayloadType_ = 96;
             self->dstPayloadType_ = rtp->payloadType;
             media.addSSRC(self->ssrc_, "video-send");

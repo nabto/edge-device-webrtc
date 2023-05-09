@@ -30,6 +30,8 @@ void parse_options(int argc, char** argv);
 
 NabtoDevice* device;
 bool stopped = false;
+std::shared_ptr<nabto::RtspClient> rtsp = nullptr;
+SOCKET sock = 0;
 
 void signal_handler(int s)
 {
@@ -44,6 +46,11 @@ void signal_handler(int s)
     nabto_device_future_free(fut);
     nabto_device_stop(device);
     stopped = true;
+    if (sock != 0) {
+        close(sock);
+    } else if (rtsp != nullptr) {
+        rtsp->stop();
+    }
 }
 
 bool check_access(NabtoDeviceConnectionRef ref, const char* action, void* userData) {
@@ -62,7 +69,7 @@ int main(int argc, char** argv) {
     nabto::NabtoWebrtc webrtc(device, &check_access, NULL);
     signal(SIGINT, &signal_handler);
 
-    auto rtsp = std::make_shared<nabto::RtspClient>(rtspUrl);
+    rtsp = std::make_shared<nabto::RtspClient>(rtspUrl);
     if (rtspUrl != "" && !rtsp->init()) {
         std::cout << "failed to initialize RTSP client" << std::endl;
         return -1;
@@ -76,7 +83,7 @@ int main(int argc, char** argv) {
             });
 
     } else {
-        SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
+        sock = socket(AF_INET, SOCK_DGRAM, 0);
         struct sockaddr_in addr = {};
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = inet_addr("127.0.0.1");
