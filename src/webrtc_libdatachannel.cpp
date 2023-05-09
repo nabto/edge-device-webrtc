@@ -122,10 +122,17 @@ void WebrtcChannel::createPeerConnection()
                     std::cout << "Bad rtpMap for pt: " << pt << std::endl;
                     continue;
                 }
+                // TODO: make codec configureable and generalize this matching
+                // std::string profLvlId = "42e01f";
+                // std::string lvlAsymAllowed = "1";
+                // std::string pktMode = "1";
+                std::string profLvlId = "4d001f";
+                std::string lvlAsymAllowed = "1";
+                std::string pktMode = "1";
                 if (r != NULL && r->fmtps.size() > 0 &&
-                    r->fmtps[0].find("profile-level-id=42e01f") != std::string::npos &&
-                    r->fmtps[0].find("level-asymmetry-allowed=1") != std::string::npos &&
-                    r->fmtps[0].find("packetization-mode=1") != std::string::npos
+                    r->fmtps[0].find("profile-level-id="+profLvlId) != std::string::npos &&
+                    r->fmtps[0].find("level-asymmetry-allowed="+lvlAsymAllowed) != std::string::npos &&
+                    r->fmtps[0].find("packetization-mode="+pktMode) != std::string::npos
                     ) {
                     std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
                     rtp = r;
@@ -134,6 +141,9 @@ void WebrtcChannel::createPeerConnection()
                     media.removeRtpMap(pt);
                 }
             }
+            // TODO: handle no match found error
+
+
             // rtc::Description::Media::RtpMap* rtp = media.rtpMap(108);
             // std::cout << "RTP format: " << rtp->format << std::endl
             // << "RTP encParams: " << rtp->encParams << std::endl
