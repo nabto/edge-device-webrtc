@@ -113,7 +113,41 @@ void WebrtcChannel::createPeerConnection()
         std::cout << "Got Track event" << std::endl;
         try {
             auto media = track->description();
-            rtc::Description::Media::RtpMap* rtp = media.rtpMap(108);
+            rtc::Description::Media::RtpMap* rtp = NULL;
+            for (auto pt : media.payloadTypes()) {
+                rtc::Description::Media::RtpMap* r = NULL;
+                try {
+                    r = media.rtpMap(pt);
+                } catch (std::exception& ex) {
+                    std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+                    continue;
+                }
+                if (r != NULL && r->fmtps.size() > 0 &&
+                    r->fmtps[0].find("profile-level-id=42e01f") != std::string::npos &&
+                    r->fmtps[0].find("level-asymmetry-allowed=1") != std::string::npos &&
+                    r->fmtps[0].find("packetization-mode=1") != std::string::npos
+                    ) {
+                    std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
+                    rtp = r;
+                } else {
+                    std::cout << "no match, removing" << std::endl;
+                    media.removeRtpMap(pt);
+                }
+            }
+            // rtc::Description::Media::RtpMap* rtp = media.rtpMap(108);
+            // std::cout << "RTP format: " << rtp->format << std::endl
+            // << "RTP encParams: " << rtp->encParams << std::endl
+            //     << "RTP clockRate: " << rtp->clockRate << std::endl;
+            // std::cout << "rtcpFbs: " << std::endl;
+            // for (auto fb : rtp->rtcpFbs) {
+            //     std::cout << "   " << fb << std::endl;
+            // }
+            // std::cout << "fmtp: " << std::endl;
+            // for (auto fb : rtp->fmtps) {
+            //     std::cout << "   " << fb << std::endl;
+            // }
+            self->srcPayloadType_ = 96;
+            self->dstPayloadType_ = rtp->payloadType;
             media.addSSRC(self->ssrc_, "video-send");
             self->track_ = self->pc_->addTrack(media);
         } catch (std::exception ex) {

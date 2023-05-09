@@ -55,6 +55,7 @@ public:
 
         auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
         rtp->setSsrc(ssrc_);
+        rtp->setPayloadType(dstPayloadType_);
 
         track_->send(reinterpret_cast<const std::byte*>(buffer), len);
     }
@@ -66,6 +67,8 @@ private:
     std::function<void(enum ConnectionEvent)> eventHandler_;
     std::shared_ptr<rtc::PeerConnection> pc_ = nullptr;
     rtc::SSRC ssrc_ = 42;
+    int srcPayloadType_ = 0;
+    int dstPayloadType_ = 0;
     std::shared_ptr<rtc::Track> track_;
     rtc::PeerConnection::GatheringState state_ = rtc::PeerConnection::GatheringState::New;
 

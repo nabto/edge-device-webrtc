@@ -102,7 +102,6 @@ int main(int argc, char** argv) {
                 std::cout << std::endl;
                 count = 0;
             }
-            //            std::cout << "Received packet size: " << len << std::endl;
             webrtc.handleVideoData((uint8_t*)buffer, len);
         }
     }
