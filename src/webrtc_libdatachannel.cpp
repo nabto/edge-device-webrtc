@@ -2,7 +2,7 @@
 #include "webrtc_stream.hpp"
 
 #include <nlohmann/json.hpp>
-
+#include <sstream>
 using nlohmann::json;
 
 namespace nabto {
@@ -13,10 +13,54 @@ void WebrtcChannel::createPeerConnection()
     rtc::Configuration conf;
 
     for (auto t : turnServers_) {
-        conf.iceServers.push_back(rtc::IceServer(t.hostname, t.port, t.username, t.password));
+        std::string proto = "";
+        std::string host = t.hostname;
+        std::string query = "";
+        if (t.hostname.rfind("turn:", 0) == 0) {
+            host = t.hostname.substr(5);
+            proto = "turn:";
+        }
+        else if (t.hostname.rfind("stun:", 0) == 0) {
+            host = t.hostname.substr(5);
+            proto = "stun:";
+        }
+        auto n = host.find("?");
+        if (n != std::string::npos) {
+            query = host.substr(n);
+            host = host.substr(0, n);
+        }
+
+        std::stringstream ss;
+        ss << proto;
+
+        if (!t.username.empty() && !t.password.empty()) {
+            std::string username = t.username;
+            auto n = username.find(":");
+            while(n != std::string::npos) {
+                username.replace(n, 1, "%3A");
+                n = username.find(":");
+            }
+            ss << username << ":" << t.password << "@";
+        }
+
+        ss << host;
+
+        if (t.port != 0) {
+            ss << ":" << t.port;
+        }
+        ss << query;
+
+        auto server = rtc::IceServer(ss.str());
+        std::cout << "Created server with hostname: " << server.hostname << std::endl
+        << "    port: " << server.port << std::endl
+        << "    username: " << server.username << std::endl
+        << "    password: " << server.password << std::endl
+        << "    type: " << (server.type == rtc::IceServer::Type::Turn ? "TURN" : "STUN") << std::endl
+        << "    RelayType: " << (server.relayType == rtc::IceServer::RelayType::TurnUdp ? "TurnUdp" : (server.relayType == rtc::IceServer::RelayType::TurnTcp ? "TurnTcp" : "TurnTls")) << std::endl;
+        conf.iceServers.push_back(server);
     }
 
-    // conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
+    conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
 
     conf.disableAutoNegotiation = true;
 
@@ -119,14 +163,14 @@ void WebrtcChannel::createPeerConnection()
                 try {
                     r = media.rtpMap(pt);
                 } catch (std::exception& ex) {
-                    std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+                    // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
                     continue;
                 }
                 // TODO: make codec configureable and generalize this matching
-                // std::string profLvlId = "42e01f";
+                std::string profLvlId = "42e01f";
                 // std::string lvlAsymAllowed = "1";
                 // std::string pktMode = "1";
-                std::string profLvlId = "4d001f";
+                // std::string profLvlId = "4d001f";
                 std::string lvlAsymAllowed = "1";
                 std::string pktMode = "1";
                 if (r != NULL && r->fmtps.size() > 0 &&
@@ -137,7 +181,7 @@ void WebrtcChannel::createPeerConnection()
                     std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
                     rtp = r;
                 } else {
-                    std::cout << "no match, removing" << std::endl;
+                    // std::cout << "no match, removing" << std::endl;
                     media.removeRtpMap(pt);
                 }
             }

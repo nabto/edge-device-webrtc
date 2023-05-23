@@ -3,6 +3,7 @@
 #include "webrtc_libdatachannel.hpp"
 
 #include <nabto/nabto_device.h>
+#include <nabto/nabto_device_experimental.h>
 #include <nlohmann/json.hpp>
 
 #include <memory>
@@ -32,11 +33,10 @@ public:
         objectBuffer_ = NULL;
 
 //        WebrtcChannel::TurnServer turn = { "3.252.194.140", 3478, "1675935678:foo", "D/9Nw9yGzXGL+qy/mvwLlXfOgVI=" };
-        WebrtcChannel::TurnServer turn = { "34.245.62.208", 3478, "1683617751:foo", "ZdAQAp+mY+m0o+3WBVzxuS/g7Dk=" };
+        // WebrtcChannel::TurnServer turn = { "turn:34.245.62.208?transport=udp", 3478, "1684916560:foo", "b5cWMu0HHHDvRh/sUpO7C7D3kaU=" };
 
-        turnServers_.push_back(turn);
+        // turnServers_.push_back(turn);
 
-        channel_ = std::make_shared<WebrtcChannel>(turnServers_);
     }
 
     ~WebrtcStream() {
@@ -50,21 +50,12 @@ public:
     }
 
     void start() {
-        auto self = shared_from_this();
-        channel_->setSignalSender(
-        [self](std::string& data) {
-            self->sendSignalligObject(data);
-        });
-        channel_->setEventHandler(
-            [self](enum WebrtcChannel::ConnectionEvent ev) {
-                std::cout << "Got WebrtcChannel Connection Event: " << ev << std::endl;
-                if (ev == WebrtcChannel::ConnectionEvent::CONNECTED) {
-                    self->connected_ = true;
-                }
-                else if (ev == WebrtcChannel::ConnectionEvent::CLOSED) {
-                    self->self_ = nullptr;
-                }
-        });
+        const char* identifier = "foobar";
+        iceReq_ = nabto_device_ice_servers_request_new(device_);
+        auto iceFut = nabto_device_future_new(device_);
+        nabto_device_ice_servers_request_send(identifier, iceReq_, iceFut);
+        nabto_device_future_set_callback(iceFut, iceServersResolved, this);
+
         nabto_device_stream_accept(stream_, fut_);
         self_ = shared_from_this();
         nabto_device_future_set_callback(fut_, streamAccepted, this);
@@ -78,6 +69,65 @@ public:
     }
 
 private:
+    static void iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData) {
+        WebrtcStream* self = (WebrtcStream*)userData;
+        nabto_device_future_free(future);
+        if (ec != NABTO_DEVICE_EC_OK) {
+            self->self_ = nullptr;
+            nabto_device_ice_servers_request_free(self->iceReq_);
+            return;
+        }
+        self->parseIceServers();
+        std::cout << "Got ICE servers, creating channel" << std::endl;
+        self->createChannel();
+        if (self->accepted_) {
+            // If accepted returned first we start reading here
+            std::cout << "Ice servers after stream accept. Start reading" << std::endl;
+            self->readObjLength();
+        }
+    }
+
+    void createChannel() {
+        auto self = shared_from_this();
+        channel_ = std::make_shared<WebrtcChannel>(turnServers_);
+        channel_->setSignalSender(
+            [self](std::string& data) {
+                self->sendSignalligObject(data);
+            });
+        channel_->setEventHandler(
+            [self](enum WebrtcChannel::ConnectionEvent ev) {
+                std::cout << "Got WebrtcChannel Connection Event: " << ev << std::endl;
+                if (ev == WebrtcChannel::ConnectionEvent::CONNECTED) {
+                    self->connected_ = true;
+                }
+                else if (ev == WebrtcChannel::ConnectionEvent::CLOSED) {
+                    self->self_ = nullptr;
+                }
+            });
+
+    }
+
+    void parseIceServers() {
+        size_t n = nabto_device_ice_servers_request_get_server_count(iceReq_);
+        for (size_t i = 0; i < n; i++) {
+            const char* username = nabto_device_ice_servers_request_get_username(iceReq_, i);
+            const char* cred = nabto_device_ice_servers_request_get_credential(iceReq_, i);
+            size_t urlCount = nabto_device_ice_servers_request_get_urls_count(iceReq_, i);
+
+            for (size_t u = 0; u < urlCount; u++) {
+                WebrtcChannel::TurnServer turn;
+                memset(&turn, 0, sizeof(turn));
+                if (username != NULL) {
+                    turn.username = std::string(username);
+                }
+                if (cred != NULL) {
+                    turn.password = std::string(cred);
+                }
+                turn.hostname = std::string(nabto_device_ice_servers_request_get_url(iceReq_, i, u));
+                turnServers_.push_back(turn);
+            }
+        }
+    }
 
     static void streamAccepted(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData) {
         WebrtcStream* self = (WebrtcStream*)userData;
@@ -85,7 +135,12 @@ private:
             self->self_ = nullptr;
             return;
         }
-        self->readObjLength();
+        self->accepted_ = true;
+        if (self->channel_) {
+            // If ice servers request returned first we start reading here
+            std::cout << "Stream accepted after ICE servers. Start reading" << std::endl;
+            self->readObjLength();
+        }
     }
 
     // READ OBJECT LENGTH //
@@ -256,6 +311,9 @@ private:
     uint8_t* objectBuffer_;
     bool connected_ = false;
     std::vector<WebrtcChannel::TurnServer> turnServers_;
+
+    bool accepted_ = false;
+    NabtoDeviceIceServersRequest* iceReq_;
 
 };
 

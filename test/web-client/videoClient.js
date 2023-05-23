@@ -328,7 +328,7 @@ async function handleTurnResponse(msg) {
   for (let s of msg.servers) {
     // TODO: add port somewhere
     iceServers.push({
-      urls: `turn:${s.hostname}`,
+      urls: `${s.hostname}`,
       username: s.username,
       credential: s.password,
     });
