@@ -7,6 +7,41 @@ using nlohmann::json;
 
 namespace nabto {
 
+
+void WebrtcChannel::coapCallback(NabtoDeviceFuture* fut, NabtoDeviceError err, void* data)
+{
+    WebrtcChannel* self = (WebrtcChannel*)(data);
+    nabto_device_future_free(fut);
+    self->handleCoapResponse(err);
+}
+
+void WebrtcChannel::handleCoapResponse(NabtoDeviceError err)
+{
+    NabtoDeviceVirtualCoapRequest* req = coap_;
+    coap_ = NULL;
+    uint16_t status;
+    nabto_device_virtual_coap_request_get_response_status_code(req, &status);
+    uint16_t cf;
+    nabto_device_virtual_coap_request_get_response_content_format(req, &cf);
+
+    uint8_t* payload;
+    size_t len;
+    nabto_device_virtual_coap_request_get_response_payload(req, (void**)&payload, &len);
+    std::vector<uint8_t> respPayload(payload, payload+len);
+
+    json resp = {
+        {"type", 1},
+        {"requestId", coapRequestId_},
+        {"statusCode", status},
+        {"contentType", cf},
+        {"payload", respPayload}
+    };
+    coapChannel_->send(resp.dump());
+    nabto_device_virtual_coap_request_free(req);
+}
+
+
+
 void WebrtcChannel::createPeerConnection()
 {
     auto self = shared_from_this();
@@ -60,7 +95,7 @@ void WebrtcChannel::createPeerConnection()
         conf.iceServers.push_back(server);
     }
 
-    conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
+    // conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
 
     conf.disableAutoNegotiation = true;
 
@@ -73,6 +108,8 @@ void WebrtcChannel::createPeerConnection()
                 self->eventHandler_(ConnectionEvent::CONNECTED);
             }
         } else if (state == rtc::PeerConnection::State::Closed) {
+            nabto_device_virtual_connection_free(self->nabtoConnection_);
+            self->nabtoConnection_ = NULL;
             if (self->eventHandler_) {
                 self->eventHandler_(ConnectionEvent::CLOSED);
             }
@@ -207,6 +244,70 @@ void WebrtcChannel::createPeerConnection()
             self->track_ = self->pc_->addTrack(media);
         } catch (std::exception ex) {
             std::cout << "GOT EXCEPTION!!! " << ex.what() << std::endl;
+        }
+    });
+
+    pc_->onDataChannel([self](std::shared_ptr<rtc::DataChannel> incoming) {
+        if (incoming->label() == "coap" &&  self->device_ != NULL) {
+            self->coapChannel_ = incoming;
+
+            self->nabtoConnection_ = nabto_device_virtual_connection_new(self->device_);
+            // TODO: handle allocation error
+            self->coapChannel_->onMessage([self](rtc::binary data) {
+                std::cout << "Got Data channel binary data"
+                    << std::endl;
+
+                },
+                [self](std::string data) {
+                    std::cout
+                        << "Got data channel string data: " << data
+                        << std::endl;
+
+                    json message = json::parse(data);
+                    if (message["type"].get<int>() == controlMessageType::COAP_REQUEST) {
+                        self->coapRequestId_ = message["requestId"].get<std::string>();
+                        std::string method = message["method"].get<std::string>();
+                        std::string path = message["path"].get<std::string>();
+                        // TODO: support payloads
+
+                        if (path[0] == '/') {
+                            path = path.substr(1);
+                        }
+
+                        // TODO: do not just assume max 10 segments
+                        const char** pathSegments = (const char**)calloc(10, sizeof(char*));
+                        std::vector<std::string> stdSegments;
+                        size_t pos = 0;
+                        size_t count = 0;
+                        pos = path.find("/");
+                        while(pos != std::string::npos){
+                            std::string segment = path.substr(0,pos);
+                            std::cout << "found segment at pos: " << pos << ": " << segment << std::endl;
+                            stdSegments.push_back(segment);
+                            pathSegments[count] = stdSegments[stdSegments.size()-1].c_str();
+                            path = path.substr(pos+1);
+                            pos = path.find("/");
+                            count++;
+                        }
+                        pathSegments[count] = path.c_str();
+                        std::cout << "found last segment: " << path << std::endl;
+
+                        NabtoDeviceCoapMethod coapMethod;
+                        // TODO: support all methods
+                        if (method == "GET") {
+                            coapMethod = NABTO_DEVICE_COAP_GET;
+                        }
+
+                        // TODO: check coap_ is available
+                        self->coap_ = nabto_device_virtual_coap_request_new(self->nabtoConnection_, coapMethod, pathSegments);
+
+                        NabtoDeviceFuture* fut = nabto_device_future_new(self->device_);
+                        nabto_device_virtual_coap_request_execute(self->coap_, fut);
+
+                        nabto_device_future_set_callback(fut, &WebrtcChannel::coapCallback, self.get());
+
+                    }
+                });
         }
     });
 }

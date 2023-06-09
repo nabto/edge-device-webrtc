@@ -344,7 +344,25 @@ async function handleTurnResponse(msg) {
   createPeerConnection();
   // const offer = await myPeerConnection.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: true});
   // const offer = await myPeerConnection.createOffer({ offerToReceiveVideo: true});
-  // myPeerConnection.createDataChannel("foo");
+  let datachannel = myPeerConnection.createDataChannel("coap");
+
+  datachannel.addEventListener("open", (event) => {
+    console.log("Datachannel Opened");
+    boxLog("Datachannel Opened");
+    let req = {
+      type: 0,
+      requestId: "foobar",
+      method: "GET",
+      path: "/p2p/endpoints"
+    };
+    datachannel.send(JSON.stringify(req));
+  });
+
+  datachannel.addEventListener("message", (event) => {
+    console.log("Got datachannel message: ", event.data);
+    boxLog(`Data channel message recieved: ${event.data}`);
+
+  });
 
   myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
   const offer = await myPeerConnection.createOffer();

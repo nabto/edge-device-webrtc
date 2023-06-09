@@ -104,6 +104,7 @@ private:
                     self->self_ = nullptr;
                 }
             });
+        channel_->setNabtoDevice(device_);
 
     }
 

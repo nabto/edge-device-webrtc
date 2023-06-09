@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nabto/nabto_device.h>
+#include <nabto/nabto_device_experimental.h>
 #include "rtc/rtc.hpp"
 
 #include <iostream>
@@ -22,6 +24,11 @@ public:
         FAILED
     };
 
+    enum controlMessageType {
+        COAP_REQUEST = 0,
+        COAP_RESPONSE
+    };
+
     WebrtcChannel(std::vector<struct TurnServer> servers)
     {
         turnServers_ = servers;
@@ -29,7 +36,14 @@ public:
 
     ~WebrtcChannel()
     {
+        if (nabtoConnection_ != NULL) {
+            nabto_device_virtual_connection_free(nabtoConnection_);
+        }
         std::cout << "WebrtcChannel Destructor" << std::endl;
+    }
+
+    void setNabtoDevice(NabtoDevice* device) {
+        device_ = device;
     }
 
     void setEventHandler(std::function<void(enum ConnectionEvent)> eventHandler)
@@ -63,9 +77,15 @@ public:
 private:
     void createPeerConnection();
 
+    static void coapCallback(NabtoDeviceFuture* fut, NabtoDeviceError err, void* data);
+
+    void handleCoapResponse(NabtoDeviceError err);
+
     std::function<void(std::string&)> sendSignal_;
     std::function<void(enum ConnectionEvent)> eventHandler_;
     std::shared_ptr<rtc::PeerConnection> pc_ = nullptr;
+    std::shared_ptr<rtc::DataChannel> coapChannel_;
+
     rtc::SSRC ssrc_ = 42;
     int srcPayloadType_ = 0;
     int dstPayloadType_ = 0;
@@ -73,6 +93,10 @@ private:
     rtc::PeerConnection::GatheringState state_ = rtc::PeerConnection::GatheringState::New;
 
     std::vector<struct TurnServer> turnServers_;
+    NabtoDevice* device_ = NULL;
+    NabtoDeviceVirtualConnection* nabtoConnection_ = NULL;
+    NabtoDeviceVirtualCoapRequest* coap_ = NULL;
+    std::string coapRequestId_;
 };
 
 
