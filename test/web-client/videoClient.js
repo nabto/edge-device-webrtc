@@ -9,14 +9,9 @@
 // Any copyright is dedicated to the Public Domain.
 // http://creativecommons.org/publicdomain/zero/1.0/
 
-"use strict";
 
-// Get our hostname
-
-var myHostname = "localhost";
-
-// WebSocket chat/signaling channel variables.
-var connection = null;
+var nabtoSignaling = new NabtoWebrtcSignaling();
+var nabtoConnection = new NabtoWebrtcConnection();
 
 var productId = null;
 var deviceId = null;
@@ -51,17 +46,6 @@ function boxLog(msg) {
   listElem.appendChild(item);
 }
 
-// Send a JavaScript object by converting it to JSON and sending
-// it as a message on the WebSocket connection.
-
-function sendToServer(msg) {
-  var msgJSON = JSON.stringify(msg);
-
-  log("Sending '" + msg.type + "' message: " + msgJSON);
-  connection.send(msgJSON);
-}
-
-
 function reset() {
   myPeerConnection = null;    // RTCPeerConnection
   transceiver = null;         // RTCRtpTransceiver
@@ -73,99 +57,49 @@ function reset() {
 
 function connect() {
   reset();
-  var serverUrl;
-  var scheme = "ws";
 
-  serverUrl = scheme + "://" + myHostname + ":6503";
-
-  log(`Connecting to server: ${serverUrl}`);
-  boxLog(`Connecting to server: ${serverUrl}`);
-  connection = new WebSocket(serverUrl, "json");
-
-  connection.onerror = function (evt) {
-    console.dir(evt);
-  }
-
-  connection.onmessage = function (evt) {
-    console.log("Message received: ", evt.data);
-    var msg = JSON.parse(evt.data);
-
-    switch (msg.type) {
-      case 21: // WEBSOCK_LOGIN_RESPONSE
-        handleLoginResponse(msg);
-        break;
-      case 0:  // video offer (should not be needed)
-        handleVideoOfferMsg(msg);
-        break;
-
-      case 1:  // video answer from device
-        handleVideoAnswerMsg(msg);
-        break;
-
-      case 2: // A new ICE candidate has been received
-        handleNewICECandidateMsg(msg);
-        break;
-
-      case 4: // TURN response
-        handleTurnResponse(msg);
-        break;
-
-      default:
-        log_error("Unknown message received:");
-        log_error(msg);
-    }
-
-  };
+  log(`Connecting to server: ${nabtoSignaling.signalingHost}`);
+  boxLog(`Connecting to server: ${nabtoSignaling.signalingHost}`);
 
   productId = document.getElementById("product").value;
   deviceId = document.getElementById("device").value;
   sct = document.getElementById("sct").value;
 
-  connection.onopen = function (evt) {
-    let loginReq = {
-      type: 20,
-      productId: productId,
-      deviceId: deviceId,
-      sct: sct,
-      username: "foobar",
-      password: "foobar",
-    }
+  nabtoSignaling.setDeviceConfigSct(productId, deviceId, sct);
 
-    sendToServer(loginReq);
-  }
+  nabtoSignaling.onconnected = (msg) => {
+    nabtoSignaling.requestTurnCredentials();
+  };
 
+  nabtoSignaling.onoffer = (msg) => {
+    handleVideoOfferMsg(msg);
+  };
+
+  nabtoSignaling.onanswer = (msg) => {
+    handleVideoAnswerMsg(msg);
+  };
+
+  nabtoSignaling.onicecandidate = (msg) => {
+    handleNewICECandidateMsg(msg);
+  };
+
+  nabtoSignaling.onturncredentials = (msg) => {
+    handleTurnResponse(msg);
+  };
+
+  nabtoSignaling.signalingConnect();
 }
 
-// Create the RTCPeerConnection which knows how to talk to our
-// selected STUN/TURN server and then uses getUserMedia() to find
-// our camera and microphone and add that stream to the connection for
-// use in our video call. Then we configure event handlers to get
-// needed notifications on the call.
 
 function createPeerConnection() {
-  log("Setting up a connection...");
+  log("Setting up a WebRTC connection...");
 
   // Create an RTCPeerConnection which knows to use our chosen
   // STUN server.
 
   myPeerConnection = new RTCPeerConnection({
     iceServers: iceServers,
-    // [     // Information about ICE servers - Use your own!
-    //   // {
-    //   //   urls: "turn:" + myHostname,  // A TURN server
-    //   //   username: "1675854660:foo",
-    //   //   credential: "gTDTZxG+R4BCJRk0NEkkB1DUYyw="
-    //   // },
-    //   // {
-    //   //   urls: "turn:34.245.62.208",  // A TURN server
-    //   //   username: "1675935678:foo",
-    //   //   credential: "D/9Nw9yGzXGL+qy/mvwLlXfOgVI="
-    //   // },
-    //   {
-    //     urls: "stun:stun.nabto.net",
-    //   },
-    // ],
-      // iceTransportPolicy: "relay",
+    // iceTransportPolicy: "relay",
   });
 
   // Set up event handlers for the ICE negotiation process.
@@ -183,37 +117,7 @@ function createPeerConnection() {
 
 async function handleNegotiationNeededEvent() {
   log("*** Negotiation needed");
-
-  // try {
-  //   log("---> Creating offer");
-  //   const offer = await myPeerConnection.createOffer();
-
-  //   // If the connection hasn't yet achieved the "stable" state,
-  //   // return to the caller. Another negotiationneeded event
-  //   // will be fired when the state stabilizes.
-
-  //   if (myPeerConnection.signalingState != "stable") {
-  //     log("     -- The connection isn't stable yet; postponing...")
-  //     return;
-  //   }
-
-  //   // Establish the offer as the local peer's current
-  //   // description.
-
-  //   await myPeerConnection.setLocalDescription(offer);
-  //   console.log("---> Setting local description: ", myPeerConnection.localDescription);
-
-  //   // Send the offer to the remote peer.
-  //   boxLog(`Sending WebRTC offer to device`);
-
-  //   sendToServer({
-  //     type: 0,
-  //     data: JSON.stringify(myPeerConnection.localDescription)
-  //   });
-  // } catch (err) {
-  //   log("*** The following error occurred while handling the negotiationneeded event:");
-  //   reportError(err);
-  // };
+  // TODO: renegotiation
 }
 
 // Called by the WebRTC layer when events occur on the media tracks
@@ -252,8 +156,6 @@ async function handleTrackEvent(event) {
   } else {
     video.src = URL.createObjectURL(stream);
   }
-  // await video.play();
-  // video.srcObject = stream;
 }
 
 // Handles |icecandidate| events by forwarding the specified
@@ -262,11 +164,7 @@ async function handleTrackEvent(event) {
 function handleICECandidateEvent(event) {
   if (event.candidate) {
     log("*** Outgoing ICE candidate: " + event.candidate.candidate);
-
-    sendToServer({
-      type: 2,
-      data: JSON.stringify(event.candidate)
-    });
+    nabtoSignaling.sendIceCandidate(event.candidate);
   }
 }
 
@@ -318,10 +216,6 @@ function handleICEGatheringStateChangeEvent(event) {
 }
 
 
-async function handleLoginResponse(msg) {
-  sendToServer({ type: 3 });
-}
-
 async function handleTurnResponse(msg) {
   boxLog(`Received TURN Server Configuration:`);
   boxLog("[");
@@ -344,38 +238,24 @@ async function handleTurnResponse(msg) {
   createPeerConnection();
   // const offer = await myPeerConnection.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: true});
   // const offer = await myPeerConnection.createOffer({ offerToReceiveVideo: true});
-  let datachannel = myPeerConnection.createDataChannel("coap");
+  let coapChannel = myPeerConnection.createDataChannel("coap");
 
-  datachannel.addEventListener("open", (event) => {
+  coapChannel.addEventListener("open", (event) => {
     console.log("Datachannel Opened");
     boxLog("Datachannel Opened");
-    let req = {
-      type: 0,
-      requestId: "foobar",
-      method: "GET",
-      path: "/p2p/endpoints"
-    };
-    datachannel.send(JSON.stringify(req));
-  });
+    nabtoConnection.setCoapDataChannel(coapChannel);
 
-  datachannel.addEventListener("message", (event) => {
-    console.log("Got datachannel message: ", event.data);
-    boxLog(`Data channel message recieved: ${event.data}`);
-
+    nabtoConnection.coapInvoke("GET", "/p2p/endpoints", undefined, undefined, (resp) => {
+      boxLog(`Coap response recieved: ${resp}`);
+    });
   });
 
   myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
   const offer = await myPeerConnection.createOffer();
 
-  if (myPeerConnection.signalingState != "stable") {
-    log("     -- The connection isn't stable yet; WTF...")
-  }
-
   await myPeerConnection.setLocalDescription(offer);
-  sendToServer({
-    type: 0,
-    data: JSON.stringify(myPeerConnection.localDescription)
-  });
+
+  nabtoSignaling.sendOffer(myPeerConnection.localDescription);
 }
 
 // Close the RTCPeerConnection and reset variables so that the user can
@@ -411,6 +291,7 @@ function closeVideoCall() {
 
     myPeerConnection.close();
     myPeerConnection = null;
+    nabtoConnection = null;
   }
 
 }
@@ -427,28 +308,6 @@ function hangUpCall() {
   }
 }
 
-// Handle a click on an item in the user list by inviting the clicked
-// user to video chat. Note that we don't actually send a message to
-// the callee here -- calling RTCPeerConnection.addTrack() issues
-// a |notificationneeded| event, so we'll let our handler for that
-// make the offer.
-
-// async function invite() {
-//   log("Starting to prepare an invitation");
-//   if (myPeerConnection) {
-//     alert("You can't start a call because you already have one open!");
-//   } else {
-
-//     createPeerConnection();
-//     // log("Asking device " + targetUsername + " for video-offer");
-//     // sendToServer({
-//     //   name: myUsername,
-//     //   target: targetUsername,
-//     //   type: "get-feed"
-//     // });
-//   }
-// }
-
 // Accept an offer to video chat. We configure our local settings,
 // create our RTCPeerConnection, get and attach our local camera
 // stream, then create and send an answer to the caller.
@@ -463,33 +322,13 @@ async function handleVideoOfferMsg(msg) {
     createPeerConnection();
   }
 
-  // We need to set the remote description to the received SDP offer
-  // so that our local WebRTC layer knows how to talk to the caller.
-
   var desc = new RTCSessionDescription(msg.data);
-
-  // If the connection isn't stable yet, wait for it...
-
-  // if (myPeerConnection.signalingState != "stable") {
-  //   log("  - But the signaling state isn't stable, so triggering rollback");
-
-  //   // Set the local and remove descriptions for rollback; don't proceed
-  //   // until both return.
-  //   await Promise.all([
-  //     myPeerConnection.setLocalDescription({ type: "rollback" }),
-  //     myPeerConnection.setRemoteDescription(desc)
-  //   ]);
-  //   return;
-  // }
 
   log("  - Setting remote description");
   await myPeerConnection.setRemoteDescription(desc);
   await myPeerConnection.setLocalDescription(await myPeerConnection.createAnswer());
 
-  sendToServer({
-    type: 1,
-    data: JSON.stringify(myPeerConnection.localDescription)
-  });
+  nabtoSignaling.sendAnswer(myPeerConnection.localDescription);
 }
 
 // Responds to the "video-answer" message sent to the caller
