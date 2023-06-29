@@ -1,4 +1,6 @@
 
+let spake = require("./spake2");
+let cbor = require('cbor');
 
 class NabtoWebrtcConnection {
 
@@ -13,8 +15,6 @@ class NabtoWebrtcConnection {
       console.log("Got datachannel message: ", event.data);
       let data = JSON.parse(event.data);
       let cb = self.coapRequests.get(data.requestId);
-      console.log("got callback", cb, " from requestId: ", data.requestId);
-      console.log("looking for cb in: ", self.coapRequests);
       self.coapRequests.delete(data.requestId);
       cb(event.data);
     });
@@ -37,12 +37,50 @@ class NabtoWebrtcConnection {
       payload: payload
     }
 
-    console.log("invoking coap: ", req, " with CB: ", cb);
-
     this.coapRequests.set(requestId, cb);
     this.coapDataChannel.send(JSON.stringify(req));
 
   }
 
+  passwordAuthenticate(username, password, callback) {
+    if (!this.coapDataChannel) {
+      throw new Error("CoAP data channel not configured");
+    }
+
+    let s = new spake(username, password);
+
+    let T = s.calculateT();
+    let obj = {
+      T: T,
+      Username: username
+    }
+    let payload = cbor.encode(obj);
+
+    this.coapInvoke("POST", "/p2p/pwd-auth/1", 60, payload, (resp) => {
+      console.log("Password round 1 response: ", resp);
+      let response = JSON.parse(resp);
+      // TODO: use real fingerprints
+      // let clifp = 'cff2f65cd103488b8cb2b93e838acc0f719d6deae37f8a4b74fa825244d28af8';
+      // let devFp = '73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54';
+      let clifp = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+      let devFp = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+      s.calculateK(response.payload);
+      let KcA = s.calculateKey(clifp, devFp);
+      this.coapInvoke("POST", "/p2p/pwd-auth/2", 42, KcA, (resp2) => {
+        console.log("Password round 2 resp: ", resp2);
+        let response2 = JSON.parse(resp2);
+        if (s.validateKey(response2.payload)) {
+          callback(true);
+        } else {
+          callback(false);
+        }
+
+      });
+    } );
+
+  }
+
 
 };
+
+module.exports = NabtoWebrtcConnection;

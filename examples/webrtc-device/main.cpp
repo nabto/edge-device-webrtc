@@ -57,6 +57,44 @@ bool check_access(NabtoDeviceConnectionRef ref, const char* action, void* userDa
     return true;
 }
 
+void pwdReqDoListen();
+NabtoDevicePasswordAuthenticationRequest* pwdRequest;
+NabtoDeviceListener* pwdListener;
+
+void passwordRequestCallback(NabtoDeviceFuture* fut, NabtoDeviceError err, void* userdata)
+{
+    printf("Password request callback");
+    NabtoDevice* device = (NabtoDevice *)userdata;
+    const char* username = nabto_device_password_authentication_request_get_username(pwdRequest);
+    std::string uname(username);
+    if (uname == "foo") {
+        printf("Username was foo");        nabto_device_password_authentication_request_set_password(pwdRequest, "bar");
+    } else {
+        printf("username was not foo but %s", uname.c_str());
+    }
+    nabto_device_password_authentication_request_free(pwdRequest);
+    nabto_device_future_free(fut);
+    pwdReqDoListen();
+}
+
+void pwdReqDoListen()
+{
+    auto fut = nabto_device_future_new(device);
+    nabto_device_listener_new_password_authentication_request(pwdListener, fut, &pwdRequest);
+    nabto_device_future_set_callback(fut, &passwordRequestCallback, device);
+}
+
+void passwordRequestListen(NabtoDevice* device)
+{
+    printf("Starting password request listener");
+    pwdListener = nabto_device_listener_new(device);
+    auto ec = nabto_device_password_authentication_request_init_listener(device, pwdListener);
+    if (ec != NABTO_DEVICE_EC_OK) {
+        printf("Starting password request listener failed with %s", nabto_device_error_get_string(ec));
+    }
+    pwdReqDoListen();
+}
+
 int main(int argc, char** argv) {
     parse_options(argc, argv);
 
@@ -66,6 +104,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     start_device(device);
+    passwordRequestListen(device);
     nabto::NabtoWebrtc webrtc(device, &check_access, NULL);
     signal(SIGINT, &signal_handler);
 

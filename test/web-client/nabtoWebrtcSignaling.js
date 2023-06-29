@@ -10,11 +10,35 @@ class NabtoWebrtcSignaling {
   // TODO: serverkey;
   connection;
 
+  /* Callback on websocket connected
+   * (responseObject: {type: number}) => void
+   */
   onconnected = null;
+
+  /* Callback when offer is received
+   * (offerObject: {type: number, data: string}) => void
+   */
   onoffer = null;
+
+  /* Callback when answer is received
+   * (offerObject: {type: number, data: string}) => void
+   */
   onanswer = null;
+
+  /* Callback when ice candidate is received
+   * (offerObject: {type: number, data: string}) => void
+   */
   onicecandidate = null;
+
+  /* Callback when turn credentials are received
+   * (offerObject: {type: number, servers: {hostname: string, port: number, username: string, credential: string}[]}) => void
+   */
   onturncredentials = null;
+
+  /* Callback on errors
+   * (errorString, errorObject) => void
+   */
+  onerror = null;
 
 
   setSignalingHost(host) {
@@ -46,6 +70,9 @@ class NabtoWebrtcSignaling {
 
     this.connection.onerror = function (evt) {
       console.dir(evt);
+      if (this.onerror) {
+        this.onerror("Websocket connection error", evt);
+      }
     }
 
     this.connection.onmessage = function (evt) {
@@ -85,6 +112,10 @@ class NabtoWebrtcSignaling {
         default:
           console.error("Unknown message received:");
           console.error(msg);
+          if (this.onerror) {
+            this.onerror("Unknown Nabto Signaling message", msg);
+          }
+
       }
     }
     this.connection.onopen = function (evt) {
@@ -154,3 +185,6 @@ class NabtoWebrtcSignaling {
   }
 
 };
+
+
+module.exports = NabtoWebrtcSignaling;

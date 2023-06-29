@@ -3,6 +3,7 @@
 
 #include <nlohmann/json.hpp>
 #include <sstream>
+
 using nlohmann::json;
 
 namespace nabto {
@@ -252,6 +253,13 @@ void WebrtcChannel::createPeerConnection()
             self->coapChannel_ = incoming;
 
             self->nabtoConnection_ = nabto_device_virtual_connection_new(self->device_);
+
+            // TODO: get local/remote description and extract fingerprints from there
+            const char* clifp = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+            const char* devFp = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+            nabto_device_virtual_connection_set_client_fingerprint(self->nabtoConnection_, clifp);
+            nabto_device_virtual_connection_set_device_fingerprint(self->nabtoConnection_, devFp);
+
             // TODO: handle allocation error
             self->coapChannel_->onMessage([self](rtc::binary data) {
                 std::cout << "Got Data channel binary data"
@@ -265,9 +273,32 @@ void WebrtcChannel::createPeerConnection()
 
                     json message = json::parse(data);
                     if (message["type"].get<int>() == controlMessageType::COAP_REQUEST) {
+                        std::cout << "parsed json: " << message.dump() << std::endl;
                         self->coapRequestId_ = message["requestId"].get<std::string>();
                         std::string method = message["method"].get<std::string>();
                         std::string path = message["path"].get<std::string>();
+
+                        std::vector<uint8_t> payload;
+                        try {
+                            payload = message["payload"]["data"].get<std::vector<uint8_t>>();
+                            std::cout << "Got payload of size " << payload.size() << std::endl;
+
+                            for (auto i : payload) {
+                                std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)i;
+                            }
+                            std::cout << std::dec << std::endl;
+                        } catch(std::exception& ec) {
+                            //ignore
+                            std::cout << "Failed to get payload" << std::endl;
+                        }
+
+                        uint16_t ct = 0;
+                        try {
+                            ct = message["contentType"].get<uint16_t>();
+                        }
+                        catch (std::exception& ec) {
+                            //ignore
+                        }
                         // TODO: support payloads
 
                         if (path[0] == '/') {
@@ -283,23 +314,42 @@ void WebrtcChannel::createPeerConnection()
                         while(pos != std::string::npos){
                             std::string segment = path.substr(0,pos);
                             std::cout << "found segment at pos: " << pos << ": " << segment << std::endl;
+                            char* s = (char*)calloc(0, segment.length());
+                            memcpy(s, segment.c_str(), segment.length());
                             stdSegments.push_back(segment);
-                            pathSegments[count] = stdSegments[stdSegments.size()-1].c_str();
+                            pathSegments[count] = s;
                             path = path.substr(pos+1);
                             pos = path.find("/");
+                            std::cout << "added segment " << pathSegments[count] << " to index " << count << std::endl;
                             count++;
                         }
                         pathSegments[count] = path.c_str();
                         std::cout << "found last segment: " << path << std::endl;
+                        std::cout << "added segment " << pathSegments[count] << " to index " << count << std::endl;
 
                         NabtoDeviceCoapMethod coapMethod;
                         // TODO: support all methods
                         if (method == "GET") {
                             coapMethod = NABTO_DEVICE_COAP_GET;
                         }
+                        else if (method == "POST") {
+                            coapMethod = NABTO_DEVICE_COAP_POST;
+                        }
 
+                        std::cout << "using Segments: ";
+
+                        for (int i = 0; i <= count; i++) {
+                            std::cout << "/" << pathSegments[i];
+                        }
+                        std::cout << std::endl;
                         // TODO: check coap_ is available
                         self->coap_ = nabto_device_virtual_coap_request_new(self->nabtoConnection_, coapMethod, pathSegments);
+
+                        if (!payload.empty()) {
+                            std::cout << "Setting payload with content format: " << ct << std::endl;
+                            nabto_device_virtual_coap_request_set_payload(self->coap_, payload.data(), payload.size());
+                            nabto_device_virtual_coap_request_set_content_format(self->coap_, ct);
+                        }
 
                         NabtoDeviceFuture* fut = nabto_device_future_new(self->device_);
                         nabto_device_virtual_coap_request_execute(self->coap_, fut);
