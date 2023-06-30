@@ -165,9 +165,6 @@ function createPeerConnection() {
 async function handleTrackEvent(event) {
   console.log("*** Track event. streams length: " + event.streams.length);
   var stream = event.streams[0];
-  console.log("   Track event: ", event);
-  console.log("  event Stream: ", stream);
-  console.log("  event Stream.tracks: ", stream.getTracks());
   if (event.track.kind != "video") {
     console.log("Not video track, ignoring");
     return;

@@ -13,8 +13,4 @@ python3 -m http.server -d .
 In a browser go to localhost:8000
 
 
-## code flow in videoClient.js
-
-`videoClient.js` is the main script running the WebRTC application
-
 
