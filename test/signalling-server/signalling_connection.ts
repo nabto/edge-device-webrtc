@@ -1,5 +1,7 @@
-import { Connection, ConnectionOptions, NabtoClient, NabtoClientFactory, Stream } from 'edge-client-node';
+import { CoapRequest, Connection, ConnectionOptions, NabtoClient, NabtoClientFactory, Stream } from 'edge-client-node';
 import { connection, Message } from 'websocket'
+
+const cbor = require('cbor');
 
 export enum ObjectType {
   WEBRTC_OFFER = 0,
@@ -20,6 +22,7 @@ export class NabtoConnection {
   privateKey: string;
   serverUrl: string | undefined;
   stream: Stream | undefined;
+  coap: CoapRequest | undefined;
   connected = false;
 
   async connectSct(sct: string): Promise<void> {
@@ -38,11 +41,24 @@ export class NabtoConnection {
     // TODO: catch all promise rejections
     await this.conn.connect();
 
-    // TODO: implement password authentication in edge-client-node and in the device application
+    this.coap = this.conn.createCoapRequest("GET", "/webrtc/info");
+    let resp = await this.coap.execute();
+    console.log("Got coap response");
+
+    let port = 42;
+    if (resp.getResponseStatusCode() == 205) {
+      console.log("With status code 205");
+      let respData = cbor.decodeAllSync(resp.getResponsePayload())[0]; // The cbor package returns the object as an array for some reason
+      console.log("Parsed cbor payload as: ", respData);
+      port = respData.SignalingStreamPort;
+    } else {
+      console.log("Coap response with status: ", resp.getResponseStatusCode());
+    }
+
+    console.log("Opening stream with streamPort: ", port);
 
     this.stream = this.conn.createStream();
-    // TODO: maybe better stream port
-    await this.stream.open(42);
+    await this.stream.open(port);
     this.readStream();
     this.connected = true;
   }

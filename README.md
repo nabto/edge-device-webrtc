@@ -33,6 +33,9 @@ ts-node app.ts
 in separate terminal:
 ```
 cd test/web-client
+sudo npm install -g browserify
+npm install
+browserify nabtoWebrtc.js -o nabtoBundle.js
 python3 -m http.server -d .
 ```
 

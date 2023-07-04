@@ -15,6 +15,7 @@
     "ts-node": "^10.9.1"
   },
   "dependencies": {
+    "cbor": "^9.0.0",
     "edge-client-node": "github:nabto/edge-client-node",
     "typescript": "^5.0.4",
     "websocket": "^1.0.34"
