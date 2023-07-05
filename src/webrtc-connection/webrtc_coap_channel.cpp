@@ -111,6 +111,10 @@ private:
     const char** parsePathSegments(std::string& inPath)
     {
         std::string path = inPath;
+        if (path[0] == '/') {
+            path = path.substr(1);
+        }
+
         size_t pos = 0;
         size_t count = 0;
         pos = path.find("/");
