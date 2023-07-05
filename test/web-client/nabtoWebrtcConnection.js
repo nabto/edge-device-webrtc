@@ -20,6 +20,7 @@ class NabtoWebrtcConnection {
     });
   }
 
+  // TODO: switch to promises
   coapInvoke(method, path, contentType, payload, cb){
     if (!this.coapDataChannel) {
       throw new Error("CoAP data channel not configured");
@@ -42,6 +43,7 @@ class NabtoWebrtcConnection {
 
   }
 
+  // TODO: switch to promises
   passwordAuthenticate(username, password, callback) {
     if (!this.coapDataChannel) {
       throw new Error("CoAP data channel not configured");
@@ -56,7 +58,12 @@ class NabtoWebrtcConnection {
     }
     let payload = cbor.encode(obj);
 
-    this.coapInvoke("POST", "/p2p/pwd-auth/1", 60, payload, (resp) => {
+    this.coapInvoke("POST", "/p2p/pwd-auth/1", 60, payload, (resp, error) => {
+      if (error) {
+        console.log("Coap invoke failure: ", error);
+        callback(false);
+        return;
+      }
       console.log("Password round 1 response: ", resp);
       let response = JSON.parse(resp);
       // TODO: use real fingerprints

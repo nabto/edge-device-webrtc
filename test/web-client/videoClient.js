@@ -59,6 +59,7 @@ function connect() {
 
     // We also want to receive a video feed from the device
     myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
+    // myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
 
     // Create an offer with the data channel and video channel
     const offer = await myPeerConnection.createOffer();
@@ -77,13 +78,16 @@ function connect() {
       // We add the data channel to the nabtoConnection so it can use it for coap requests
       nabtoConnection.setCoapDataChannel(coapChannel);
 
-      nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
-        if (success) {
-          boxLog("Successfully authenticated using password");
-        } else {
-          boxLog("Failed to authenticate using password");
-        }
+      nabtoConnection.coapInvoke("GET", "/p2p/endpoints", undefined, undefined, (response) => {
+        boxLog("Got coap response: " + response);
       });
+      // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
+      //   if (success) {
+      //     boxLog("Successfully authenticated using password");
+      //   } else {
+      //     boxLog("Failed to authenticate using password");
+      //   }
+      // });
 
     });
 
@@ -92,17 +96,25 @@ function connect() {
   // Callback when the device answers our offer.
   nabtoSignaling.onanswer = async (msg) => {
     boxLog(`Recieved WebRTC answer from device!`);
+    let answer = JSON.parse(msg.data);
+    console.log("Received and parsed answer: ", answer);
     // We constructs an description from the received answer, and sets it as the remote description on the RTCPeerConnection
-    var desc = new RTCSessionDescription(msg.data);
-    await myPeerConnection.setRemoteDescription(desc).catch(reportError);
+    var desc = new RTCSessionDescription(answer);
+    await myPeerConnection.setRemoteDescription(desc).catch((reason)=> {
+      console.log("reason: ", reason);
+      console.log("ERROR: ", reason.code);
+      console.log("ERROR: ", reason.name);
+
+    });
   };
 
   // Callback when device sends ICE candidates in trickle ICE mode.
   nabtoSignaling.onicecandidate = async (msg) => {
     console.log("*** Adding received ICE candidate: ", msg.data);
     try {
+      let cand = JSON.parse(msg.data);
       // When we receive an ICE candidate from the device, we parse it and adds it to the RTCPeerConnection
-      var candidate = new RTCIceCandidate(msg.data);
+      var candidate = new RTCIceCandidate(cand);
       await myPeerConnection.addIceCandidate(candidate)
     } catch (err) {
       console.log("failed to add candidate to peer connection", err);
@@ -164,6 +176,9 @@ function createPeerConnection() {
 
 async function handleTrackEvent(event) {
   console.log("*** Track event. streams length: " + event.streams.length);
+  console.log("event: ", event);
+  console.log("event.track: ", event.track);
+  console.log("event.streams: ", event.streams);
   var stream = event.streams[0];
   if (event.track.kind != "video") {
     console.log("Not video track, ignoring");
@@ -316,7 +331,9 @@ async function handleVideoOfferMsg(msg) {
     createPeerConnection();
   }
 
-  var desc = new RTCSessionDescription(msg.data);
+  let offer = JSON.parse(msg.data);
+
+  var desc = new RTCSessionDescription(offer);
 
   console.log("  - Setting remote description");
   await myPeerConnection.setRemoteDescription(desc);

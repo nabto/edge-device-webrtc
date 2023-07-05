@@ -36,11 +36,6 @@ public:
         FAILED
     };
 
-    enum coapMessageType {
-        COAP_REQUEST = 0,
-        COAP_RESPONSE
-    };
-
     static WebrtcConnectionPtr create(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers);
     WebrtcConnection(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers);
     ~WebrtcConnection();

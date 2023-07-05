@@ -163,6 +163,49 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
 
 void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
 {
+    // TODO: refactor this code
+    std::cout << "Got Track event" << std::endl;
+    try {
+        auto media = track->description();
+        rtc::Description::Media::RtpMap* rtp = NULL;
+        for (auto pt : media.payloadTypes()) {
+            rtc::Description::Media::RtpMap* r = NULL;
+            try {
+                r = media.rtpMap(pt);
+            }
+            catch (std::exception& ex) {
+                // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+                continue;
+            }
+            // TODO: make codec configureable and generalize this matching
+            std::string profLvlId = "42e01f";
+            // std::string lvlAsymAllowed = "1";
+            // std::string pktMode = "1";
+            // std::string profLvlId = "4d001f";
+            std::string lvlAsymAllowed = "1";
+            std::string pktMode = "1";
+            if (r != NULL && r->fmtps.size() > 0 &&
+                r->fmtps[0].find("profile-level-id=" + profLvlId) != std::string::npos &&
+                r->fmtps[0].find("level-asymmetry-allowed=" + lvlAsymAllowed) != std::string::npos &&
+                r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
+                ) {
+                std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
+                rtp = r;
+            }
+            else {
+                // std::cout << "no match, removing" << std::endl;
+                media.removeRtpMap(pt);
+            }
+        }
+        // TODO: handle no match found error
+
+
+        media.addSSRC(42, "video-send");
+        auto track_ = pc_->addTrack(media);
+    }
+    catch (std::exception ex) {
+        std::cout << "GOT EXCEPTION!!! " << ex.what() << std::endl;
+    }
 
 }
 

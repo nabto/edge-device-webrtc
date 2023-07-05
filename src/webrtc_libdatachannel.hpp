@@ -2,6 +2,7 @@
 
 #include <nabto/nabto_device.h>
 #include <nabto/nabto_device_experimental.h>
+#include <nabto/nabto_device_virtual.h>
 #include "rtc/rtc.hpp"
 
 #include <iostream>
