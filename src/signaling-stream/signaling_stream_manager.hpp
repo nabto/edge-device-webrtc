@@ -2,6 +2,7 @@
 
 #include <nabto-device/nabto_device.hpp>
 #include <signaling-stream/signaling_stream.hpp>
+#include <rtp/media_stream.hpp>
 
 #include <memory>
 
@@ -14,8 +15,8 @@ typedef std::shared_ptr<SignalingStreamManager> SignalingStreamManagerPtr;
 class SignalingStreamManager : public std::enable_shared_from_this<SignalingStreamManager>
 {
 public:
-    static SignalingStreamManagerPtr create(NabtoDeviceImplPtr device);
-    SignalingStreamManager(NabtoDeviceImplPtr device);
+    static SignalingStreamManagerPtr create(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias);
+    SignalingStreamManager(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias);
     ~SignalingStreamManager();
 
     bool start();
@@ -28,6 +29,7 @@ private:
     static void newCoapRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
     NabtoDeviceImplPtr device_;
+    std::vector<nabto::MediaStreamPtr> medias_;
 
     NabtoDeviceListener* coapListener_;
     NabtoDeviceFuture* coapListenFuture_;

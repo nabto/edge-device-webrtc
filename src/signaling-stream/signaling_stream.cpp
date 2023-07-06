@@ -4,14 +4,14 @@
 
 namespace nabto {
 
-SignalingStreamPtr SignalingStream::create(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager)
+SignalingStreamPtr SignalingStream::create(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias)
 {
-    return std::make_shared<SignalingStream>(device, stream, manager);
+    return std::make_shared<SignalingStream>(device, stream, manager, medias);
 
 }
 
-SignalingStream::SignalingStream(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager)
-    :device_(device), stream_(stream), manager_(manager)
+SignalingStream::SignalingStream(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias)
+    :device_(device), stream_(stream), manager_(manager), medias_(medias)
 {
     future_ = nabto_device_future_new(device->getDevice());
 }
@@ -103,7 +103,7 @@ void SignalingStream::parseIceServers() {
 
 void SignalingStream::createWebrtcConnection() {
     auto self = shared_from_this();
-    webrtcConnection_ = WebrtcConnection::create(self, device_, turnServers_);
+    webrtcConnection_ = WebrtcConnection::create(self, device_, turnServers_, medias_);
 }
 
 // TODO: fix if write returns OPERATION IN PROGRESS maybe add a queue here
@@ -208,6 +208,8 @@ void SignalingStream::handleReadObject()
         enum ObjectType type = static_cast<enum ObjectType>(obj["type"].get<int>());
         if (type == WEBRTC_OFFER) {
             auto offer = obj["data"].get<std::string>();
+            nlohmann::json metadata = obj["metadata"];
+            webrtcConnection_->setMetadata(metadata);
             webrtcConnection_->handleOffer(offer);
         }
         else if (type == WEBRTC_ANSWER) {

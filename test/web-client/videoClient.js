@@ -58,7 +58,7 @@ function connect() {
     let coapChannel = myPeerConnection.createDataChannel("coap");
 
     // We also want to receive a video feed from the device
-    myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
+    let transceiver = myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
     // myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
 
     // Create an offer with the data channel and video channel
@@ -67,8 +67,17 @@ function connect() {
     // Set the local description using the offer
     await myPeerConnection.setLocalDescription(offer);
 
+    let metadata = {
+      tracks: [
+        {
+          mid: transceiver.mid,
+          trackId: "frontdoor-video"
+        }
+      ]
+    }
+
     // Send the local description as our offer to the device through the signaling channel
-    nabtoSignaling.sendOffer(myPeerConnection.localDescription);
+    nabtoSignaling.sendOffer(myPeerConnection.localDescription, metadata);
     // Once the offer is sent, we wait for the device to send us an answer.
     // In the mean time, we send any ICE candidates the RTCPeerConnection finds to the device.
 

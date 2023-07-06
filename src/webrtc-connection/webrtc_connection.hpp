@@ -4,10 +4,12 @@
 
 #include <signaling-stream/signaling_stream_ptr.hpp>
 #include <nabto-device/nabto_device.hpp>
+#include <rtp/media_stream.hpp>
 
 #include <nabto/nabto_device_virtual.h>
 
 #include <rtc/rtc.hpp>
+#include <nlohmann/json.hpp>
 
 #include <memory>
 #include <vector>
@@ -36,8 +38,8 @@ public:
         FAILED
     };
 
-    static WebrtcConnectionPtr create(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers);
-    WebrtcConnection(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers);
+    static WebrtcConnectionPtr create(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias);
+    WebrtcConnection(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias);
     ~WebrtcConnection();
 
     void handleOffer(std::string& data);
@@ -45,6 +47,11 @@ public:
     void handleAnswer(std::string& data);
 
     void handleIce(std::string& data);
+
+    void setMetadata(nlohmann::json& metadata)
+    {
+        metadata_ = metadata;
+    }
 
     void stop();
 
@@ -58,11 +65,15 @@ private:
     SignalingStreamPtr sigStream_;
     NabtoDeviceImplPtr device_;
     std::vector<struct TurnServer> turnServers_;
+    std::vector<nabto::MediaStreamPtr> medias_;
     enum ConnectionState state_ = CREATED;
+
+    nlohmann::json metadata_;
 
     std::shared_ptr<rtc::PeerConnection> pc_ = nullptr;
     NabtoDeviceVirtualConnection* nabtoConnection_ = NULL;
     WebrtcCoapChannelPtr coapChannel_ = nullptr;
+
 
 };
 

@@ -2,6 +2,7 @@
 
 #include "signaling_stream_ptr.hpp"
 #include <webrtc-connection/webrtc_connection.hpp>
+#include <rtp/media_stream.hpp>
 
 #include <nabto-device/nabto_device.hpp>
 #include <nabto/nabto_device_experimental.h>
@@ -22,9 +23,9 @@ public:
         TURN_RESPONSE
     };
 
-    static SignalingStreamPtr create(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager);
+    static SignalingStreamPtr create(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias);
 
-    SignalingStream(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager);
+    SignalingStream(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias);
 
     ~SignalingStream();
 
@@ -61,6 +62,7 @@ private:
     NabtoDeviceImplPtr device_;
     NabtoDeviceStream* stream_;
     SignalingStreamManagerPtr manager_;
+    std::vector<nabto::MediaStreamPtr> medias_;
     NabtoDeviceFuture* future_;
 
     size_t readLength_;

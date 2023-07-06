@@ -6,12 +6,12 @@ namespace nabto {
 
 const char* coapPath[] = {"webrtc", "info", NULL};
 
-SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDeviceImplPtr device)
+SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias)
 {
-    return std::make_shared<SignalingStreamManager>(device);
+    return std::make_shared<SignalingStreamManager>(device, medias);
 }
 
-SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device) : device_(device)
+SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias) : device_(device), medias_(medias)
 {
     streamListener_ = nabto_device_listener_new(device_->getDevice());
     streamListenFuture_ = nabto_device_future_new(device_->getDevice());
@@ -74,7 +74,7 @@ void SignalingStreamManager::newStream(NabtoDeviceFuture* future, NabtoDeviceErr
     if (true) //self->accessCb_(nabto_device_stream_get_connection_ref(self->stream_), streamAction, self->accessUserData_))
     {
         std::cout << "Creating Signaling stream" << std::endl;
-        SignalingStreamPtr s = SignalingStream::create(self->device_, self->stream_, self->me_);
+        SignalingStreamPtr s = SignalingStream::create(self->device_, self->stream_, self->me_, self->medias_);
         self->streams_.push_back(s);
         s->start();
     }

@@ -136,13 +136,14 @@ class NabtoWebrtcSignaling {
     }
   }
 
-  sendOffer(offer) {
+  sendOffer(offer, metadata) {
     if (!this.connection) {
       throw new Error("Signalling connection not opened");
     }
     this.sendToServer({
       type: 0,
-      data: JSON.stringify(offer)
+      data: JSON.stringify(offer),
+      metadata: metadata
     });
   }
 

@@ -1,6 +1,8 @@
 
 #include "signaling-stream/signaling_stream_manager.hpp"
 #include "nabto-device/nabto_device.hpp"
+#include "rtp/rtp_client.hpp"
+#include "rtp/media_stream.hpp"
 #include "util.hpp"
 
 #include <cxxopts/cxxopts.hpp>
@@ -22,7 +24,12 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    auto sigStreamMng = nabto::SignalingStreamManager::create(device);
+    auto rtp = nabto::RtpClient::create("frontdoor");
+
+    std::vector<nabto::MediaStreamPtr> medias;
+    medias.push_back(rtp);
+
+    auto sigStreamMng = nabto::SignalingStreamManager::create(device, medias);
     if (sigStreamMng == nullptr || !sigStreamMng->start()) {
         std::cout << "Failed to start signaling stream manager" << std::endl;
         return -1;
