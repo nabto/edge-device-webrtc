@@ -70,9 +70,10 @@ class NabtoWebrtcSignaling {
 
     this.connection.onerror = function (evt) {
       console.dir(evt);
-      if (this.onerror) {
-        this.onerror("Websocket connection error", evt);
+      if (self.onerror) {
+        self.onerror("Websocket connection error", evt);
       }
+      self.connection = undefined;
     }
 
     this.connection.onmessage = function (evt) {

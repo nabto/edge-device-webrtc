@@ -86,13 +86,23 @@ export class NabtoConnection {
       }
     } catch (e) {
       console.log("readStream() exception: ", e);
+      console.log("closing stream");
+      await this.stream?.close();
+      console.log("stream closed")
     }
   }
 
   async writeStreamString(data: string) {
     let buf = this.stringToStreamObject(data);
     console.log("Writing ", buf.byteLength, "bytes of data based on ", data.length, "bytes of content");
+    while (true) {
+    try {
     await this.stream?.write(buf);
+    return;
+    } catch(ex) {
+      console.log("stream write failed with: ", ex);
+    }
+  }
   }
 
   async writeStreamBinary(data: ArrayBuffer) {

@@ -5,6 +5,7 @@
 #include "rtp/media_stream.hpp"
 #include "util.hpp"
 
+#include <rtc/global.hpp>
 #include <cxxopts/cxxopts.hpp>
 #include <nlohmann/json.hpp>
 
@@ -38,6 +39,10 @@ int main(int argc, char** argv) {
     nabto::terminationWaiter::waitForTermination();
 
     device->stop();
+    medias.clear();
+
+    auto fut = rtc::Cleanup();
+    fut.get();
 
 }
 

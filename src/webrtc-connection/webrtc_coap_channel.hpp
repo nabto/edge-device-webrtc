@@ -27,6 +27,10 @@ public:
 
     WebrtcCoapChannel(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection);
 
+    ~WebrtcCoapChannel() {
+        std::cout << "WebrtcCoapChannel Destructor" << std::endl;
+    }
+
     void init();
 
     void handleStringMessage(std::string& data);

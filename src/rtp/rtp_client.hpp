@@ -20,6 +20,7 @@ class RtpClient : public MediaStream,
 public:
     static RtpClientPtr create(std::string trackId);
     RtpClient(std::string& trackId);
+    ~RtpClient();
 
     void addVideoTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc);
     void addAudioTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc);

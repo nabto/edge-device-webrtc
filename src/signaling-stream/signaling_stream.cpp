@@ -14,12 +14,15 @@ SignalingStream::SignalingStream(NabtoDeviceImplPtr device, NabtoDeviceStream* s
     :device_(device), stream_(stream), manager_(manager), medias_(medias)
 {
     future_ = nabto_device_future_new(device->getDevice());
+    writeFuture_ = nabto_device_future_new(device->getDevice());
 }
 
 SignalingStream::~SignalingStream()
 {
+    std::cout << "SignalingStream Destructor" << std::endl;
     nabto_device_stream_free(stream_);
     nabto_device_future_free(future_);
+    nabto_device_future_free(writeFuture_);
 }
 
 void SignalingStream::start()
@@ -61,12 +64,9 @@ void SignalingStream::iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceE
     SignalingStream* self = (SignalingStream*)userData;
     nabto_device_future_free(future);
     if (ec != NABTO_DEVICE_EC_OK) {
+        self->webrtcConnection_ = nullptr;
         self->self_ = nullptr;
         nabto_device_ice_servers_request_free(self->iceReq_);
-        // TODO: this should not stop webrtcConnection
-        if (self->webrtcConnection_) {
-            self->webrtcConnection_->stop();
-        }
         return;
     }
     self->parseIceServers();
@@ -77,6 +77,7 @@ void SignalingStream::iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceE
         std::cout << "Ice servers after stream accept. Start reading" << std::endl;
         self->readObjLength();
     }
+    nabto_device_ice_servers_request_free(self->iceReq_);
 }
 
 void SignalingStream::parseIceServers() {
@@ -104,40 +105,56 @@ void SignalingStream::parseIceServers() {
 void SignalingStream::createWebrtcConnection() {
     auto self = shared_from_this();
     webrtcConnection_ = WebrtcConnection::create(self, device_, turnServers_, medias_);
+    webrtcConnection_->setEventHandler([self](WebrtcConnection::ConnectionState state) {
+        if (state == WebrtcConnection::ConnectionState::CLOSED ||
+            state == WebrtcConnection::ConnectionState::FAILED) {
+                self->closeStream();
+        }
+    });
 }
 
 // TODO: fix if write returns OPERATION IN PROGRESS maybe add a queue here
 void SignalingStream::sendSignalligObject(std::string& data)
 {
-    NabtoDeviceFuture* fut = nabto_device_future_new(device_->getDevice());
+    if (writeBuf_ != NULL) {
+        std::cout << "Write while writing" << std::endl;
+        return;
+    }
     uint32_t size = data.size();
-    uint8_t* buf = (uint8_t*)calloc(1, size + 4);
-    memcpy(buf, &size, 4);
-    memcpy(buf + 4, data.data(), size);
-    nabto_device_stream_write(stream_, fut, buf, size + 4);
-    nabto_device_future_set_callback(fut, streamWriteCallback, buf);
+    writeBuf_ = (uint8_t*)calloc(1, size + 4);
+    memcpy(writeBuf_, &size, 4);
+    memcpy(writeBuf_ + 4, data.data(), size);
+    nabto_device_stream_write(stream_, writeFuture_, writeBuf_, size + 4);
+    nabto_device_future_set_callback(writeFuture_, streamWriteCallback, this);
 }
 
 void SignalingStream::streamWriteCallback(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
     (void)ec;
-    nabto_device_future_free(future);
-    free(userData);
+    SignalingStream* self = (SignalingStream*)userData;
+    free(self->writeBuf_);
+    self->writeBuf_ = NULL;
 }
 
 
 void SignalingStream::readObjLength()
 {
+    if (closed_) {
+        std::cout << "Read after closed. Self destruct" << std::endl;
+        return cleanup();
+    }
+    reading_ = true;
     objectLength_ = 0;
-    NabtoDeviceFuture* readFuture = nabto_device_future_new(device_->getDevice());
-    nabto_device_stream_read_all(stream_, readFuture, &objectLength_, 4, &readLength_);
-    nabto_device_future_set_callback(readFuture, hasReadObjLen, this);
+    // NabtoDeviceFuture* readFuture = nabto_device_future_new(device_->getDevice());
+    nabto_device_stream_read_all(stream_, future_, &objectLength_, 4, &readLength_);
+    nabto_device_future_set_callback(future_, hasReadObjLen, this);
 }
 
 void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
     SignalingStream* self = (SignalingStream*)userData;
-    nabto_device_future_free(future);
+    self->reading_ = false;
+    // nabto_device_future_free(future);
     if (ec == NABTO_DEVICE_EC_EOF) {
         // make a nice shutdown
         printf("Read reached EOF closing nicely\n");
@@ -145,11 +162,9 @@ void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError 
         return;
     }
     if (ec != NABTO_DEVICE_EC_OK) {
+        std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
+        self->webrtcConnection_ = nullptr;
         self->self_ = nullptr;
-        // TODO: this should not stop webrtcConnection
-        if (self->webrtcConnection_ ) {
-            self->webrtcConnection_->stop();
-        }
         return;
     }
     self->handleReadObjLen();
@@ -166,17 +181,23 @@ void SignalingStream::handleReadObjLen()
 
 void SignalingStream::readObject(uint32_t len)
 {
+    if (closed_) {
+        std::cout << "Read after closed. Self destruct" << std::endl;
+        return cleanup();
+    }
+    reading_ = true;
     objectBuffer_ = (uint8_t*)calloc(1, len);
-    NabtoDeviceFuture* readFuture = nabto_device_future_new(device_->getDevice());
-    nabto_device_stream_read_all(stream_, readFuture, objectBuffer_, len, &readLength_);
-    nabto_device_future_set_callback(readFuture, hasReadObject, this);
+    // NabtoDeviceFuture* readFuture = nabto_device_future_new(device_->getDevice());
+    nabto_device_stream_read_all(stream_, future_, objectBuffer_, len, &readLength_);
+    nabto_device_future_set_callback(future_, hasReadObject, this);
 
 }
 
 void SignalingStream::hasReadObject(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
     SignalingStream* self = (SignalingStream*)userData;
-    nabto_device_future_free(future);
+    // nabto_device_future_free(future);
+    self->reading_ = false;
     if (ec == NABTO_DEVICE_EC_EOF) {
         // make a nice shutdown
         printf("Read reached EOF closing nicely\n");
@@ -184,11 +205,9 @@ void SignalingStream::hasReadObject(NabtoDeviceFuture* future, NabtoDeviceError 
         return;
     }
     if (ec != NABTO_DEVICE_EC_OK) {
+        std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
+        self->webrtcConnection_ = nullptr;
         self->self_ = nullptr;
-        // TODO: this should not stop webrtcConnection
-        if (self->webrtcConnection_) {
-            self->webrtcConnection_->stop();
-        }
         return;
     }
     self->handleReadObject();
@@ -297,6 +316,14 @@ void SignalingStream::sendTurnServers()
 
 void SignalingStream::closeStream()
 {
+    if (closed_) {
+        if (!reading_ && writeBuf_ == NULL) {
+            std::cout << "Got close when closed. Not reading not writing. cleaning up" << std::endl;
+            cleanup();
+        }
+        return;
+    }
+    closed_ = true;
     NabtoDeviceFuture* closeFuture = nabto_device_future_new(device_->getDevice());
     nabto_device_stream_close(stream_, closeFuture);
     nabto_device_future_set_callback(closeFuture, streamClosed, this);
@@ -304,14 +331,23 @@ void SignalingStream::closeStream()
 
 void SignalingStream::streamClosed(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
+    std::cout << "stream closed" << std::endl;
     (void)ec;
     nabto_device_future_free(future);
     SignalingStream* self = (SignalingStream*)userData;
-    self->self_ = nullptr;
-    // TODO: this should not stop webrtcConnection
-    if (self->webrtcConnection_) {
-        self->webrtcConnection_->stop();
+    self->webrtcConnection_ = nullptr;
+    if (!self->reading_ && self->writeBuf_ == NULL) {
+        std::cout << "Not reading && writeBuf is NULL" << std::endl;
+        self->cleanup();
+    } else {
+        std::cout << "reading or writing on closed. Awaiting self destuct" << std::endl;
     }
+}
+
+void SignalingStream::cleanup()
+{
+    webrtcConnection_ = nullptr;
+    self_ = nullptr;
 }
 
 

@@ -22,6 +22,7 @@ WebrtcConnection::WebrtcConnection(SignalingStreamPtr sigStream, NabtoDeviceImpl
 
 WebrtcConnection::~WebrtcConnection()
 {
+    std::cout << "WebrtcConnection Destructor" << std::endl;
     if (nabtoConnection_) {
         nabto_device_virtual_connection_free(nabtoConnection_);
     }
@@ -29,7 +30,7 @@ WebrtcConnection::~WebrtcConnection()
 
 void WebrtcConnection::stop()
 {
-    sigStream_ = nullptr;
+    // sigStream_ = nullptr;
 }
 
 void WebrtcConnection::handleOffer(std::string& data)
@@ -76,6 +77,9 @@ void WebrtcConnection::createPeerConnection()
     if (!webrtc_util::parseTurnServers(conf, turnServers_)) {
         std::cout << "Failed to parce TURN server configurations" << std::endl;
         state_ = FAILED;
+        if (self->eventHandler_) {
+            self->eventHandler_(self->state_);
+        }
         // TODO: handle error states
     }
     // conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
@@ -86,14 +90,29 @@ void WebrtcConnection::createPeerConnection()
         std::cout << "State: " << state << std::endl;
         if (state == rtc::PeerConnection::State::Connected) {
             self->state_ = CONNECTED;
-            // TODO: notify someone?
+            if (self->eventHandler_) {
+                self->eventHandler_(self->state_);
+            }
+        } else if (state == rtc::PeerConnection::State::Connecting) {
+            self->state_ = CONNECTING;
+            if (self->eventHandler_) {
+                self->eventHandler_(self->state_);
+            }
+
         } else if (state == rtc::PeerConnection::State::Closed) {
             self->state_ = CLOSED;
+            if (self->eventHandler_) {
+                self->eventHandler_(self->state_);
+                self->eventHandler_ = nullptr;
+            }
             for (auto m : self->medias_) {
                 m->removeConnection(self->pc_);
             }
             // TODO: handle closure
-            self->sigStream_ = nullptr;
+            // self->sigStream_ = nullptr;
+            self->coapChannel_ = nullptr;
+            self->pc_->close();
+            self->pc_ = nullptr;
         }
     });
 

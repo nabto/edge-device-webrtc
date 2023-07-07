@@ -58,17 +58,24 @@ private:
     void closeStream();
     static void streamClosed(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
+    void cleanup();
+
 
     NabtoDeviceImplPtr device_;
     NabtoDeviceStream* stream_;
     SignalingStreamManagerPtr manager_;
     std::vector<nabto::MediaStreamPtr> medias_;
     NabtoDeviceFuture* future_;
+    NabtoDeviceFuture* writeFuture_;
 
     size_t readLength_;
     uint32_t objectLength_;
     uint8_t* objectBuffer_;
     bool accepted_ = false;
+    bool closed_ = false;
+    bool reading_ = false;
+
+    uint8_t* writeBuf_ = NULL;
 
     NabtoDeviceIceServersRequest* iceReq_;
     std::vector<WebrtcConnection::TurnServer> turnServers_;

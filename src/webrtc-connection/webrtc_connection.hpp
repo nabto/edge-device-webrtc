@@ -53,6 +53,11 @@ public:
         metadata_ = metadata;
     }
 
+    void setEventHandler(std::function<void(enum ConnectionState)> eventHandler)
+    {
+        eventHandler_ = eventHandler;
+    }
+
     void stop();
 
 private:
@@ -69,6 +74,7 @@ private:
     enum ConnectionState state_ = CREATED;
 
     nlohmann::json metadata_;
+    std::function<void(enum ConnectionState)> eventHandler_;
 
     std::shared_ptr<rtc::PeerConnection> pc_ = nullptr;
     NabtoDeviceVirtualConnection* nabtoConnection_ = NULL;

@@ -21,6 +21,7 @@ SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device, std::v
 
 SignalingStreamManager::~SignalingStreamManager()
 {
+    std::cout << "SignalingStreamManager Destructor" << std::endl;
     nabto_device_future_free(coapListenFuture_);
     nabto_device_listener_free(coapListener_);
     nabto_device_future_free(streamListenFuture_);
@@ -68,6 +69,7 @@ void SignalingStreamManager::newStream(NabtoDeviceFuture* future, NabtoDeviceErr
         std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
         // TODO: only reset me_ if coap is also closed
         self->me_ = nullptr;
+        self->device_ = nullptr;
         return;
     }
     // TODO: check IAM
@@ -100,6 +102,7 @@ void SignalingStreamManager::newCoapRequest(NabtoDeviceFuture* future, NabtoDevi
         std::cout << "CoAP future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
         // TODO: only reset me_ if stream is also closed
         self->me_ = nullptr;
+        self->device_ = nullptr;
         return;
     }
     // TODO: check IAM

@@ -22,6 +22,10 @@ RtpClient::RtpClient(std::string& trackId)
 
 }
 
+RtpClient::~RtpClient()
+{
+    std::cout << "RtpClient destructor" << std::endl;
+}
 
 void RtpClient::addVideoTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
 {
@@ -96,6 +100,7 @@ std::string RtpClient::getAudioTrackId()
 
 void RtpClient::start()
 {
+    stopped_ = false;
     sock_ = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
@@ -103,6 +108,7 @@ void RtpClient::start()
     addr.sin_port = htons(6000);
     if (bind(sock_, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0) {
         std::string err = "Failed to bind UDP socket on 127.0.0.1:" + 6000;
+        std::cout << err << std::endl;
         throw std::runtime_error(err);
     }
 
@@ -114,11 +120,14 @@ void RtpClient::start()
 
 void RtpClient::stop()
 {
+    std::cout << "RtpClient stopped" << std::endl;
     stopped_ = true;
     if (sock_ != 0) {
         close(sock_);
     }
     streamThread_.join();
+    std::cout << "RtpClient thread joined" << std::endl;
+    track_ = nullptr;
 }
 
 void RtpClient::rtpRunner(RtpClient* self)

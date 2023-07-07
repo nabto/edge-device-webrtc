@@ -135,6 +135,11 @@ function connect() {
     handleVideoOfferMsg(msg);
   };
 
+  nabtoSignaling.onerror = (msg) => {
+    console.log("error: ", msg);
+    reset();
+  }
+
 
   nabtoSignaling.signalingConnect();
 }

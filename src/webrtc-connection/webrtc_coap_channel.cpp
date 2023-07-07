@@ -14,6 +14,7 @@ public:
 
     ~VirtualCoapRequest()
     {
+        std::cout << "VirtualCoapRequest Destructor" << std::endl;
     }
 
     bool createRequest(nlohmann::json& request, std::function<void (const nlohmann::json& response)> responeReady)
@@ -121,16 +122,18 @@ private:
         while (pos != std::string::npos) {
             std::string segment = path.substr(0, pos);
             std::cout << "found segment at pos: " << pos << ": " << segment << std::endl;
-            char* s = (char*)calloc(0, segment.length());
-            memcpy(s, segment.c_str(), segment.length());
+            char* s = strdup(segment.c_str());
+            // char* s = (char*)calloc(0, segment.length()+1);
+            // memcpy(s, segment.c_str(), segment.length());
             pathSegments_.push_back(s);
             path = path.substr(pos + 1);
             pos = path.find("/");
             count++;
         }
 
-        char* s = (char*)calloc(0, path.length());
-        memcpy(s, path.c_str(), path.length());
+        char* s = strdup(path.c_str());
+        // char* s = (char*)calloc(0, path.length());
+        // memcpy(s, path.c_str(), path.length());
         pathSegments_.push_back(s);
         count++;
         std::cout << "found last segment: " << path << std::endl;
@@ -158,7 +161,6 @@ private:
     void handleCoapResponse(NabtoDeviceError err)
     {
         uint16_t status;
-        me_ = nullptr;
         nabto_device_virtual_coap_request_get_response_status_code(coap_, &status);
         uint16_t cf;
         nabto_device_virtual_coap_request_get_response_content_format(coap_, &cf);
@@ -177,7 +179,8 @@ private:
         };
         responeReady_(resp);
         nabto_device_virtual_coap_request_free(coap_);
-
+        responeReady_ = nullptr;
+        me_ = nullptr;
     }
 
     NabtoDeviceImplPtr device_;
@@ -233,6 +236,10 @@ void WebrtcCoapChannel::init()
                 << std::endl;
             self->handleStringMessage(data);
         });
+    channel_->onClosed([self]() {
+        std::cout << "Coap Channel Closed" << std::endl;
+        self->channel_ = nullptr;
+    });
 }
 
 void WebrtcCoapChannel::handleStringMessage(std::string& data)
