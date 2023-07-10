@@ -163,8 +163,7 @@ void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError 
     }
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
-        self->webrtcConnection_ = nullptr;
-        self->self_ = nullptr;
+        self->cleanup();
         return;
     }
     self->handleReadObjLen();
@@ -206,8 +205,7 @@ void SignalingStream::hasReadObject(NabtoDeviceFuture* future, NabtoDeviceError 
     }
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
-        self->webrtcConnection_ = nullptr;
-        self->self_ = nullptr;
+        self->cleanup();
         return;
     }
     self->handleReadObject();
@@ -346,6 +344,7 @@ void SignalingStream::streamClosed(NabtoDeviceFuture* future, NabtoDeviceError e
 
 void SignalingStream::cleanup()
 {
+    closed_ = true;
     webrtcConnection_ = nullptr;
     self_ = nullptr;
 }

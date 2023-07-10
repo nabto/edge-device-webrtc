@@ -27,7 +27,7 @@ RtpClient::~RtpClient()
     std::cout << "RtpClient destructor" << std::endl;
 }
 
-void RtpClient::addVideoTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
+void RtpClient::addVideoTrack(RtcTrackPtr track, RtcPCPtr pc)
 {
     try {
         auto media = track->description();
@@ -62,14 +62,22 @@ void RtpClient::addVideoTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr
             }
         }
         // TODO: handle no match found error
-
-        srcPayloadType_ = 96;
-        dstPayloadType_ = rtp->payloadType;
-
-        media.addSSRC(ssrc_, trackId_+"-video");
-        // TODO: add tracks to a list along with their pc
-        track_ = pc->addTrack(media);
-        start();
+        media.addSSRC(42, trackId_ + "-video");
+        auto track_ = pc->addTrack(media);
+        // TODO: random ssrc
+        RtpTrack videoTrack = {
+            pc,
+            track_,
+            42,
+            96,
+            rtp->payloadType
+        };
+        std::cout << "adding track with pt 96->" << rtp->payloadType << std::endl;
+        // TODO: thread safety
+        videoTracks_.push_back(videoTrack);
+        if (stopped_) {
+            start();
+        }
     }
     catch (std::exception ex) {
         std::cout << "GOT EXCEPTION!!! " << ex.what() << std::endl;
@@ -84,8 +92,21 @@ void RtpClient::addAudioTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr
 
 void RtpClient::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
 {
-    // TODO: only stop if pc is last in list
-    stop();
+    std::cout << "Removing PeerConnection from RTP" << std::endl;
+    for (std::vector<RtpTrack>::iterator it = videoTracks_.begin(); it != videoTracks_.end(); it++) {
+        if (pcPtrComp(it->pc, pc)) {
+            std::cout << "Found PeerConnection" << std::endl;
+            // TODO: thread safety
+            videoTracks_.erase(it);
+            break;
+        }
+    }
+    if (videoTracks_.size() == 0) {
+        std::cout << "PeerConnection was last one. Stopping" << std::endl;
+        stop();
+    } else {
+        std::cout << "Still " << videoTracks_.size() << " PeerConnections. Not stopping" << std::endl;
+    }
 }
 
 std::string RtpClient::getVideoTrackId()
@@ -127,7 +148,6 @@ void RtpClient::stop()
     }
     streamThread_.join();
     std::cout << "RtpClient thread joined" << std::endl;
-    track_ = nullptr;
 }
 
 void RtpClient::rtpRunner(RtpClient* self)
@@ -144,14 +164,20 @@ void RtpClient::rtpRunner(RtpClient* self)
             std::cout << std::endl;
             count = 0;
         }
-        if (len < sizeof(rtc::RtpHeader) || !self->track_ || !self->track_->isOpen())
+        // TODO: thread safety
+        if (len < sizeof(rtc::RtpHeader)) {
             continue;
-
+        }
         auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
-        rtp->setSsrc(self->ssrc_);
-        rtp->setPayloadType(self->dstPayloadType_);
+        for (auto t : self->videoTracks_) {
+            if (!t.track || !t.track->isOpen()) {
+                continue;
+            }
+            rtp->setSsrc(t.ssrc);
+            rtp->setPayloadType(t.dstPayloadType);
+            t.track->send(reinterpret_cast<const std::byte*>(buffer), len);
+        }
 
-        self->track_->send(reinterpret_cast<const std::byte*>(buffer), len);
     }
 
 }
