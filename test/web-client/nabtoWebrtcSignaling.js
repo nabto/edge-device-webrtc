@@ -137,6 +137,13 @@ class NabtoWebrtcSignaling {
     }
   }
 
+  close() {
+    if (this.connection) {
+      this.connection.close();
+    }
+    this.connection = undefined;
+  }
+
   sendOffer(offer, metadata) {
     if (!this.connection) {
       throw new Error("Signalling connection not opened");

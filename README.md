@@ -75,8 +75,3 @@ These options will remain optional:
 - `--rtsp` If set to an RTSP url, the device will get the RTP stream using RTSP.
 - `--rtpport` If `--rtsp` is NOT used, the device binds to UDP on this port to receive RTP data. Defaults to 6000.
 
-
-## TODO ideas
-
- * make docker container where libdatachannel and its dependencies are installed on the system and remove it as a git submodule here
- * use ephemeral stream port so we do not limit which ports costumers can use for their own streams

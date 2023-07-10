@@ -113,6 +113,7 @@ function connect() {
       console.log("reason: ", reason);
       console.log("ERROR: ", reason.code);
       console.log("ERROR: ", reason.name);
+      closeVideoCall();
 
     });
   };
@@ -315,6 +316,7 @@ function closeVideoCall() {
     myPeerConnection.close();
     myPeerConnection = null;
     nabtoConnection = null;
+    nabtoSignaling.close();
   }
 
 }

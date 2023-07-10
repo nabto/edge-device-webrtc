@@ -64,15 +64,16 @@ void RtpClient::addVideoTrack(RtcTrackPtr track, RtcPCPtr pc)
         // TODO: handle no match found error
         media.addSSRC(42, trackId_ + "-video");
         auto track_ = pc->addTrack(media);
+        int pt = rtp == NULL ? 0 : rtp->payloadType;
         // TODO: random ssrc
         RtpTrack videoTrack = {
             pc,
             track_,
             42,
             96,
-            rtp->payloadType
+            pt
         };
-        std::cout << "adding track with pt 96->" << rtp->payloadType << std::endl;
+        std::cout << "adding track with pt 96->" << pt << std::endl;
         // TODO: thread safety
         videoTracks_.push_back(videoTrack);
         if (stopped_) {
@@ -125,10 +126,11 @@ void RtpClient::start()
     sock_ = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    addr.sin_port = htons(6000);
+    addr.sin_addr.s_addr = inet_addr(videoHost_.c_str());
+    addr.sin_port = htons(videoPort_);
     if (bind(sock_, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0) {
-        std::string err = "Failed to bind UDP socket on 127.0.0.1:" + 6000;
+        std::string err = "Failed to bind UDP socket on " + videoHost_ + ":";
+        err += videoPort_;
         std::cout << err << std::endl;
         throw std::runtime_error(err);
     }

@@ -41,6 +41,9 @@ public:
     std::string getVideoTrackId();
     std::string getAudioTrackId();
 
+    void setVideoPort(uint16_t port) { videoPort_ = port; }
+    void setVideoHost(std::string host) { videoHost_ = host; }
+
 
 private:
     void start();
@@ -53,17 +56,15 @@ private:
     };
 
     std::string trackId_;
-
-    std::vector<RtpTrack> videoTracks_;
-//    std::map<RtcPCPtr, RtcTrackPtr, decltype(pcPtrComp)> videoTracks_;
-    // std::shared_ptr<rtc::Track> track_;
-    // rtc::SSRC ssrc_ = 42;
-    // int srcPayloadType_ = 0;
-    // int dstPayloadType_ = 0;
-
-    SOCKET sock_ = 0;
     bool stopped_ = true;
+
+    // TODO: duplicate for audio
+    std::vector<RtpTrack> videoTracks_;
+    uint16_t videoPort_ = 6000;
+    std::string videoHost_ = "127.0.0.1";
+    SOCKET sock_ = 0;
     std::thread streamThread_;
+
 };
 
 

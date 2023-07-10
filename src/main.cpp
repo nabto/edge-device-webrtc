@@ -26,6 +26,8 @@ int main(int argc, char** argv) {
     }
 
     auto rtp = nabto::RtpClient::create("frontdoor");
+    rtp->setVideoPort(opts["rtpPort"].get<uint16_t>());
+    rtp->setVideoHost("127.0.0.1");
 
     std::vector<nabto::MediaStreamPtr> medias;
     medias.push_back(rtp);
