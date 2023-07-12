@@ -2,7 +2,7 @@
 
 #include <nabto-device/nabto_device.hpp>
 #include <signaling-stream/signaling_stream.hpp>
-#include <rtp/media_stream.hpp>
+#include <media-streams/media_stream.hpp>
 
 #include <memory>
 

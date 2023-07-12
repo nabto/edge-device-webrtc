@@ -1,8 +1,8 @@
 
 #include "signaling-stream/signaling_stream_manager.hpp"
 #include "nabto-device/nabto_device.hpp"
-#include "rtp/rtp_client.hpp"
-#include "rtp/media_stream.hpp"
+#include "media-streams/rtp_client.hpp"
+#include "media-streams/media_stream.hpp"
 #include "util.hpp"
 
 #include <rtc/global.hpp>

@@ -11,8 +11,8 @@ target_link_libraries(nabto_webrtc nabto_device LibDataChannel::LibDataChannel)
 set(src
     main.cpp
     nabto-device/nabto_device.cpp
-    rtp/rtp_client.cpp
-    rtp/rtsp_client.cpp
+    media-streams/rtp_client.cpp
+    media-streams/rtsp_client.cpp
     signaling-stream/signaling_stream.cpp
     signaling-stream/signaling_stream_manager.cpp
     webrtc-connection/webrtc_connection.cpp

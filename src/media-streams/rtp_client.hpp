@@ -1,6 +1,7 @@
 #pragma once
 
 #include "media_stream.hpp"
+#include "rtp_track.hpp"
 
 #include <sys/socket.h>
 typedef int SOCKET;
@@ -10,20 +11,7 @@ typedef int SOCKET;
 
 namespace nabto {
 
-typedef std::shared_ptr<rtc::Track> RtcTrackPtr;
-typedef std::shared_ptr<rtc::PeerConnection> RtcPCPtr;
-
 class RtpClient;
-
-class RtpTrack
-{
-public:
-    RtcPCPtr pc;
-    RtcTrackPtr track;
-    rtc::SSRC ssrc;
-    int srcPayloadType = 0;
-    int dstPayloadType = 0;
-};
 
 typedef std::shared_ptr<RtpClient> RtpClientPtr;
 
@@ -48,7 +36,7 @@ public:
 private:
     void start();
     void stop();
-    static void rtpRunner(RtpClient* self);
+    static void rtpVideoRunner(RtpClient* self);
     static bool pcPtrComp(const RtcPCPtr& a, const RtcPCPtr& b) {
         if (a == b) return true;
         if (a && b) return a.get() == b.get();
@@ -62,8 +50,8 @@ private:
     std::vector<RtpTrack> videoTracks_;
     uint16_t videoPort_ = 6000;
     std::string videoHost_ = "127.0.0.1";
-    SOCKET sock_ = 0;
-    std::thread streamThread_;
+    SOCKET videoRtpSock_ = 0;
+    std::thread videoThread_;
 
 };
 

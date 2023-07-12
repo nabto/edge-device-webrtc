@@ -123,12 +123,12 @@ std::string RtpClient::getAudioTrackId()
 void RtpClient::start()
 {
     stopped_ = false;
-    sock_ = socket(AF_INET, SOCK_DGRAM, 0);
+    videoRtpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(videoHost_.c_str());
     addr.sin_port = htons(videoPort_);
-    if (bind(sock_, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0) {
+    if (bind(videoRtpSock_, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0) {
         std::string err = "Failed to bind UDP socket on " + videoHost_ + ":";
         err += videoPort_;
         std::cout << err << std::endl;
@@ -136,28 +136,28 @@ void RtpClient::start()
     }
 
     int rcvBufSize = 212992;
-    setsockopt(sock_, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&rcvBufSize),
+    setsockopt(videoRtpSock_, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&rcvBufSize),
         sizeof(rcvBufSize));
-    streamThread_ = std::thread(rtpRunner, this);
+    videoThread_ = std::thread(rtpVideoRunner, this);
 }
 
 void RtpClient::stop()
 {
     std::cout << "RtpClient stopped" << std::endl;
     stopped_ = true;
-    if (sock_ != 0) {
-        close(sock_);
+    if (videoRtpSock_ != 0) {
+        close(videoRtpSock_);
     }
-    streamThread_.join();
+    videoThread_.join();
     std::cout << "RtpClient thread joined" << std::endl;
 }
 
-void RtpClient::rtpRunner(RtpClient* self)
+void RtpClient::rtpVideoRunner(RtpClient* self)
 {
     char buffer[RTP_BUFFER_SIZE];
     int len;
     int count = 0;
-    while ((len = recv(self->sock_, buffer, RTP_BUFFER_SIZE, 0)) >= 0 && !self->stopped_) {
+    while ((len = recv(self->videoRtpSock_, buffer, RTP_BUFFER_SIZE, 0)) >= 0 && !self->stopped_) {
         count++;
         if (count % 100 == 0) {
             std::cout << ".";
