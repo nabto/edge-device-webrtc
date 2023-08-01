@@ -2,6 +2,7 @@
 #include "signaling-stream/signaling_stream_manager.hpp"
 #include "nabto-device/nabto_device.hpp"
 #include "media-streams/rtp_client.hpp"
+#include "media-streams/rtsp_client.hpp"
 #include "media-streams/media_stream.hpp"
 #include "util.hpp"
 
@@ -25,12 +26,30 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    auto rtp = nabto::RtpClient::create("frontdoor");
-    rtp->setVideoPort(opts["rtpPort"].get<uint16_t>());
-    rtp->setVideoHost("127.0.0.1");
-
     std::vector<nabto::MediaStreamPtr> medias;
-    medias.push_back(rtp);
+    nabto::RtspClientPtr rtsp = nullptr;
+    try {
+        std::string rtspUrl = opts["rtspUrl"].get<std::string>();
+        rtsp = nabto::RtspClient::create("frontdoor", rtspUrl);
+        rtsp->start();
+        auto videoRtp = rtsp->getVideoStream();
+        if (videoRtp != nullptr) {
+            medias.push_back(videoRtp);
+        }
+        auto audioRtp = rtsp->getAudioStream();
+        if (audioRtp != nullptr) {
+            medias.push_back(audioRtp);
+        }
+    } catch (std::exception& ex) {
+        // rtspUrl was not set, default to RTP.
+        auto rtp = nabto::RtpClient::create("frontdoor-video");
+        rtp->setVideoPort(opts["rtpPort"].get<uint16_t>());
+        rtp->setVideoHost("127.0.0.1");
+
+        medias.push_back(rtp);
+    }
+
+    std::cout << "medias size: " << medias.size() << std::endl;
 
     auto sigStreamMng = nabto::SignalingStreamManager::create(device, medias);
     if (sigStreamMng == nullptr || !sigStreamMng->start()) {
@@ -42,6 +61,7 @@ int main(int argc, char** argv) {
 
     device->stop();
     medias.clear();
+    rtsp = nullptr;
 
     auto fut = rtc::Cleanup();
     fut.get();

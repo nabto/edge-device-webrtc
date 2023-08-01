@@ -13,6 +13,7 @@ set(src
     nabto-device/nabto_device.cpp
     media-streams/rtp_client.cpp
     media-streams/rtsp_client.cpp
+    media-streams/rtsp_stream.cpp
     signaling-stream/signaling_stream.cpp
     signaling-stream/signaling_stream_manager.cpp
     webrtc-connection/webrtc_connection.cpp

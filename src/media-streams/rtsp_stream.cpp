@@ -1,9 +1,10 @@
-#include "rtp_client.hpp"
+#include "rtsp_stream.hpp"
 
 #include <unistd.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <iomanip>
 
 const int RTP_BUFFER_SIZE = 2048;
 
@@ -11,23 +12,23 @@ const int RTP_BUFFER_SIZE = 2048;
 namespace nabto {
 
 
-RtpClientPtr RtpClient::create(std::string trackId)
+RtspStreamPtr RtspStream::create(std::string trackId)
 {
-    return std::make_shared<RtpClient>(trackId);
+    return std::make_shared<RtspStream>(trackId);
 }
 
-RtpClient::RtpClient(std::string& trackId)
+RtspStream::RtspStream(std::string& trackId)
     : trackId_(trackId)
 {
 
 }
 
-RtpClient::~RtpClient()
+RtspStream::~RtspStream()
 {
-    std::cout << "RtpClient destructor" << std::endl;
+    std::cout << "RtspStream destructor" << std::endl;
 }
 
-void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
+void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
 {
     try {
         auto media = track->description();
@@ -78,6 +79,15 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
         videoTracks_.push_back(videoTrack);
         if (stopped_) {
             start();
+            auto self = shared_from_this();
+            track_->onMessage([self](rtc::message_variant data) {
+                auto msg = rtc::make_message(data);
+                if (msg->type == rtc::Message::Control) {
+                    std::cout << "GOT CONTROL MESSAGE" << std::endl;
+                } else {
+                    std::cout << "GOT SOME OTHER MESSAGE: " << msg->type << std::endl;
+                }
+            });
         }
     }
     catch (std::exception ex) {
@@ -86,14 +96,14 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
 
 }
 
-std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
+std::shared_ptr<rtc::Track> RtspStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 
 {
     // TODO: implement
     return nullptr;
 }
 
-void RtpClient::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
+void RtspStream::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
 {
     std::cout << "Removing PeerConnection from RTP" << std::endl;
     for (std::vector<RtpTrack>::iterator it = videoTracks_.begin(); it != videoTracks_.end(); it++) {
@@ -112,12 +122,12 @@ void RtpClient::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
     }
 }
 
-std::string RtpClient::getTrackId()
+std::string RtspStream::getTrackId()
 {
     return trackId_;
 }
 
-void RtpClient::start()
+void RtspStream::start()
 {
     stopped_ = false;
     videoRtpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
@@ -135,21 +145,39 @@ void RtpClient::start()
     int rcvBufSize = 212992;
     setsockopt(videoRtpSock_, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&rcvBufSize),
         sizeof(rcvBufSize));
-    videoThread_ = std::thread(rtpVideoRunner, this);
+    videoThread_ = std::thread(streamRunner, this);
+
+    rtcpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
+    addr.sin_port = htons(ctrlPort_);
+    if (bind(rtcpSock_, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0) {
+        std::string err = "Failed to bind UDP socket on " + videoHost_ + ":";
+        err += ctrlPort_;
+        std::cout << err << std::endl;
+        throw std::runtime_error(err);
+    }
+
+    setsockopt(rtcpSock_, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&rcvBufSize),
+        sizeof(rcvBufSize));
+    ctrlThread_ = std::thread(ctrlRunner, this);
 }
 
-void RtpClient::stop()
+void RtspStream::stop()
 {
-    std::cout << "RtpClient stopped" << std::endl;
+    std::cout << "RtspStream stopped" << std::endl;
     stopped_ = true;
     if (videoRtpSock_ != 0) {
         close(videoRtpSock_);
     }
+    if (rtcpSock_ != 0) {
+        close(rtcpSock_);
+    }
     videoThread_.join();
-    std::cout << "RtpClient thread joined" << std::endl;
+    std::cout << "RtspStream thread joined" << std::endl;
+    ctrlThread_.join();
+    std::cout << "Rtcp thread joined" << std::endl;
 }
 
-void RtpClient::rtpVideoRunner(RtpClient* self)
+void RtspStream::streamRunner(RtspStream* self)
 {
     char buffer[RTP_BUFFER_SIZE];
     int len;
@@ -174,6 +202,56 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
             }
             rtp->setSsrc(t.ssrc);
             rtp->setPayloadType(t.dstPayloadType);
+            t.track->send(reinterpret_cast<const std::byte*>(buffer), len);
+        }
+
+    }
+
+}
+
+void RtspStream::ctrlRunner(RtspStream* self)
+{
+    uint8_t buffer[RTP_BUFFER_SIZE];
+    int len;
+    int count = 0;
+    while ((len = recv(self->rtcpSock_, buffer, RTP_BUFFER_SIZE, 0)) >= 0 && !self->stopped_) {
+        // count++;
+        // if (count % 100 == 0) {
+        //     std::cout << ":";
+        // }
+        // if (count % 1600 == 0) {
+        //     std::cout << std::endl;
+        //     count = 0;
+        // }
+        // TODO: thread safety
+        // if (len < sizeof(rtc::RtcpRr)) {
+        //     continue;
+        // }
+        auto rtp = reinterpret_cast<rtc::RtcpRr*>(buffer);
+        // auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
+        uint16_t rtpLen = rtp->header.length();
+        rtpLen = (rtpLen+1)*4;
+
+        rtc::RtcpRr* rtp2 = NULL;
+        if (rtpLen < len) {
+            rtp2 = reinterpret_cast<rtc::RtcpRr*>(buffer + rtpLen);
+        }
+
+        for (auto t : self->videoTracks_) {
+            if (!t.track || !t.track->isOpen()) {
+                continue;
+            }
+            std::cout << ":";
+            rtp->setSenderSSRC(t.ssrc);
+            if (rtp2 != NULL) {
+                rtp2->setSenderSSRC(t.ssrc);
+            }
+
+            // for (uint8_t* i = buffer; i < buffer+len; i++) {
+            //     std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)(*i);
+            // }
+            // std::cout << std::dec << std::endl;
+
             t.track->send(reinterpret_cast<const std::byte*>(buffer), len);
         }
 
