@@ -106,27 +106,28 @@ export class NabtoConnection {
   async writeStreamString(data: string) {
     let buf = this.stringToStreamObject(data);
     console.log("Writing ", buf.byteLength, "bytes of data based on ", data.length, "bytes of content");
+    // TODO: add a queue for messages instead of this while true hack for operation in progress
     while (true) {
-    try {
-      await this.stream?.write(buf);
-    return;
-    } catch(ex) {
-      if (typeof ex === "string") {
-	console.log("stream write failed with string: " + ex);
-      } else if (ex instanceof Error) {
-        console.log("stream write failed with: ", ex.message);
-	if (ex.message == "Operation in progress") {
-	  continue;
-	}
-      } else {
-	console.log("FOOBAR ERROR TYPE: " + typeof ex);
+      try {
+        await this.stream?.write(buf);
+        return;
+      } catch (ex) {
+        if (typeof ex === "string") {
+          console.log("stream write failed with string: " + ex);
+        } else if (ex instanceof Error) {
+          console.log("stream write failed with: ", ex.message);
+          if (ex.message == "Operation in progress") {
+            continue;
+          }
+        } else {
+          console.log("FOOBAR ERROR TYPE: " + typeof ex);
+        }
+        // TODO: Better return error
+        this.wsConn.conn.close(1011, "SERVER_INTERNAL_ERROR");
+        this.wsConn.stop();
+        return;
       }
-      // TODO: Better return error
-      this.wsConn.conn.close(1011, "SERVER_INTERNAL_ERROR");
-      this.wsConn.stop();
-      return;
     }
-  }
   }
 
   async writeStreamBinary(data: ArrayBuffer) {
