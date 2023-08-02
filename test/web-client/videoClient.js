@@ -29,6 +29,9 @@ var iceServers = [{ urls: "stun:stun.nabto.net" }]; // Servers to use for Turn/s
 function connect() {
   reset();
 
+  // Remove this line to test locally (defaults to "ws://localhost:6503")
+  nabtoSignaling.setSignalingHost("ws://34.245.62.208:6503");
+
   console.log(`Connecting to server: ${nabtoSignaling.signalingHost}`);
   boxLog(`Connecting to server: ${nabtoSignaling.signalingHost}`);
 
