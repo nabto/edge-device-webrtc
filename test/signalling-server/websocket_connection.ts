@@ -194,6 +194,7 @@ export class WebSocketConnection {
             return;
           }
           this.nabtoConn = new NabtoConnection(this, this.nabtoClient, this.privateKey, msg.productId, msg.deviceId);
+          this.nabtoConn.setServerUrl("pr-4nmagfvj.devices.dev.nabto.net");
           if (msg.sct) {
             await this.nabtoConn.connectSct(msg.sct);
           } else {
