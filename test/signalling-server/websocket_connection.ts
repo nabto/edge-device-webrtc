@@ -247,6 +247,15 @@ export class WebSocketConnection {
     this.conn = conn;
     this.nabtoClient = NabtoClientFactory.create();
     this.privateKey = this.nabtoClient.createPrivateKey();
+    this.nabtoClient.setLogCallback((msg) => {
+      console.log("[" + msg.severity + "]: " + msg.message);
+    });
+
+    let logLevel = process.env["NABTO_LOG_LEVEL"];
+    if (logLevel) {
+      this.nabtoClient.setLogLevel(logLevel);
+    }
+
     let self = this;
     this.conn.on('message', function (message) {
       self.handleMessage(message);
