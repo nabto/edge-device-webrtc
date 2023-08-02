@@ -1,7 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
 
-import { connection, server } from 'websocket'
-import { WebSocketConnection } from './signalling_connection';
+import { server } from 'websocket'
+import { WebSocketConnection } from './websocket_connection';
 
 export class WebSocketServer {
   port = 6503;

@@ -81,6 +81,7 @@ void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc
             start();
             auto self = shared_from_this();
             track_->onMessage([self](rtc::message_variant data) {
+                // TODO: implement RTCP forwarding
                 auto msg = rtc::make_message(data);
                 if (msg->type == rtc::Message::Control) {
                     std::cout << "GOT CONTROL MESSAGE" << std::endl;
