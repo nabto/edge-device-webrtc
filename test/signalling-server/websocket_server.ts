@@ -35,7 +35,16 @@ export class WebSocketServer {
 
       // Add the new connection to our list of connections.
 
-      self.connectionArray.push(new WebSocketConnection(connection));
+      self.connectionArray.push(new WebSocketConnection(self, connection));
     });
+  }
+
+  removeConnection(conn: WebSocketConnection)
+  {
+    const index = this.connectionArray.indexOf(conn, 0);
+    if (index > -1) {
+       this.connectionArray.splice(index, 1);
+    }
+
   }
 }

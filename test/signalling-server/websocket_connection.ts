@@ -1,5 +1,6 @@
 import { CoapRequest, Connection, ConnectionOptions, NabtoClient, NabtoClientFactory, Stream } from 'edge-client-node';
 import { connection, Message } from 'websocket'
+import { WebSocketServer } from './websocket_server';
 
 const cbor = require('cbor');
 
@@ -34,7 +35,14 @@ export class NabtoConnection {
       ServerUrl: this.serverUrl,
     }
     this.conn.setOptions(opts);
-    await this.startConnection();
+    try {
+      await this.startConnection();
+    } catch (ex) {
+      console.log("Failed to start Nabto connection with exception: ", ex);
+      // TODO: catch exceptions separately to make better return codes than this.
+      this.wsConn.conn.close(1011, "SERVER_INTERNAL_ERROR");
+      this.wsConn.stop();
+    }
   }
 
   async startConnection() {
@@ -43,16 +51,15 @@ export class NabtoConnection {
 
     this.coap = this.conn.createCoapRequest("GET", "/webrtc/info");
     let resp = await this.coap.execute();
-    console.log("Got coap response");
 
     let port = 42;
     if (resp.getResponseStatusCode() == 205) {
-      console.log("With status code 205");
+      console.log("Got coap response with status code 205");
       let respData = cbor.decodeAllSync(resp.getResponsePayload())[0]; // The cbor package returns the object as an array for some reason
       console.log("Parsed cbor payload as: ", respData);
       port = respData.SignalingStreamPort;
     } else {
-      console.log("Coap response with status: ", resp.getResponseStatusCode());
+      console.log("Got Coap response with status: ", resp.getResponseStatusCode());
     }
 
     console.log("Opening stream with streamPort: ", port);
@@ -70,7 +77,9 @@ export class NabtoConnection {
         let objLenData = await this.stream?.readAll(4);
         if (!objLenData || objLenData.byteLength != 4) {
           // Stream failed
-          // TODO: close the stream
+          // TODO: Better return error
+          this.wsConn.conn.close(1011, "SERVER_INTERNAL_ERROR");
+          this.wsConn.stop();
           return;
         }
         let objLenView = new Uint32Array(objLenData);
@@ -79,7 +88,9 @@ export class NabtoConnection {
         let objData = await this.stream?.readAll(objLen);
         if (!objData || objData.byteLength != objLen) {
           // Stream failed
-          // TODO: close the stream
+          // TODO: Better return error
+          this.wsConn.conn.close(1011, "SERVER_INTERNAL_ERROR");
+          this.wsConn.stop();
           return;
         }
         await this.wsConn.sendMessage(objData);
@@ -87,7 +98,7 @@ export class NabtoConnection {
     } catch (e) {
       console.log("readStream() exception: ", e);
       console.log("closing stream");
-      await this.stream?.close();
+      await this.stream?.close().catch(() => {});
       console.log("stream closed")
     }
   }
@@ -97,10 +108,13 @@ export class NabtoConnection {
     console.log("Writing ", buf.byteLength, "bytes of data based on ", data.length, "bytes of content");
     while (true) {
     try {
-    await this.stream?.write(buf);
+      await this.stream?.write(buf);
     return;
     } catch(ex) {
       console.log("stream write failed with: ", ex);
+      // TODO: Better return error
+      this.wsConn.conn.close(1011, "SERVER_INTERNAL_ERROR");
+      this.wsConn.stop();
     }
   }
   }
@@ -140,6 +154,10 @@ export class NabtoConnection {
     return this.connected;
   }
 
+  async stop() {
+    await this.conn.close();
+  }
+
   constructor(wsConn: WebSocketConnection, client: NabtoClient, privateKey: string, productId: string, deviceId: string) {
     this.wsConn = wsConn;
     this.client = client;
@@ -151,6 +169,7 @@ export class NabtoConnection {
 }
 
 export class WebSocketConnection {
+  server: WebSocketServer;
   conn: connection;
   nabtoClient: NabtoClient;
   privateKey: string;
@@ -158,50 +177,72 @@ export class WebSocketConnection {
 
 
   async handleMessage(message: Message): Promise<void> {
-    // TODO: catch all promise rejections and close WS with proper error
-    if (message.type === 'utf8') {
-      console.log("Received Message: " + message.utf8Data);
-      let msg = JSON.parse(message.utf8Data);
+    try {
+      if (message.type === 'utf8') {
+        console.log("Received Message: " + message.utf8Data);
+        let msg = JSON.parse(message.utf8Data);
 
-      if (msg.type == ObjectType.WEBSOCK_LOGIN_REQUEST) {
-        if (!msg.productId ||
-          !msg.deviceId ||
-          !msg.username ||
-          !msg.password ||
-          !(msg.sct || msg.serverKey)) {
-          console.log("Invalid request: ", msg);
-          this.conn.close(1007, "SERVER_UNSUPPORTED_PAYLOAD");
-          // TODO: handle cleanup in websocket server
+        if (msg.type == ObjectType.WEBSOCK_LOGIN_REQUEST) {
+          if (!msg.productId ||
+            !msg.deviceId ||
+            !msg.username ||
+            !msg.password ||
+            !(msg.sct || msg.serverKey)) {
+            console.log("Invalid request: ", msg);
+            this.conn.close(1007, "SERVER_UNSUPPORTED_PAYLOAD");
+            this.stop();
+            return;
+          }
+          this.nabtoConn = new NabtoConnection(this, this.nabtoClient, this.privateKey, msg.productId, msg.deviceId);
+          if (msg.sct) {
+            await this.nabtoConn.connectSct(msg.sct);
+          } else {
+            // TODO:
+            console.log("ServerKey Connect is not implemented!!!!");
+            this.conn.close(1011, "SERVER_INTERNAL_ERROR");
+            this.stop();
+            return;
+          }
+          let resp = { type: ObjectType.WEBSOCK_LOGIN_RESPONSE };
+          this.conn.send(JSON.stringify(resp));
           return;
         }
-        this.nabtoConn = new NabtoConnection(this, this.nabtoClient, this.privateKey, msg.productId, msg.deviceId);
-        if (msg.sct) {
-          await this.nabtoConn.connectSct(msg.sct);
-        } else {
-          // TODO:
-          console.log("ServerKey Connect is not implemented!!!!");
-          return;
+
+        if (this.nabtoConn && this.nabtoConn.isConnected()) {
+          await this.nabtoConn.writeStreamString(message.utf8Data);
         }
-        let resp = { type: ObjectType.WEBSOCK_LOGIN_RESPONSE };
-        this.conn.send(JSON.stringify(resp));
-        return;
-      }
 
-      if (this.nabtoConn && this.nabtoConn.isConnected()) {
-        await this.nabtoConn.writeStreamString(message.utf8Data);
+      } else if (message.type === 'binary' && this.nabtoConn && this.nabtoConn.isConnected()) {
+        await this.nabtoConn.writeStreamBinary(message.binaryData);
+      } else {
+        console.log("Reveived binary message, but a Nabto connection was not yet established");
+        this.conn.close(1000, "DEVICE_CONNECTION_CLOSED");
+        this.stop();
       }
+    } catch (ex) {
+      console.log("HandleMessage failed with exception: ", ex);
+      // TODO: catch exceptions separately to make better return codes than this.
+      this.conn.close(1011, "SERVER_INTERNAL_ERROR");
+      this.stop();
 
-    } else if (message.type === 'binary' && this.nabtoConn && this.nabtoConn.isConnected()) {
-      await this.nabtoConn.writeStreamBinary(message.binaryData);
     }
-    // TODO: else handle failure
   }
 
   async sendMessage(msg: ArrayBuffer) {
     this.conn.send(Buffer.from(msg).toString('utf8'));
   }
 
-  constructor(conn: connection) {
+  stop()
+  {
+    this.server.removeConnection(this);
+    if (this.nabtoConn) {
+      this.nabtoConn.stop().catch(() => {});
+    }
+    this.nabtoClient.stop();
+  }
+
+  constructor(server: WebSocketServer, conn: connection) {
+    this.server = server;
     this.conn = conn;
     this.nabtoClient = NabtoClientFactory.create();
     this.privateKey = this.nabtoClient.createPrivateKey();
@@ -209,6 +250,10 @@ export class WebSocketConnection {
     this.conn.on('message', function (message) {
       self.handleMessage(message);
       return;
+    });
+    this.conn.on('error', (err) => {
+      console.log("Websocket connection error: ", err);
+      self.stop();
     });
   }
 

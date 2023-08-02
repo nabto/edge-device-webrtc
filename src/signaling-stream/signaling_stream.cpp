@@ -46,7 +46,6 @@ void SignalingStream::streamAccepted(NabtoDeviceFuture* future, NabtoDeviceError
     SignalingStream* self = (SignalingStream*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         self->self_ = nullptr;
-        // TODO: this should not stop webrtcConnection
         if (self->webrtcConnection_) {
             self->webrtcConnection_->stop();
         }
@@ -64,6 +63,7 @@ void SignalingStream::iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceE
     SignalingStream* self = (SignalingStream*)userData;
     nabto_device_future_free(future);
     if (ec != NABTO_DEVICE_EC_OK) {
+        self->webrtcConnection_->stop();
         self->webrtcConnection_ = nullptr;
         self->self_ = nullptr;
         nabto_device_ice_servers_request_free(self->iceReq_);
@@ -345,6 +345,10 @@ void SignalingStream::streamClosed(NabtoDeviceFuture* future, NabtoDeviceError e
 void SignalingStream::cleanup()
 {
     closed_ = true;
+    if (webrtcConnection_ != nullptr) {
+        webrtcConnection_->stop();
+    }
+
     webrtcConnection_ = nullptr;
     self_ = nullptr;
 }

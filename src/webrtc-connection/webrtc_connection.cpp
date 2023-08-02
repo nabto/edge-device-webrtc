@@ -30,6 +30,9 @@ WebrtcConnection::~WebrtcConnection()
 
 void WebrtcConnection::stop()
 {
+    if (pc_) {
+        pc_->close();
+    }
     // sigStream_ = nullptr;
 }
 
