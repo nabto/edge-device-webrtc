@@ -111,10 +111,20 @@ export class NabtoConnection {
       await this.stream?.write(buf);
     return;
     } catch(ex) {
-      console.log("stream write failed with: ", ex);
+      if (typeof ex === "string") {
+	console.log("stream write failed with string: " + ex);
+      } else if (ex instanceof Error) {
+        console.log("stream write failed with: ", ex.message);
+	if (ex.message == "Operation in progress") {
+	  continue;
+	}
+      } else {
+	console.log("FOOBAR ERROR TYPE: " + typeof ex);
+      }
       // TODO: Better return error
       this.wsConn.conn.close(1011, "SERVER_INTERNAL_ERROR");
       this.wsConn.stop();
+      return;
     }
   }
   }
@@ -194,7 +204,7 @@ export class WebSocketConnection {
             return;
           }
           this.nabtoConn = new NabtoConnection(this, this.nabtoClient, this.privateKey, msg.productId, msg.deviceId);
-          this.nabtoConn.setServerUrl("pr-4nmagfvj.devices.dev.nabto.net");
+          this.nabtoConn.setServerUrl("https://pr-4nmagfvj.clients.dev.nabto.net");
           if (msg.sct) {
             await this.nabtoConn.connectSct(msg.sct);
           } else {
