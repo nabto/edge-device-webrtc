@@ -1,13 +1,3 @@
-set(src_old
-    webrtc.cpp
-    webrtc_libdatachannel.cpp
-)
-
-add_library(nabto_webrtc STATIC "${src_old}")
-
-target_link_libraries(nabto_webrtc nabto_device LibDataChannel::LibDataChannel)
-
-
 set(src
     main.cpp
     nabto-device/nabto_device.cpp

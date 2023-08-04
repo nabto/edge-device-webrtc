@@ -24,4 +24,3 @@ include_directories(3rdparty/libdatachannel/deps/json/include)
 include_directories(3rdparty/)
 
 add_subdirectory(src)
-add_subdirectory(examples/webrtc-device)
