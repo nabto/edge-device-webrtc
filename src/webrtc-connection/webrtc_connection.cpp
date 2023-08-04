@@ -36,6 +36,24 @@ void WebrtcConnection::stop()
     // sigStream_ = nullptr;
 }
 
+void WebrtcConnection::handleOfferRequest()
+{
+        std::cout << "Got Offer request: " << std::endl;
+    if (!pc_) {
+        createPeerConnection();
+    }
+
+    auto chan = pc_->createDataChannel("coap");
+    handleDatachannelEvent(chan);
+
+    for (auto m : medias_) {
+        auto t = m->createTrack(pc_);
+    }
+    pc_->setLocalDescription();
+
+
+}
+
 void WebrtcConnection::handleOffer(std::string& data)
 {
     std::cout << "Got Offer: " << data << std::endl;

@@ -68,6 +68,7 @@ private:
     SOCKET rtcpSock_ = 0;
     std::thread videoThread_;
     std::thread ctrlThread_;
+    rtc::SSRC rtcpSenderSsrc_ = 0;
 
 };
 

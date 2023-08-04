@@ -48,6 +48,8 @@ public:
 
     void handleIce(std::string& data);
 
+    void handleOfferRequest();
+
     void setMetadata(nlohmann::json& metadata)
     {
         metadata_ = metadata;

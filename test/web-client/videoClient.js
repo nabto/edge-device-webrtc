@@ -30,7 +30,7 @@ function connect() {
   reset();
 
   // Remove this line to test locally (defaults to "ws://localhost:6503")
-  nabtoSignaling.setSignalingHost("ws://34.245.62.208:6503");
+  // nabtoSignaling.setSignalingHost("ws://34.245.62.208:6503");
 
   console.log(`Connecting to server: ${nabtoSignaling.signalingHost}`);
   boxLog(`Connecting to server: ${nabtoSignaling.signalingHost}`);
@@ -54,26 +54,39 @@ function connect() {
     // handleTurnResponse() goes through the response, adds servers to our config, and writes log
     handleTurnResponse(msg);
 
+    nabtoSignaling.sendToServer({
+      type: 5
+    });
+    return;
+
     // Create the RTCPeerConnection for WebRTC
     createPeerConnection();
 
     // We create a data channel in the peer connection to use for coap invocations
-    let coapChannel = myPeerConnection.createDataChannel("coap");
+    // let coapChannel = myPeerConnection.createDataChannel("coap");
 
-    // We also want to receive a video feed from the device
-    let transceiver = myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
-    // myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
+    // // We also want to receive a video feed from the device
+    // let transceiver = myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
+    // // myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
 
     // Create an offer with the data channel and video channel
     const offer = await myPeerConnection.createOffer();
 
     // Set the local description using the offer
-    await myPeerConnection.setLocalDescription(offer);
+    // await myPeerConnection.setLocalDescription(offer);
 
+    // let metadata = {
+    //   tracks: [
+    //     {
+    //       mid: transceiver.mid,
+    //       trackId: "frontdoor-video"
+    //     }
+    //   ]
+    // }
     let metadata = {
       tracks: [
         {
-          mid: transceiver.mid,
+          mid: "0",
           trackId: "frontdoor-video"
         }
       ]
@@ -85,23 +98,23 @@ function connect() {
     // In the mean time, we send any ICE candidates the RTCPeerConnection finds to the device.
 
     // When the WebRTC connection is established and the data channel is opened we want to be notified.
-    coapChannel.addEventListener("open", (event) => {
-      boxLog("Datachannel Opened");
-      // We add the data channel to the nabtoConnection so it can use it for coap requests
-      nabtoConnection.setCoapDataChannel(coapChannel);
+    // coapChannel.addEventListener("open", (event) => {
+    //   boxLog("Datachannel Opened");
+    //   // We add the data channel to the nabtoConnection so it can use it for coap requests
+    //   nabtoConnection.setCoapDataChannel(coapChannel);
 
-      nabtoConnection.coapInvoke("GET", "/p2p/endpoints", undefined, undefined, (response) => {
-        boxLog("Got coap response: " + response);
-      });
-      // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
-      //   if (success) {
-      //     boxLog("Successfully authenticated using password");
-      //   } else {
-      //     boxLog("Failed to authenticate using password");
-      //   }
-      // });
+    //   nabtoConnection.coapInvoke("GET", "/p2p/endpoints", undefined, undefined, (response) => {
+    //     boxLog("Got coap response: " + response);
+    //   });
+    //   // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
+    //   //   if (success) {
+    //   //     boxLog("Successfully authenticated using password");
+    //   //   } else {
+    //   //     boxLog("Failed to authenticate using password");
+    //   //   }
+    //   // });
 
-    });
+    // });
 
 
   };
@@ -343,6 +356,8 @@ function hangUpCall() {
 async function handleVideoOfferMsg(msg) {
   // If we're not already connected, create an RTCPeerConnection
   // to be linked to the caller.
+
+  // nabtoSignaling.setSignalingHost("ws://34.245.62.208:6503");
 
   boxLog(`Recieved WebRTC offer from device! Sending answer`);
   console.log("Received video chat offer With SDP: ", msg.data);

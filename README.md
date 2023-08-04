@@ -1,7 +1,5 @@
 # edge-device-webrtc
-WebRTC Implementation for Nabto Embedded SDK
-
-
+WebRTC example implementation for Nabto Embedded SDK
 
 ## RTP usage
 
@@ -20,7 +18,7 @@ docker compose exec device bash
 cd build
 cmake ../
 make -j
-./examples/webrtc-device/webrtc_device
+./src/edge_device_webrtc
 ```
 
 in separate terminal:
@@ -59,7 +57,9 @@ Then start device with `--rtsp`:
 
 This example this uses RTSP to start an RTP stream on port 45222. The UDP socket is bound to `0.0.0.0`, so it will also work with remote RTSP hosts.
 
-The `rtsp_client.hpp` handling RTSP searches for `a = control: %32s` in the SDP document returned by the RTSP server to determine which URI to setup in the SETUP request. In the case of the openIPC cam we tested on, it would also send an audio channel which was picked at random.
+The `rtsp_client.hpp` handling RTSP searches for `a = control: %32s` in the SDP document returned by the RTSP server to determine which URI to setup in the SETUP request. In the case of the openIPC cam we tested on, it would also send an audio channel which was picked at random. For this reason, the `control` attribute is ignored and a static string is used. This will be fixed in the future.
+
+In this example, the browser will create a WebRTC connection by sending an offer only requesting a data channel. This data channel is then used to invoke a CoAP endpoint causing the device to add the desired media tracks to the WebRTC connection and then initiate a renegotiation by sending a new offer to the browser. This is done because 1) The data channel can be used for authentication before being allowed to get the media tracks and 2) The browser (at least chrome) will not support RTCP packets for a given ssrc unless it was in the negotiation from the start (ie. the track is in the offer).
 
 ## Usage details
 

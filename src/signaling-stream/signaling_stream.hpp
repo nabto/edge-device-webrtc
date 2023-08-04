@@ -20,7 +20,8 @@ public:
         WEBRTC_ANSWER,
         WEBRTC_ICE,
         TURN_REQUEST,
-        TURN_RESPONSE
+        TURN_RESPONSE,
+        REQUEST_OFFER
     };
 
     static SignalingStreamPtr create(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias);
@@ -42,6 +43,7 @@ private:
     void createWebrtcConnection();
 
     void sendSignalligObject(std::string& data);
+    void tryWriteStream();
     static void streamWriteCallback(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
     static void streamAccepted(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
@@ -76,6 +78,7 @@ private:
     bool reading_ = false;
 
     uint8_t* writeBuf_ = NULL;
+    std::vector<std::string> writeBuffers_;
 
     NabtoDeviceIceServersRequest* iceReq_;
     std::vector<WebrtcConnection::TurnServer> turnServers_;

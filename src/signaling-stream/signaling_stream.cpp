@@ -116,16 +116,29 @@ void SignalingStream::createWebrtcConnection() {
 // TODO: fix if write returns OPERATION IN PROGRESS maybe add a queue here
 void SignalingStream::sendSignalligObject(std::string& data)
 {
+    writeBuffers_.push_back(data);
+
+    tryWriteStream();
+}
+
+void SignalingStream::tryWriteStream()
+{
+    if (writeBuffers_.empty()) {
+        return;
+    }
     if (writeBuf_ != NULL) {
         std::cout << "Write while writing" << std::endl;
         return;
     }
-    uint32_t size = data.size();
+    auto data = writeBuffers_.begin();
+    uint32_t size = data->size();
     writeBuf_ = (uint8_t*)calloc(1, size + 4);
     memcpy(writeBuf_, &size, 4);
-    memcpy(writeBuf_ + 4, data.data(), size);
+    memcpy(writeBuf_ + 4, data->data(), size);
+
     nabto_device_stream_write(stream_, writeFuture_, writeBuf_, size + 4);
     nabto_device_future_set_callback(writeFuture_, streamWriteCallback, this);
+    writeBuffers_.erase(data);
 }
 
 void SignalingStream::streamWriteCallback(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
@@ -134,6 +147,7 @@ void SignalingStream::streamWriteCallback(NabtoDeviceFuture* future, NabtoDevice
     SignalingStream* self = (SignalingStream*)userData;
     free(self->writeBuf_);
     self->writeBuf_ = NULL;
+    self->tryWriteStream();
 }
 
 
@@ -239,6 +253,9 @@ void SignalingStream::handleReadObject()
         }
         else if (type == TURN_REQUEST) {
             sendTurnServers();
+        }
+        else if (type == REQUEST_OFFER) {
+            webrtcConnection_->handleOfferRequest();
         }
         else {
             std::cout << "Unknown object type: " << type << std::endl;

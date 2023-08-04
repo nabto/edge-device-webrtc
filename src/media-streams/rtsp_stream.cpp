@@ -100,8 +100,53 @@ void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc
 std::shared_ptr<rtc::Track> RtspStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 
 {
-    // TODO: implement
-    return nullptr;
+    const rtc::SSRC ssrc = 42;
+    rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
+    media.addH264Codec(96); // Must match the payload type of the external h264 RTP stream
+    media.addSSRC(ssrc, "video-send");
+    auto track = pc->addTrack(media);
+    RtpTrack videoTrack = {
+        pc,
+        track,
+        42,
+        96,
+        96
+    };
+    std::cout << "adding track with pt 96->" << 96 << std::endl;
+    // TODO: thread safety
+    videoTracks_.push_back(videoTrack);
+    if (stopped_) {
+        start();
+        auto self = shared_from_this();
+        track->onMessage([self](rtc::message_variant data) {
+            // TODO: implement RTCP forwarding
+            auto msg = rtc::make_message(data);
+            if (msg->type == rtc::Message::Control) {
+                std::cout << "GOT CONTROL MESSAGE" << std::endl;
+            } else {
+                std::cout << "GOT SOME OTHER MESSAGE type: " << msg->type << " size: " << msg->size() << std::endl;
+                for (auto i : *msg) {
+                    std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)i;
+                }
+                std::cout << std::dec << std::endl;
+                std::byte* data = msg->data();
+
+                auto rtp = reinterpret_cast<rtc::RtcpRr*>(data);
+                rtp->setSenderSSRC(self->rtcpSenderSsrc_);
+
+                struct sockaddr_in addr = {};
+                addr.sin_family = AF_INET;
+                addr.sin_addr.s_addr = inet_addr(self->videoHost_.c_str());
+                addr.sin_port = htons(self->ctrlPort_);
+
+                auto ret = sendto(self->rtcpSock_, data, msg->size(), 0, (struct sockaddr*)&addr, sizeof(addr));
+                // ssize_t ret = write(self->rtcpSock_, data, msg->size());
+                std::cout << "Wrote " << ret << " bytes to socket" << std::endl;
+
+            }
+        });
+    }
+    return track;
 }
 
 void RtspStream::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
@@ -237,6 +282,8 @@ void RtspStream::ctrlRunner(RtspStream* self)
         if (rtpLen < len) {
             rtp2 = reinterpret_cast<rtc::RtcpRr*>(buffer + rtpLen);
         }
+
+        self->rtcpSenderSsrc_ = rtp->senderSSRC();
 
         for (auto t : self->videoTracks_) {
             if (!t.track || !t.track->isOpen()) {
