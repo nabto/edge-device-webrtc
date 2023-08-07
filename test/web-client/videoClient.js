@@ -54,16 +54,11 @@ function connect() {
     // handleTurnResponse() goes through the response, adds servers to our config, and writes log
     handleTurnResponse(msg);
 
-    nabtoSignaling.sendToServer({
-      type: 5
-    });
-    return;
-
     // Create the RTCPeerConnection for WebRTC
     createPeerConnection();
 
     // We create a data channel in the peer connection to use for coap invocations
-    // let coapChannel = myPeerConnection.createDataChannel("coap");
+    let coapChannel = myPeerConnection.createDataChannel("coap");
 
     // // We also want to receive a video feed from the device
     // let transceiver = myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
@@ -73,7 +68,7 @@ function connect() {
     const offer = await myPeerConnection.createOffer();
 
     // Set the local description using the offer
-    // await myPeerConnection.setLocalDescription(offer);
+    await myPeerConnection.setLocalDescription(offer);
 
     // let metadata = {
     //   tracks: [
@@ -83,38 +78,38 @@ function connect() {
     //     }
     //   ]
     // }
-    let metadata = {
-      tracks: [
-        {
-          mid: "0",
-          trackId: "frontdoor-video"
-        }
-      ]
-    }
+    // let metadata = {
+    //   tracks: [
+    //     {
+    //       mid: "0",
+    //       trackId: "frontdoor-video"
+    //     }
+    //   ]
+    // }
 
     // Send the local description as our offer to the device through the signaling channel
-    nabtoSignaling.sendOffer(myPeerConnection.localDescription, metadata);
+    nabtoSignaling.sendOffer(myPeerConnection.localDescription);
     // Once the offer is sent, we wait for the device to send us an answer.
     // In the mean time, we send any ICE candidates the RTCPeerConnection finds to the device.
 
     // When the WebRTC connection is established and the data channel is opened we want to be notified.
-    // coapChannel.addEventListener("open", (event) => {
-    //   boxLog("Datachannel Opened");
-    //   // We add the data channel to the nabtoConnection so it can use it for coap requests
-    //   nabtoConnection.setCoapDataChannel(coapChannel);
+    coapChannel.addEventListener("open", (event) => {
+      boxLog("Datachannel Opened");
+      // We add the data channel to the nabtoConnection so it can use it for coap requests
+      nabtoConnection.setCoapDataChannel(coapChannel);
 
-    //   nabtoConnection.coapInvoke("GET", "/p2p/endpoints", undefined, undefined, (response) => {
-    //     boxLog("Got coap response: " + response);
-    //   });
-    //   // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
-    //   //   if (success) {
-    //   //     boxLog("Successfully authenticated using password");
-    //   //   } else {
-    //   //     boxLog("Failed to authenticate using password");
-    //   //   }
-    //   // });
+      nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-video", undefined, undefined, (response) => {
+        boxLog("Got coap response: " + response);
+      });
+      // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
+      //   if (success) {
+      //     boxLog("Successfully authenticated using password");
+      //   } else {
+      //     boxLog("Failed to authenticate using password");
+      //   }
+      // });
 
-    // });
+    });
 
 
   };

@@ -131,6 +131,7 @@ std::shared_ptr<rtc::Track> RtspStream::createTrack(std::shared_ptr<rtc::PeerCon
                 std::cout << std::dec << std::endl;
                 std::byte* data = msg->data();
 
+                // TODO: proper rtcp parsing for multiple payloads
                 auto rtp = reinterpret_cast<rtc::RtcpRr*>(data);
                 rtp->setSenderSSRC(self->rtcpSenderSsrc_);
 
@@ -244,6 +245,7 @@ void RtspStream::streamRunner(RtspStream* self)
         auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
         for (auto t : self->videoTracks_) {
             if (!t.track || !t.track->isOpen()) {
+                // std::cout << "Invalid track not forwarding. isOpen: " << t.track->isOpen() << std::endl;
                 continue;
             }
             rtp->setSsrc(t.ssrc);
@@ -261,20 +263,12 @@ void RtspStream::ctrlRunner(RtspStream* self)
     int len;
     int count = 0;
     while ((len = recv(self->rtcpSock_, buffer, RTP_BUFFER_SIZE, 0)) >= 0 && !self->stopped_) {
-        // count++;
-        // if (count % 100 == 0) {
-        //     std::cout << ":";
-        // }
-        // if (count % 1600 == 0) {
-        //     std::cout << std::endl;
-        //     count = 0;
-        // }
         // TODO: thread safety
-        // if (len < sizeof(rtc::RtcpRr)) {
-        //     continue;
-        // }
+        // TODO: proper rtcp parsing for more than 2 payloads
+        if (len < sizeof(rtc::RtcpRr)) {
+            continue;
+        }
         auto rtp = reinterpret_cast<rtc::RtcpRr*>(buffer);
-        // auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
         uint16_t rtpLen = rtp->header.length();
         rtpLen = (rtpLen+1)*4;
 

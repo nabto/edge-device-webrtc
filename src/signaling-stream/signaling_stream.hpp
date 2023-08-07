@@ -37,6 +37,29 @@ public:
     void signalingSendAnswer(std::string& data, nlohmann::json& metadata);
     void signalingSendIce(std::string& data, nlohmann::json& metadata);
 
+    bool isConnection(NabtoDeviceConnectionRef ref)
+    {
+        if (nabto_device_connection_is_virtual(device_->getDevice(), ref)) {
+            if (webrtcConnection_ != nullptr) {
+                return webrtcConnection_->isConnection(ref);
+            }
+            return false;
+        } else {
+            NabtoDeviceConnectionRef me = nabto_device_stream_get_connection_ref(stream_);
+            return me == ref;
+        }
+    }
+
+    bool createTrack(MediaStreamPtr media)
+    {
+        // TODO: if webrtcConnection_ is nullptr, maybe we just create it?
+        if (webrtcConnection_ != nullptr) {
+            webrtcConnection_->createTrack(media);
+            return true;
+        }
+        return false;
+    }
+
 private:
     static void iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
     void parseIceServers();

@@ -105,6 +105,7 @@ void WebrtcConnection::createPeerConnection()
     }
     // conf.iceTransportPolicy = rtc::TransportPolicy::Relay;
     conf.disableAutoNegotiation = true;
+    conf.forceMediaTransport = true;
     pc_ = std::make_shared<rtc::PeerConnection>(conf);
 
     pc_->onStateChange([self](rtc::PeerConnection::State state) {

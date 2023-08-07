@@ -50,6 +50,12 @@ public:
 
     void handleOfferRequest();
 
+    void createTrack(nabto::MediaStreamPtr media)
+    {
+        media->createTrack(pc_);
+        pc_->setLocalDescription();
+    }
+
     void setMetadata(nlohmann::json& metadata)
     {
         metadata_ = metadata;
@@ -61,6 +67,15 @@ public:
     }
 
     void stop();
+
+    bool isConnection(NabtoDeviceConnectionRef ref)
+    {
+        if (nabtoConnection_ != NULL) {
+            NabtoDeviceConnectionRef me = nabto_device_connection_get_connection_ref(nabtoConnection_);
+            return ref == me;
+        }
+        return false;
+    }
 
 private:
 

@@ -25,15 +25,23 @@ private:
     void nextStream();
     static void newStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
-    void nextCoapRequest();
-    static void newCoapRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+    void nextInfoRequest();
+    static void newInfoRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+
+    void nextVideoRequest();
+    static void newVideoRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+    void handleVideoRequest();
 
     NabtoDeviceImplPtr device_;
     std::vector<nabto::MediaStreamPtr> medias_;
 
-    NabtoDeviceListener* coapListener_;
-    NabtoDeviceFuture* coapListenFuture_;
-    NabtoDeviceCoapRequest* coapRequest_;
+    NabtoDeviceListener* coapInfoListener_;
+    NabtoDeviceFuture* coapInfoListenFuture_;
+    NabtoDeviceCoapRequest* coapInfoRequest_;
+
+    NabtoDeviceListener* coapVideoListener_;
+    NabtoDeviceFuture* coapVideoListenFuture_;
+    NabtoDeviceCoapRequest* coapVideoRequest_;
 
     uint32_t streamPort_ = 0;
     NabtoDeviceListener* streamListener_;
