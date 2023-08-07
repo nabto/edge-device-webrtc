@@ -48,7 +48,6 @@ private:
     std::string trackId_;
     bool stopped_ = true;
 
-    // TODO: duplicate for audio
     std::vector<RtpTrack> videoTracks_;
     uint16_t videoPort_ = 6000;
     std::string videoHost_ = "127.0.0.1";

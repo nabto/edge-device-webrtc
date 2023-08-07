@@ -113,7 +113,6 @@ void SignalingStream::createWebrtcConnection() {
     });
 }
 
-// TODO: fix if write returns OPERATION IN PROGRESS maybe add a queue here
 void SignalingStream::sendSignalligObject(std::string& data)
 {
     writeBuffers_.push_back(data);

@@ -80,6 +80,7 @@ void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc
         if (stopped_) {
             start();
             auto self = shared_from_this();
+            // TODO: probably remove this as this is not supported in chrome
             track_->onMessage([self](rtc::message_variant data) {
                 // TODO: implement RTCP forwarding
                 auto msg = rtc::make_message(data);
@@ -100,6 +101,7 @@ void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc
 std::shared_ptr<rtc::Track> RtspStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 
 {
+    // TODO: random ssrc
     const rtc::SSRC ssrc = 42;
     rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
     media.addH264Codec(96); // Must match the payload type of the external h264 RTP stream
