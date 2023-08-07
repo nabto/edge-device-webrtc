@@ -89,8 +89,25 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
 std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 
 {
-    // TODO: implement
-    return nullptr;
+    const rtc::SSRC ssrc = 42;
+    rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
+    media.addH264Codec(96); // Must match the payload type of the external h264 RTP stream
+    media.addSSRC(ssrc, "video-send");
+    auto track = pc->addTrack(media);
+    RtpTrack videoTrack = {
+        pc,
+        track,
+        42,
+        96,
+        96
+    };
+    std::cout << "adding track with pt 96->" << 96 << std::endl;
+    // TODO: thread safety
+    videoTracks_.push_back(videoTrack);
+    if (stopped_) {
+        start();
+    }
+    return track;
 }
 
 void RtpClient::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
