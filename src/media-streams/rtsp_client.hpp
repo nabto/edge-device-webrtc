@@ -1,7 +1,7 @@
 #pragma once
 
 #include "media_stream.hpp"
-#include "rtsp_stream.hpp"
+#include "rtp_client.hpp"
 
 #include <curl/curl.h>
 #include <sys/socket.h>
@@ -42,8 +42,8 @@ private:
 
     CURL* curl_;
 
-    RtspStreamPtr videoStream_ = nullptr;
-    RtspStreamPtr audioStream_ = nullptr;
+    RtpClientPtr videoStream_ = nullptr;
+    RtpClientPtr audioStream_ = nullptr;
 };
 
 
