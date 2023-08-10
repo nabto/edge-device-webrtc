@@ -33,7 +33,9 @@
         <input id="sct" type="text" maxlength="12" required inputmode="verbatim" value="demosct">
         <label for="singleoffer">Offer to receive:</label>
         <input id="singleoffer" type="checkbox" required>
-        <input type="button" name="login" value="Log in" onclick="connect()"></p>
+        <input type="button" name="login" value="Log in" onclick="connect()">
+        <input type="button" name="addaudio" value="Add Audio" onclick="addAudio()">
+      </p>
     </div>
     <ul class="logbox"><b>LOG:</b></ul>
     <div class="camerabox">
@@ -41,6 +43,7 @@
       <button id="hangup-button" onclick="hangUpCall();" role="button">
         Hang Up
       </button>
+      <audio id="received_audio" autoplay></audio>
     </div>
     <div class="empty-container"></div>
   </div>

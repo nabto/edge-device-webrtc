@@ -26,6 +26,12 @@ var webcamStream = null;        // MediaStream from webcam
 var iceServers = [{ urls: "stun:stun.nabto.net" }]; // Servers to use for Turn/stun
 
 
+function addAudio() {
+  nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-audio", undefined, undefined, (response) => {
+    boxLog("Got coap response: " + response);
+  });
+}
+
 // Open a websocket connection to the signaling server and make it connect to the device.
 function connect() {
   reset();
@@ -67,6 +73,7 @@ function connect() {
     if (singleOffer) {
       // We also want to receive a video feed from the device
       let transceiver = myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
+      let audioTrans = myPeerConnection.addTransceiver("audio", {direction: "recvonly", streams: []});
       let offer = await myPeerConnection.createOffer();
       await myPeerConnection.setLocalDescription(offer);
 
@@ -75,6 +82,10 @@ function connect() {
             {
               mid: transceiver.mid,
               trackId: "frontdoor-video"
+            },
+            {
+              mid: audioTrans.mid,
+              trackId: "frontdoor-audio"
             }
           ]
         };
@@ -119,6 +130,9 @@ function connect() {
         nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-video", undefined, undefined, (response) => {
           boxLog("Got coap response: " + response);
         });
+        // nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-audio", undefined, undefined, (response) => {
+        //   boxLog("Got coap response: " + response);
+        // });
       } else {
         // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
         //   if (success) {
@@ -227,7 +241,18 @@ async function handleTrackEvent(event) {
   console.log("event.streams: ", event.streams);
   var stream = event.streams[0];
   if (event.track.kind != "video") {
-    console.log("Not video track, ignoring");
+    console.log("Not video track, must be audio");
+    var audio = document.getElementById("received_audio");
+    if ("srcObject" in audio) {
+      try {
+        audio.srcObject = stream;
+      } catch(err) {
+        console.log("Caught error: ", err);
+        audio.src = URL.createObjectURL(stream);
+      }
+    } else {
+      audio.src = URL.createObjectURL(stream);
+    }
     return;
   }
 

@@ -168,7 +168,8 @@ void SignalingStreamManager::handleVideoRequest()
     // TODO: check IAM
     if (true) {
         std::cout << "Handling video coap request" << std::endl;
-        const char* feed = nabto_device_coap_request_get_parameter(coapVideoRequest_, "feed");
+        const char* feedC = nabto_device_coap_request_get_parameter(coapVideoRequest_, "feed");
+        std::string feed(feedC);
         NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coapVideoRequest_);
 
         SignalingStreamPtr stream = nullptr;
@@ -191,7 +192,8 @@ void SignalingStreamManager::handleVideoRequest()
 
         // TODO: feed should represent eg. frontdoor, so we should look for both frontdoor-video and frontdoor-audio. Change trackId to be "frontdoor" and add type field to the media.
         for (auto m : medias_) {
-            if (m->getTrackId() == feed) {
+            auto id = m->getTrackId();
+            if (id == feed || id == (feed + "-video") || id == (feed + "-audio")) {
                 found = true;
                 if(!stream->createTrack(m)) {
                     std::cout << "Failed to create track for video feed" << std::endl;

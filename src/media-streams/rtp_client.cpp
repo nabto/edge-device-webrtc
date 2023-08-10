@@ -4,6 +4,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <iomanip> // For std::setfill and std::setw
 
 const int RTP_BUFFER_SIZE = 2048;
 
@@ -29,20 +30,22 @@ RtpClient::~RtpClient()
 
 void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
 {
+    const rtc::SSRC ssrc = matcher_->ssrc();
+
     try {
         auto media = track->description();
         int pt = matcher_->match(media);
-        media.addSSRC(42, trackId_);
+        media.addSSRC(ssrc, trackId_);
         auto track_ = pc->addTrack(media);
         // TODO: random ssrc
         RtpTrack videoTrack = {
             pc,
             track_,
-            42,
-            96,
+            ssrc,
+            matcher_->payloadType(),
             pt
         };
-        std::cout << "adding track with pt 96->" << pt << std::endl;
+        std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
         // TODO: thread safety
         videoTracks_.push_back(videoTrack);
         if (stopped_) {
@@ -59,18 +62,20 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
 
 {
     // TODO: random ssrc
-    const rtc::SSRC ssrc = 42;
+    const rtc::SSRC ssrc = matcher_->ssrc();
+
     auto media = matcher_->createMedia();
     media.addSSRC(ssrc, trackId_);
     auto track = pc->addTrack(media);
+
     RtpTrack videoTrack = {
         pc,
         track,
-        42,
-        96,
-        96
+        ssrc,
+        matcher_->payloadType(),
+        matcher_->payloadType()
     };
-    std::cout << "adding track with pt 96->" << 96 << std::endl;
+    std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
     // TODO: thread safety
     videoTracks_.push_back(videoTrack);
     if (stopped_) {
@@ -160,6 +165,12 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
             }
             rtp->setSsrc(t.ssrc);
             rtp->setPayloadType(t.dstPayloadType);
+            // std::cout << "Sending RTP: " << std::endl;
+            // for (int i = 0; i < len; i++) {
+            //     std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)i;
+            // }
+            // std::cout << std::dec << std::endl;
+
             t.track->send(reinterpret_cast<const std::byte*>(buffer), len);
         }
 
@@ -215,18 +226,11 @@ int L24CodecMatcher::match(rtc::Description::Media media)
             r = media.rtpMap(pt);
         }
         catch (std::exception& ex) {
-            // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+            std::cout << "Bad rtpMap for pt: " << pt << std::endl;
             continue;
         }
-        std::string profLvlId = "42e01f";
-        std::string lvlAsymAllowed = "1";
-        std::string pktMode = "1";
-        if (r != NULL && r->fmtps.size() > 0 &&
-            r->fmtps[0].find("profile-level-id=" + profLvlId) != std::string::npos &&
-            r->fmtps[0].find("level-asymmetry-allowed=" + lvlAsymAllowed) != std::string::npos &&
-            r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
-            ) {
-            std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
+        if (r != NULL && r->format == "opus" && r->clockRate == 48000) {
+            std::cout << "Found RTP codec for audio! pt: " << r->payloadType << std::endl;
             rtp = r;
         }
         else {
@@ -239,8 +243,8 @@ int L24CodecMatcher::match(rtc::Description::Media media)
 
 rtc::Description::Media L24CodecMatcher::createMedia()
 {
-    rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
-    media.addH264Codec(96);
+    rtc::Description::Audio media("audio", rtc::Description::Direction::SendOnly);
+    media.addOpusCodec(111);
     return media;
 }
 

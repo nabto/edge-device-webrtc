@@ -32,6 +32,10 @@ public:
      * The caller will add ssrc and track ID to the returned description.
      */
     virtual rtc::Description::Media createMedia() = 0;
+
+    // payload type used to create media
+    virtual int payloadType() = 0;
+    virtual int ssrc() = 0;
 };
 
 class H264CodecMatcher : public RtpCodec
@@ -39,6 +43,8 @@ class H264CodecMatcher : public RtpCodec
 public:
     int match(rtc::Description::Media media);
     rtc::Description::Media createMedia();
+    int payloadType() {return 96;}
+    int ssrc() { return 42; }
 };
 
 class L24CodecMatcher : public RtpCodec
@@ -46,6 +52,8 @@ class L24CodecMatcher : public RtpCodec
 public:
     int match(rtc::Description::Media media);
     rtc::Description::Media createMedia();
+    int payloadType() { return 111; }
+    int ssrc() { return 43; }
 };
 
 class RtpClient : public MediaStream,
@@ -88,6 +96,7 @@ private:
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
     RtpCodec* matcher_;
+    rtc::SSRC ssrc_ = 424242;
 
 };
 

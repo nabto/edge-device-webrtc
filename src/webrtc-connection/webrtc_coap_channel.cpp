@@ -1,6 +1,7 @@
 #include "webrtc_coap_channel.hpp"
 
 #include <nlohmann/json.hpp>
+#include <iomanip> // For std::setfill and std::setw
 
 namespace nabto {
 
