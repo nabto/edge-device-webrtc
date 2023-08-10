@@ -32,7 +32,7 @@ class NabtoWebrtcConnection {
       throw new Error("CoAP data channel not configured");
     }
 
-
+    // crypto.randomUUID() is not available on remote http
     let requestId = this.uuidv4();//crypto.randomUUID();
 
     let req = {

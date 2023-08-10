@@ -68,6 +68,7 @@ private:
     std::thread videoThread_;
     std::thread ctrlThread_;
     rtc::SSRC rtcpSenderSsrc_ = 0;
+    uint16_t remoteCtrlPort_ = 0;
 
 };
 

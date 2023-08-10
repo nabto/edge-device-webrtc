@@ -140,11 +140,11 @@ std::shared_ptr<rtc::Track> RtspStream::createTrack(std::shared_ptr<rtc::PeerCon
                 struct sockaddr_in addr = {};
                 addr.sin_family = AF_INET;
                 addr.sin_addr.s_addr = inet_addr(self->videoHost_.c_str());
-                addr.sin_port = htons(self->ctrlPort_);
+                addr.sin_port = htons(self->remoteCtrlPort_);
 
                 auto ret = sendto(self->rtcpSock_, data, msg->size(), 0, (struct sockaddr*)&addr, sizeof(addr));
                 // ssize_t ret = write(self->rtcpSock_, data, msg->size());
-                std::cout << "Wrote " << ret << " bytes to socket" << std::endl;
+                std::cout << "Wrote " << ret << " bytes to socket port: " << self->remoteCtrlPort_ << std::endl;
 
             }
         });
@@ -190,6 +190,7 @@ void RtspStream::start()
         std::cout << err << std::endl;
         throw std::runtime_error(err);
     }
+    std::cout << "Bound video Sock to port: " << videoPort_ << std::endl;
 
     int rcvBufSize = 212992;
     setsockopt(videoRtpSock_, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&rcvBufSize),
@@ -204,6 +205,7 @@ void RtspStream::start()
         std::cout << err << std::endl;
         throw std::runtime_error(err);
     }
+    std::cout << "Bound RTCP Sock to port: " << ctrlPort_ << std::endl;
 
     setsockopt(rtcpSock_, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&rcvBufSize),
         sizeof(rcvBufSize));
@@ -264,12 +266,17 @@ void RtspStream::ctrlRunner(RtspStream* self)
     uint8_t buffer[RTP_BUFFER_SIZE];
     int len;
     int count = 0;
-    while ((len = recv(self->rtcpSock_, buffer, RTP_BUFFER_SIZE, 0)) >= 0 && !self->stopped_) {
+    struct sockaddr_in srcAddr;
+    socklen_t srcAddrLen = sizeof(srcAddr);
+    while ((len = recvfrom(self->rtcpSock_, buffer, RTP_BUFFER_SIZE, 0, (struct sockaddr*)&srcAddr, &srcAddrLen)) >= 0 && !self->stopped_) {
         // TODO: thread safety
         // TODO: proper rtcp parsing for more than 2 payloads
         if (len < sizeof(rtc::RtcpRr)) {
             continue;
         }
+
+        self->remoteCtrlPort_ = ntohs(srcAddr.sin_port);
+
         auto rtp = reinterpret_cast<rtc::RtcpRr*>(buffer);
         uint16_t rtpLen = rtp->header.length();
         rtpLen = (rtpLen+1)*4;
@@ -279,6 +286,7 @@ void RtspStream::ctrlRunner(RtspStream* self)
             rtp2 = reinterpret_cast<rtc::RtcpRr*>(buffer + rtpLen);
         }
 
+        // TODO: get senderSsrc from rtsp so we don't have to do it for every packet
         self->rtcpSenderSsrc_ = rtp->senderSSRC();
 
         for (auto t : self->videoTracks_) {
