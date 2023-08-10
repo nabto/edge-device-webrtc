@@ -31,6 +31,7 @@ void RtspClient::start()
     }
     // TODO: create RtpClient for audio as well
     videoStream_ = RtpClient::create(trackId_ + "-video");
+    videoStream_->setRtpCodecMatcher(&videoCodec_);
     videoStream_->setVideoPort(45222);
 
     rtspPlay();

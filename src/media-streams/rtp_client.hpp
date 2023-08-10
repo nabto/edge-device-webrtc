@@ -12,8 +12,41 @@ typedef int SOCKET;
 namespace nabto {
 
 class RtpClient;
-
 typedef std::shared_ptr<RtpClient> RtpClientPtr;
+
+
+
+class RtpCodec
+{
+public:
+    /**
+     * match takes a media description and loops through the rtp map
+     * For each map entry if:
+     *    it matches: its payload type is used as return value
+     *    it doesn't match: it is removed from the map
+     **/
+    virtual int match(rtc::Description::Media media) = 0;
+
+    /**
+     * createMedia creates a media description of the proper type and returns it.
+     * The caller will add ssrc and track ID to the returned description.
+     */
+    virtual rtc::Description::Media createMedia() = 0;
+};
+
+class H264CodecMatcher : public RtpCodec
+{
+public:
+    int match(rtc::Description::Media media);
+    rtc::Description::Media createMedia();
+};
+
+class L24CodecMatcher : public RtpCodec
+{
+public:
+    int match(rtc::Description::Media media);
+    rtc::Description::Media createMedia();
+};
 
 class RtpClient : public MediaStream,
                   public std::enable_shared_from_this<RtpClient>
@@ -33,6 +66,7 @@ public:
 
     void setVideoPort(uint16_t port) { videoPort_ = port; }
     void setVideoHost(std::string host) { videoHost_ = host; }
+    void setRtpCodecMatcher(RtpCodec* matcher) {matcher_ = matcher;}
 
 
 private:
@@ -53,6 +87,7 @@ private:
     std::string videoHost_ = "127.0.0.1";
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
+    RtpCodec* matcher_;
 
 };
 

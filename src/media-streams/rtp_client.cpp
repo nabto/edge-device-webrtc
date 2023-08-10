@@ -31,40 +31,9 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
 {
     try {
         auto media = track->description();
-        rtc::Description::Media::RtpMap* rtp = NULL;
-        for (auto pt : media.payloadTypes()) {
-            rtc::Description::Media::RtpMap* r = NULL;
-            try {
-                r = media.rtpMap(pt);
-            }
-            catch (std::exception& ex) {
-                // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
-                continue;
-            }
-            // TODO: make codec configureable and generalize this matching
-            std::string profLvlId = "42e01f";
-            // std::string lvlAsymAllowed = "1";
-            // std::string pktMode = "1";
-            // std::string profLvlId = "4d001f";
-            std::string lvlAsymAllowed = "1";
-            std::string pktMode = "1";
-            if (r != NULL && r->fmtps.size() > 0 &&
-                r->fmtps[0].find("profile-level-id=" + profLvlId) != std::string::npos &&
-                r->fmtps[0].find("level-asymmetry-allowed=" + lvlAsymAllowed) != std::string::npos &&
-                r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
-                ) {
-                std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
-                rtp = r;
-            }
-            else {
-                // std::cout << "no match, removing" << std::endl;
-                media.removeRtpMap(pt);
-            }
-        }
-        // TODO: handle no match found error
-        media.addSSRC(42, trackId_ + "-video");
+        int pt = matcher_->match(media);
+        media.addSSRC(42, trackId_);
         auto track_ = pc->addTrack(media);
-        int pt = rtp == NULL ? 0 : rtp->payloadType;
         // TODO: random ssrc
         RtpTrack videoTrack = {
             pc,
@@ -91,9 +60,8 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
 {
     // TODO: random ssrc
     const rtc::SSRC ssrc = 42;
-    rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
-    media.addH264Codec(96); // Must match the payload type of the external h264 RTP stream
-    media.addSSRC(ssrc, "video-send");
+    auto media = matcher_->createMedia();
+    media.addSSRC(ssrc, trackId_);
     auto track = pc->addTrack(media);
     RtpTrack videoTrack = {
         pc,
@@ -197,6 +165,83 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
 
     }
 
+}
+
+
+int H264CodecMatcher::match(rtc::Description::Media media)
+{
+    rtc::Description::Media::RtpMap* rtp = NULL;
+    for (auto pt : media.payloadTypes()) {
+        rtc::Description::Media::RtpMap* r = NULL;
+        try {
+            r = media.rtpMap(pt);
+        }
+        catch (std::exception& ex) {
+            // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+            continue;
+        }
+        std::string profLvlId = "42e01f";
+        std::string lvlAsymAllowed = "1";
+        std::string pktMode = "1";
+        if (r != NULL && r->fmtps.size() > 0 &&
+            r->fmtps[0].find("profile-level-id=" + profLvlId) != std::string::npos &&
+            r->fmtps[0].find("level-asymmetry-allowed=" + lvlAsymAllowed) != std::string::npos &&
+            r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
+            ) {
+            std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
+            rtp = r;
+        }
+        else {
+            // std::cout << "no match, removing" << std::endl;
+            media.removeRtpMap(pt);
+        }
+    }
+    return rtp == NULL ? 0 : rtp->payloadType;
+}
+
+rtc::Description::Media H264CodecMatcher::createMedia()
+{
+    rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
+    media.addH264Codec(96);
+    return media;
+}
+
+int L24CodecMatcher::match(rtc::Description::Media media)
+{
+    rtc::Description::Media::RtpMap* rtp = NULL;
+    for (auto pt : media.payloadTypes()) {
+        rtc::Description::Media::RtpMap* r = NULL;
+        try {
+            r = media.rtpMap(pt);
+        }
+        catch (std::exception& ex) {
+            // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+            continue;
+        }
+        std::string profLvlId = "42e01f";
+        std::string lvlAsymAllowed = "1";
+        std::string pktMode = "1";
+        if (r != NULL && r->fmtps.size() > 0 &&
+            r->fmtps[0].find("profile-level-id=" + profLvlId) != std::string::npos &&
+            r->fmtps[0].find("level-asymmetry-allowed=" + lvlAsymAllowed) != std::string::npos &&
+            r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
+            ) {
+            std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
+            rtp = r;
+        }
+        else {
+            // std::cout << "no match, removing" << std::endl;
+            media.removeRtpMap(pt);
+        }
+    }
+    return rtp == NULL ? 0 : rtp->payloadType;
+}
+
+rtc::Description::Media L24CodecMatcher::createMedia()
+{
+    rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
+    media.addH264Codec(96);
+    return media;
 }
 
 } // namespace

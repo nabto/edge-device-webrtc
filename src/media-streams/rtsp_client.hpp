@@ -44,6 +44,7 @@ private:
 
     RtpClientPtr videoStream_ = nullptr;
     RtpClientPtr audioStream_ = nullptr;
+    H264CodecMatcher videoCodec_;
 };
 
 

@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
 
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspClientPtr rtsp = nullptr;
+    nabto::H264CodecMatcher rtpVideocodec;
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
         rtsp = nabto::RtspClient::create("frontdoor", rtspUrl);
@@ -45,7 +46,7 @@ int main(int argc, char** argv) {
         auto rtp = nabto::RtpClient::create("frontdoor-video");
         rtp->setVideoPort(opts["rtpPort"].get<uint16_t>());
         rtp->setVideoHost("127.0.0.1");
-
+        rtp->setRtpCodecMatcher(&rtpVideocodec);
         medias.push_back(rtp);
     }
 

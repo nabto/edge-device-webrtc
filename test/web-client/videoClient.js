@@ -18,6 +18,7 @@ var nabtoConnection = new window.NabtoWebrtcConnection();
 var productId = null;
 var deviceId = null;
 var sct = null;
+var singleOffer = false;
 var myPeerConnection = null;    // RTCPeerConnection
 var transceiver = null;         // RTCRtpTransceiver
 var webcamStream = null;        // MediaStream from webcam
@@ -39,6 +40,8 @@ function connect() {
   productId = document.getElementById("product").value;
   deviceId = document.getElementById("device").value;
   sct = document.getElementById("sct").value;
+  let singleOfferElm = document.getElementById("singleoffer");
+  singleOffer = singleOfferElm.checked;
 
   // Set the device configuration in the signaling
   nabtoSignaling.setDeviceConfigSct(productId, deviceId, sct);
@@ -60,15 +63,29 @@ function connect() {
     // We create a data channel in the peer connection to use for coap invocations
     let coapChannel = myPeerConnection.createDataChannel("coap");
 
-    // // We also want to receive a video feed from the device
-    // let transceiver = myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
-    // // myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
+    let metadata = undefined;
+    if (singleOffer) {
+      // We also want to receive a video feed from the device
+      let transceiver = myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
+      let offer = await myPeerConnection.createOffer();
+      await myPeerConnection.setLocalDescription(offer);
+
+      metadata = {
+          tracks: [
+            {
+              mid: transceiver.mid,
+              trackId: "frontdoor-video"
+            }
+          ]
+        };
+    } else {
+      let offer = await myPeerConnection.createOffer();
+      await myPeerConnection.setLocalDescription(offer);
+    }
 
     // Create an offer with the data channel and video channel
-    const offer = await myPeerConnection.createOffer();
 
     // Set the local description using the offer
-    await myPeerConnection.setLocalDescription(offer);
 
     // let metadata = {
     //   tracks: [
@@ -88,7 +105,7 @@ function connect() {
     // }
 
     // Send the local description as our offer to the device through the signaling channel
-    nabtoSignaling.sendOffer(myPeerConnection.localDescription);
+    nabtoSignaling.sendOffer(myPeerConnection.localDescription, metadata);
     // Once the offer is sent, we wait for the device to send us an answer.
     // In the mean time, we send any ICE candidates the RTCPeerConnection finds to the device.
 
@@ -98,16 +115,19 @@ function connect() {
       // We add the data channel to the nabtoConnection so it can use it for coap requests
       nabtoConnection.setCoapDataChannel(coapChannel);
 
-      nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-video", undefined, undefined, (response) => {
-        boxLog("Got coap response: " + response);
-      });
-      // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
-      //   if (success) {
-      //     boxLog("Successfully authenticated using password");
-      //   } else {
-      //     boxLog("Failed to authenticate using password");
-      //   }
-      // });
+      if (!singleOffer) {
+        nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-video", undefined, undefined, (response) => {
+          boxLog("Got coap response: " + response);
+        });
+      } else {
+        // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
+        //   if (success) {
+        //     boxLog("Successfully authenticated using password");
+        //   } else {
+        //     boxLog("Failed to authenticate using password");
+        //   }
+        // });
+      }
 
     });
 
