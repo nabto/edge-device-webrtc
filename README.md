@@ -1,6 +1,19 @@
 # edge-device-webrtc
 WebRTC example implementation for Nabto Embedded SDK
 
+## Current limitations
+
+ * No IAM at all. Everyone is allowed to connect and get a feed.
+ * The demo uses the DEV basestation as TURN credentials are not deployed to prod.
+ * `--rtpport` can be used to set the port number of the video video. It is then assumed the audio feed is on `port+1` and that the received audio should be sent to `port+2`;
+ * H264 video feed and OPUS audio feed (This is very simple to fix if requested)
+ * limited RTSP support:
+ * - control attribute hardcoded to `stream=0`
+ * - Only supports receiving video feed, no audio
+ * - RTSP requests are all sent on startup, so RTSP server must run before device.
+ * - No RTSP TEARDOWN on termination
+
+
 ## RTP usage
 
 The RTP example supports sending video to the client, and sending and receiving audio from the client. We handle these 3 feeds using gstreamer.
@@ -39,6 +52,21 @@ make -j
 
 ### Demo Signaling and browser client
 For demo usage, use our deployed signaling and browser client by opening `http://34.245.62.208:8000/` in your browser.
+
+set product ID, device ID, and SCT, and press `log in` to connect to the device. This will:
+
+ * Make a WebRTC connection to the device with a datachannel only.
+ * Use the datachannel to invoke CoAP `GET /webrtc/video/frontdoor-video`,
+ * causing the device to add the video feed to the peer connection and initiating renegotiation.
+ * The video feed is shown.
+
+Then press `Add Audio` which will:
+ * Use the datachannel to invoke CoAP `GET /webrtc/video/frontdoor-audio`,
+ * causing the device to add the audio feed to the peer connection and initiating renegotiation.
+ * While setting up the audio feed, the browser will create an audio feed from your default mic and add it to the peer connection, again, requiring renegotitaion.
+ * The browser will play the audio feed from the device and the device will stream the audio feed from the browser to UDP.
+
+ Checking the `offer to receive` checkbox before pressing `log in` will add the datachannel, and the video and audio transceivers to the peer connection in the browser before making the first offer. This is used to test how an Alexa feed will work.
 
 
 ### Development Signaling and browser client
@@ -103,21 +131,3 @@ These options will remain optional:
 - `--rtsp` If set to an RTSP url, the device will get the RTP stream using RTSP.
 - `--rtpport` If `--rtsp` is NOT used, the device binds to UDP on this port to receive RTP data. Defaults to 6000.
 
-
-
-
-
-
-
-
-```
-gst-launch-1.0 rtpbin name=rtpbin rtp-profile=avpf v4l2src device=/dev/video0 ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune="zerolatency" byte-stream=true bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay name=pay0 pt=96 ! rtpbin.send_rtp_sink_0 rtpbin.send_rtp_src_0 ! udpsink port=5000 host=127.0.0.1 rtpbin.send_rtcp_src_0 ! udpsink port=5001 host=127.0.0.1 sync=false async=false udpsrc port=5005 ! rtpbin.recv_rtcp_sink_0
-```
-
-
-
-
-0000   7c 44 fa 5c
--\-\
-
-0000   2d 7f 0e 5c                                       -..\

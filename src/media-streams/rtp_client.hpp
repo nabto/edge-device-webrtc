@@ -84,7 +84,7 @@ public:
 
     void removeConnection(std::shared_ptr<rtc::PeerConnection> pc);
 
-    void setVideoPort(uint16_t port) { videoPort_ = port; }
+    void setVideoPort(uint16_t port) { videoPort_ = port; remotePort_ = port + 1; }
     void setVideoHost(std::string host) { videoHost_ = host; }
     void setRtpCodecMatcher(RtpCodec* matcher) {matcher_ = matcher;}
 
