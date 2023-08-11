@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspClientPtr rtsp = nullptr;
     nabto::H264CodecMatcher rtpVideoCodec;
-    nabto::L24CodecMatcher rtpAudioCodec;
+    nabto::OpusCodecMatcher rtpAudioCodec;
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
         rtsp = nabto::RtspClient::create("frontdoor", rtspUrl);

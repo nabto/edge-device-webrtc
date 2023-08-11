@@ -34,7 +34,7 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
 
     try {
         auto media = track->description();
-        int pt = matcher_->match(media);
+        int pt = matcher_->match(&media);
         media.addSSRC(ssrc, trackId_);
         auto track_ = pc->addTrack(media);
         // TODO: random ssrc
@@ -179,13 +179,13 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
 }
 
 
-int H264CodecMatcher::match(rtc::Description::Media media)
+int H264CodecMatcher::match(rtc::Description::Media* media)
 {
     rtc::Description::Media::RtpMap* rtp = NULL;
-    for (auto pt : media.payloadTypes()) {
+    for (auto pt : media->payloadTypes()) {
         rtc::Description::Media::RtpMap* r = NULL;
         try {
-            r = media.rtpMap(pt);
+            r = media->rtpMap(pt);
         }
         catch (std::exception& ex) {
             // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
@@ -201,10 +201,18 @@ int H264CodecMatcher::match(rtc::Description::Media media)
             ) {
             std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
             rtp = r;
+            std::cout << "rtcp fbs:" << std::endl;
+            for (auto s : rtp->rtcpFbs) {
+                std::cout << "   " << s << std::endl;
+            }
+            rtp->removeFeedback("nack");
+            rtp->removeFeedback("goog-remb");
+            rtp->removeFeedback("transport-cc");
+            rtp->removeFeedback("ccm fir");
         }
         else {
             // std::cout << "no match, removing" << std::endl;
-            media.removeRtpMap(pt);
+            media->removeRtpMap(pt);
         }
     }
     return rtp == NULL ? 0 : rtp->payloadType;
@@ -214,16 +222,20 @@ rtc::Description::Media H264CodecMatcher::createMedia()
 {
     rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
     media.addH264Codec(96);
+
+    auto r = media.rtpMap(96);
+    r->removeFeedback("nack");
+    r->removeFeedback("goog-remb");
     return media;
 }
 
-int L24CodecMatcher::match(rtc::Description::Media media)
+int OpusCodecMatcher::match(rtc::Description::Media* media)
 {
     rtc::Description::Media::RtpMap* rtp = NULL;
-    for (auto pt : media.payloadTypes()) {
+    for (auto pt : media->payloadTypes()) {
         rtc::Description::Media::RtpMap* r = NULL;
         try {
-            r = media.rtpMap(pt);
+            r = media->rtpMap(pt);
         }
         catch (std::exception& ex) {
             std::cout << "Bad rtpMap for pt: " << pt << std::endl;
@@ -232,19 +244,26 @@ int L24CodecMatcher::match(rtc::Description::Media media)
         if (r != NULL && r->format == "opus" && r->clockRate == 48000) {
             std::cout << "Found RTP codec for audio! pt: " << r->payloadType << std::endl;
             rtp = r;
+            rtp->removeFeedback("nack");
+            rtp->removeFeedback("goog-remb");
+            rtp->removeFeedback("transport-cc");
+            rtp->removeFeedback("ccm fir");
         }
         else {
             // std::cout << "no match, removing" << std::endl;
-            media.removeRtpMap(pt);
+            media->removeRtpMap(pt);
         }
     }
     return rtp == NULL ? 0 : rtp->payloadType;
 }
 
-rtc::Description::Media L24CodecMatcher::createMedia()
+rtc::Description::Media OpusCodecMatcher::createMedia()
 {
     rtc::Description::Audio media("audio", rtc::Description::Direction::SendOnly);
     media.addOpusCodec(111);
+    auto r = media.rtpMap(111);
+    r->removeFeedback("nack");
+    r->removeFeedback("goog-remb");
     return media;
 }
 

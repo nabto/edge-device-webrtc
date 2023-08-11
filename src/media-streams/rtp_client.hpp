@@ -25,7 +25,7 @@ public:
      *    it matches: its payload type is used as return value
      *    it doesn't match: it is removed from the map
      **/
-    virtual int match(rtc::Description::Media media) = 0;
+    virtual int match(rtc::Description::Media* media) = 0;
 
     /**
      * createMedia creates a media description of the proper type and returns it.
@@ -41,16 +41,16 @@ public:
 class H264CodecMatcher : public RtpCodec
 {
 public:
-    int match(rtc::Description::Media media);
+    int match(rtc::Description::Media* media);
     rtc::Description::Media createMedia();
     int payloadType() {return 96;}
     int ssrc() { return 42; }
 };
 
-class L24CodecMatcher : public RtpCodec
+class OpusCodecMatcher : public RtpCodec
 {
 public:
-    int match(rtc::Description::Media media);
+    int match(rtc::Description::Media* media);
     rtc::Description::Media createMedia();
     int payloadType() { return 111; }
     int ssrc() { return 43; }
