@@ -81,6 +81,45 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
     if (stopped_) {
         start();
     }
+    if (matcher_->direction() != RtpCodec::SEND_ONLY) {
+        // We are also gonna receive data
+        auto self = shared_from_this();
+        int count = 0;
+        track->onMessage([self, videoTrack, &count](rtc::message_variant data) {
+            auto msg = rtc::make_message(data);
+            if (msg->type == rtc::Message::Binary) {
+                std::byte* data = msg->data();
+
+                auto rtp = reinterpret_cast<rtc::RtpHeader*>(data);
+                uint8_t pt = rtp->payloadType();
+                if (pt != videoTrack.dstPayloadType) {
+                    return;
+                }
+                count++;
+                if (count % 100 == 0) {
+                    std::cout << ":";
+                }
+                if (count % 1600 == 0) {
+                    std::cout << std::endl;
+                    count = 0;
+                }
+
+                rtp->setSsrc(videoTrack.srcPayloadType);
+
+                struct sockaddr_in addr = {};
+                addr.sin_family = AF_INET;
+                addr.sin_addr.s_addr = inet_addr(self->videoHost_.c_str());
+                addr.sin_port = htons(self->remotePort_);
+
+                auto ret = sendto(self->videoRtpSock_, data, msg->size(), 0, (struct sockaddr*)&addr, sizeof(addr));
+                // ssize_t ret = write(self->rtcpSock_, data, msg->size());
+                // std::cout << "Wrote " << ret << " bytes to socket port: " << self->remotePort_ << std::endl;
+
+
+            }
+        });
+    }
+
     return track;
 }
 
@@ -145,7 +184,9 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
     char buffer[RTP_BUFFER_SIZE];
     int len;
     int count = 0;
-    while ((len = recv(self->videoRtpSock_, buffer, RTP_BUFFER_SIZE, 0)) >= 0 && !self->stopped_) {
+    struct sockaddr_in srcAddr;
+    socklen_t srcAddrLen = sizeof(srcAddr);
+    while ((len = recvfrom(self->videoRtpSock_, buffer, RTP_BUFFER_SIZE, 0, (struct sockaddr*)&srcAddr, &srcAddrLen)) >= 0 && !self->stopped_) {
         count++;
         if (count % 100 == 0) {
             std::cout << ".";
@@ -158,6 +199,8 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
         if (len < sizeof(rtc::RtpHeader)) {
             continue;
         }
+//        self->remotePort_ = ntohs(srcAddr.sin_port);
+
         auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
         for (auto t : self->videoTracks_) {
             if (!t.track || !t.track->isOpen()) {
@@ -259,7 +302,7 @@ int OpusCodecMatcher::match(rtc::Description::Media* media)
 
 rtc::Description::Media OpusCodecMatcher::createMedia()
 {
-    rtc::Description::Audio media("audio", rtc::Description::Direction::SendOnly);
+    rtc::Description::Audio media("audio", rtc::Description::Direction::SendRecv);
     media.addOpusCodec(111);
     auto r = media.rtpMap(111);
     r->removeFeedback("nack");

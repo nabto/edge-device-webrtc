@@ -3,11 +3,27 @@ WebRTC example implementation for Nabto Embedded SDK
 
 ## RTP usage
 
+The RTP example supports sending video to the client, and sending and receiving audio from the client. We handle these 3 feeds using gstreamer.
+
+### Create a video feed
 In some terminal with gstreamer installed create an RTP stream using:
 ```
 $ gst-launch-1.0 v4l2src device=/dev/video0 ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay pt=96 mtu=1200 ! udpsink host=127.0.0.1 port=6000
 ```
 
+### Create an audio feed
+In some terminal with gstreamer installed create an RTP stream using:
+```
+gst-launch-1.0 -v audiotestsrc wave=sine freq=220 volume=0.01 ! audioconvert ! opusenc ! rtpopuspay name=pay0 pt=111 ! udpsink host=127.0.0.1 port=6001
+```
+
+### Create an audio sink
+In some terminal with gstreamer installed create an RTP stream using:
+```
+gst-launch-1.0 -v udpsrc uri=udp://127.0.0.1:6002 caps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00" ! rtpopusdepay ! opusdec ! audioconvert ! autoaudiosink sync=false
+```
+
+### Running the device
 From the repo root in a separate terminal:
 
 ```
@@ -21,13 +37,11 @@ make -j
 ./src/edge_device_webrtc
 ```
 
-in separate terminal:
-```
-cd test/signalling-server
-npm install
-ts-node app.ts
-```
+### Demo Signaling and browser client
+For demo usage, use our deployed signaling and browser client by opening `http://34.245.62.208:8000/` in your browser.
 
+
+### Development Signaling and browser client
 in separate terminal:
 ```
 cd test/web-client
@@ -38,6 +52,20 @@ python3 -m http.server -d .
 ```
 
 From a browser, go to `localhost:8000` press `log in`.
+
+This browser client will use the deployed demo signaling server. To use a local signaling server, go to file `test/web-client/videoClient.js` and remove the line:
+```
+  nabtoSignaling.setSignalingHost("ws://34.245.62.208:6503");
+```
+
+Refresh the webpage to apply the change.
+
+in separate terminal:
+```
+cd test/signalling-server
+npm install
+ts-node app.ts
+```
 
 ## RTSP usage
 
@@ -75,3 +103,21 @@ These options will remain optional:
 - `--rtsp` If set to an RTSP url, the device will get the RTP stream using RTSP.
 - `--rtpport` If `--rtsp` is NOT used, the device binds to UDP on this port to receive RTP data. Defaults to 6000.
 
+
+
+
+
+
+
+
+```
+gst-launch-1.0 rtpbin name=rtpbin rtp-profile=avpf v4l2src device=/dev/video0 ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune="zerolatency" byte-stream=true bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay name=pay0 pt=96 ! rtpbin.send_rtp_sink_0 rtpbin.send_rtp_src_0 ! udpsink port=5000 host=127.0.0.1 rtpbin.send_rtcp_src_0 ! udpsink port=5001 host=127.0.0.1 sync=false async=false udpsrc port=5005 ! rtpbin.recv_rtcp_sink_0
+```
+
+
+
+
+0000   7c 44 fa 5c
+-\-\
+
+0000   2d 7f 0e 5c                                       -..\

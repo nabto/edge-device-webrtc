@@ -219,6 +219,31 @@ function createPeerConnection() {
   myPeerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
 }
 
+let localStream;
+
+
+async function addAudioTrack(event)
+{
+  const constraints = window.constraints = {
+    audio: true,
+    video: false
+  };
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  localStream = stream;
+  // event.transceiver.sender.replaceTrack(event.track);
+  // event.transceiver.sender.setStreams(stream);
+  const audioTracks = localStream.getAudioTracks();
+  if (audioTracks.length > 0) {
+    console.log(`Using Audio device: ${audioTracks[0].label}`);
+  }
+  localStream.getTracks().forEach(track => myPeerConnection.addTrack(track, localStream));
+  let offer = await myPeerConnection.createOffer();
+  await myPeerConnection.setLocalDescription(offer);
+  nabtoSignaling.sendOffer(myPeerConnection.localDescription);
+
+
+}
+
 
 // Called by the WebRTC layer when events occur on the media tracks
 // on our WebRTC call. This includes when streams are added to and
@@ -253,6 +278,7 @@ async function handleTrackEvent(event) {
     } else {
       audio.src = URL.createObjectURL(stream);
     }
+    await addAudioTrack(event);
     return;
   }
 
@@ -397,8 +423,6 @@ async function handleVideoOfferMsg(msg) {
   // If we're not already connected, create an RTCPeerConnection
   // to be linked to the caller.
 
-  // nabtoSignaling.setSignalingHost("ws://34.245.62.208:6503");
-
   boxLog(`Recieved WebRTC offer from device! Sending answer`);
   console.log("Received video chat offer With SDP: ", msg.data);
   if (!myPeerConnection) {
@@ -439,5 +463,6 @@ function reset() {
 async function handleNegotiationNeededEvent() {
   console.log("*** Negotiation needed");
   // TODO: renegotiation
+
 }
 

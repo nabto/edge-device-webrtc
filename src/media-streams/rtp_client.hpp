@@ -19,6 +19,12 @@ typedef std::shared_ptr<RtpClient> RtpClientPtr;
 class RtpCodec
 {
 public:
+    enum Direction {
+        SEND_ONLY, // Device only sends data
+        RECV_ONLY, // Device only receives data
+        SEND_RECV  // Device both sends and receives data
+    };
+
     /**
      * match takes a media description and loops through the rtp map
      * For each map entry if:
@@ -35,7 +41,12 @@ public:
 
     // payload type used to create media
     virtual int payloadType() = 0;
+
+    // SSRC of the media
     virtual int ssrc() = 0;
+
+    // Direction of the created media
+    virtual enum Direction direction() { return SEND_ONLY;}
 };
 
 class H264CodecMatcher : public RtpCodec
@@ -54,6 +65,7 @@ public:
     rtc::Description::Media createMedia();
     int payloadType() { return 111; }
     int ssrc() { return 43; }
+    enum Direction direction() { return SEND_RECV; }
 };
 
 class RtpClient : public MediaStream,
@@ -92,6 +104,7 @@ private:
 
     std::vector<RtpTrack> videoTracks_;
     uint16_t videoPort_ = 6000;
+    uint16_t remotePort_ = 6002;
     std::string videoHost_ = "127.0.0.1";
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
