@@ -93,6 +93,14 @@ class NabtoWebrtcConnection {
 
   }
 
+  readStream(channel, cb)
+  {
+    channel.addEventListener("message", (event) => {
+      console.log("Got stream channel message: ", event.data);
+      cb(event.data);
+    });
+  }
+
 
 };
 

@@ -12,6 +12,7 @@ WebRTC example implementation for Nabto Embedded SDK
  * - Only supports receiving video feed, no audio
  * - RTSP requests are all sent on startup, so RTSP server must run before device.
  * - No RTSP TEARDOWN on termination
+ * No RTCP. We have not found any streamers which actually reacts to RTCP, so we do not handle it.
 
 
 ## RTP usage
@@ -24,13 +25,13 @@ In some terminal with gstreamer installed create an RTP stream using:
 $ gst-launch-1.0 v4l2src device=/dev/video0 ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay pt=96 mtu=1200 ! udpsink host=127.0.0.1 port=6000
 ```
 
-### Create an audio feed
+### Create an audio feed (optional)
 In some terminal with gstreamer installed create an RTP stream using:
 ```
 gst-launch-1.0 -v audiotestsrc wave=sine freq=220 volume=0.01 ! audioconvert ! opusenc ! rtpopuspay name=pay0 pt=111 ! udpsink host=127.0.0.1 port=6001
 ```
 
-### Create an audio sink
+### Create an audio sink (optional)
 In some terminal with gstreamer installed create an RTP stream using:
 ```
 gst-launch-1.0 -v udpsrc uri=udp://127.0.0.1:6002 caps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00" ! rtpopusdepay ! opusdec ! audioconvert ! autoaudiosink sync=false
@@ -47,6 +48,7 @@ docker compose exec device bash
 cd build
 cmake ../
 make -j
+cp ../src/nabto-device/nabto.png .
 ./src/edge_device_webrtc
 ```
 
@@ -55,16 +57,22 @@ For demo usage, use our deployed signaling and browser client by opening `http:/
 
 set product ID, device ID, and SCT, and press `log in` to connect to the device. This will:
 
- * Make a WebRTC connection to the device with a datachannel only.
+ * Make a WebRTC connection to the device with a datachannel (labelled `coap`) only.
  * Use the datachannel to invoke CoAP `GET /webrtc/video/frontdoor-video`,
  * causing the device to add the video feed to the peer connection and initiating renegotiation.
  * The video feed is shown.
 
-Then press `Add Audio` which will:
+If you created the optional audio feeds, press `Add Audio` which will:
  * Use the datachannel to invoke CoAP `GET /webrtc/video/frontdoor-audio`,
  * causing the device to add the audio feed to the peer connection and initiating renegotiation.
  * While setting up the audio feed, the browser will create an audio feed from your default mic and add it to the peer connection, again, requiring renegotitaion.
  * The browser will play the audio feed from the device and the device will stream the audio feed from the browser to UDP.
+
+Press the `Get Image` button. This will:
+ * Create a new data channel labelled `stream-655`
+ * causing the device to create a virtual Nabto stream to stream port `655`
+ * When the stream is opened, the device will stream the `nabto.png` picture to the browser and close the stream.
+ * When the stream is closed, the browser will render the image.
 
  Checking the `offer to receive` checkbox before pressing `log in` will add the datachannel, and the video and audio transceivers to the peer connection in the browser before making the first offer. This is used to test how an Alexa feed will work.
 

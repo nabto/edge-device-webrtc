@@ -7,6 +7,7 @@ set(src
     signaling-stream/signaling_stream_manager.cpp
     webrtc-connection/webrtc_connection.cpp
     webrtc-connection/webrtc_coap_channel.cpp
+    webrtc-connection/webrtc_stream_channel.cpp
 )
 
 add_executable(edge_device_webrtc "${src}")

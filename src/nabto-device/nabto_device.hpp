@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 
+#include <fstream>
 
 namespace nabto {
 
@@ -27,6 +28,16 @@ public:
     NabtoDevice* getDevice() { return device_; }
 
 private:
+
+    bool setupFileStream();
+    void nextFileStream();
+    static void newFileStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+    static void fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+    void doStreamFile();
+    static void writeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+    static void closeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+
+    std::vector<char> fileBuffer_;
     NabtoDevice* device_;
     std::string productId_;
     std::string deviceId_;
@@ -34,6 +45,11 @@ private:
     std::string sct_ = "demosct";
     std::string logLevel_ = "info";
     std::string serverUrl_;
+
+    NabtoDeviceListener* fileStreamListen_ = NULL;
+    NabtoDeviceFuture* fileStreamFut_ = NULL;
+    NabtoDeviceStream* fileStream_ = NULL;
+    std::ifstream inputFile_;
 };
 
 } // namespace

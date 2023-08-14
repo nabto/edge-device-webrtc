@@ -25,6 +25,42 @@ var webcamStream = null;        // MediaStream from webcam
 
 var iceServers = [{ urls: "stun:stun.nabto.net" }]; // Servers to use for Turn/stun
 
+var pictureBuffer = new ArrayBuffer();
+
+function appendBuffer(buffer)
+{
+  var tmp = new Uint8Array( buffer.byteLength + pictureBuffer.byteLength );
+  tmp.set( new Uint8Array( pictureBuffer ), 0 );
+  tmp.set( new Uint8Array( buffer ), pictureBuffer.byteLength );
+  pictureBuffer = tmp.buffer;
+}
+
+function bufferToBase64( buffer ) {
+  var binary = '';
+  var bytes = new Uint8Array( buffer );
+  var len = bytes.byteLength;
+  for (var i = 0; i < len; i++) {
+      binary += String.fromCharCode( bytes[ i ] );
+  }
+  return window.btoa( binary );
+}
+
+function getImage()
+{
+  // TODO: ephemeral stream port
+  let stream = myPeerConnection.createDataChannel("stream-655");
+  nabtoConnection.readStream(stream, (data) => {
+    console.log("read stream data");
+    appendBuffer(data);
+  });
+  stream.addEventListener("close", (event) => {
+    console.log("Stream channel closed event. buffer length: ", pictureBuffer.byteLength);
+
+    img = document.getElementById("nabtoimage");
+    img.src = 'data:image/png;base64,' + bufferToBase64(pictureBuffer);
+
+  });
+}
 
 function addAudio() {
   nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-audio", undefined, undefined, (response) => {

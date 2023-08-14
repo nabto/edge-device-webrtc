@@ -12,7 +12,7 @@ NabtoDeviceImplPtr NabtoDeviceImpl::create(nlohmann::json& opts)
     return nullptr;
 }
 
-NabtoDeviceImpl::NabtoDeviceImpl()
+NabtoDeviceImpl::NabtoDeviceImpl() : fileBuffer_(1024, 0)
 {
 
 }
@@ -106,11 +106,108 @@ bool NabtoDeviceImpl::start()
         std::cout << "Failed to start device, ec=" << nabto_device_error_get_message(ec) << std::endl;
         return false;
     }
-    return true;
+    return setupFileStream();
+}
 
+
+bool NabtoDeviceImpl::setupFileStream()
+{
+    // TODO: ephemeral port number
+    if ((fileStreamListen_ = nabto_device_listener_new(device_)) == NULL ||
+        nabto_device_stream_init_listener(device_, fileStreamListen_, 655) != NABTO_DEVICE_EC_OK ||
+        (fileStreamFut_ = nabto_device_future_new(device_)) == NULL)
+    {
+        std::cout << "Failed to listen for streams" << std::endl;
+        return false;
+    }
+    nextFileStream();
+    return true;
+}
+
+void NabtoDeviceImpl::nextFileStream()
+{
+    nabto_device_listener_new_stream(fileStreamListen_, fileStreamFut_, &fileStream_);
+    nabto_device_future_set_callback(fileStreamFut_, newFileStream, this);
+}
+
+void NabtoDeviceImpl::newFileStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+{
+    NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
+    if (ec != NABTO_DEVICE_EC_OK)
+    {
+        std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        return;
+    }
+    // TODO: check IAM
+    if (true)
+    {
+        std::cout << "Got new file stream" << std::endl;
+        nabto_device_stream_accept(self->fileStream_, future);
+        nabto_device_future_set_callback(future, fileStreamAccepted, self);
+    }
+    else {
+        nabto_device_stream_free(self->fileStream_);
+        self->fileStream_ = NULL;
+        self->nextFileStream();
+    }
 
 }
 
+void NabtoDeviceImpl::fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+{
+    NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
+    if (ec != NABTO_DEVICE_EC_OK) {
+        std::cout << "file stream accept failed" << std::endl;
+        return;
+    }
+    std::cout << "File stream accepted" << std::endl;
+    self->inputFile_ = std::ifstream("nabto.png", std::ifstream::binary);
+    self->doStreamFile();
+}
+
+void NabtoDeviceImpl::doStreamFile()
+{
+    if (!inputFile_.eof()) {
+        std::cout << "Input not EOF, reading file" << std::endl;
+        inputFile_.read(fileBuffer_.data(), fileBuffer_.size());
+        std::streamsize s = inputFile_.gcount();
+        std::cout << "Read " << s << "bytes, writing to nabto stream" << std::endl;
+        nabto_device_stream_write(fileStream_, fileStreamFut_, fileBuffer_.data(), s);
+        nabto_device_future_set_callback(fileStreamFut_, writeFileStreamCb, this);
+        return;
+    } else {
+        std::cout << "File reached EOF, closing nabto stream" << std::endl;
+        nabto_device_stream_close(fileStream_, fileStreamFut_);
+        nabto_device_future_set_callback(fileStreamFut_, closeFileStreamCb, this);
+    }
+
+}
+
+void NabtoDeviceImpl::writeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+{
+    NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
+    if (ec != NABTO_DEVICE_EC_OK) {
+        std::cout << "file stream write failed" << std::endl;
+        return;
+    }
+    std::cout << "nabto stream write callback" << std::endl;
+    self->doStreamFile();
+
+}
+
+void NabtoDeviceImpl::closeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+{
+    NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
+    if (ec != NABTO_DEVICE_EC_OK) {
+        std::cout << "file stream close failed" << std::endl;
+        return;
+    }
+    std::cout << "Stream closed" << std::endl;
+    nabto_device_stream_abort(self->fileStream_);
+    // We never read, we are not writing, we are done closeing, so we do not have unresolved futures.
+    nabto_device_stream_free(self->fileStream_);
+    self->nextFileStream();
+}
 
 void NabtoDeviceImpl::stop() {
     return nabto_device_stop(device_);

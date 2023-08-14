@@ -20,14 +20,15 @@
   min-width: 1250px;
   height: 100%;
   grid-template-areas: "infobox infobox infobox"
-  "userlistbox logbox camerabox";
-  grid-template-rows: 16em 1fr 5em;
+  "userlistbox logbox camerabox"
+  "picturebox picturebox picturebox";
   grid-gap: 1rem;
 }
 
 .infobox {
   grid-area: infobox;
   overflow: auto;
+  height: 100px;
 }
 
 .userlistbox {
@@ -71,6 +72,17 @@
   grid-area: camerabox;
   width: 800px;
   height: 600px;
+  border: 1px solid black;
+  vertical-align: top;
+  display: block;
+  position:relative;
+  overflow:auto;
+}
+
+.picturebox {
+  grid-area: picturebox;
+  width: 600px;
+  height: 400px;
   border: 1px solid black;
   vertical-align: top;
   display: block;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "webrtc_coap_channel.hpp"
+#include "webrtc_stream_channel.hpp"
 
 #include <signaling-stream/signaling_stream_ptr.hpp>
 #include <nabto-device/nabto_device.hpp>
@@ -96,6 +97,7 @@ private:
     std::shared_ptr<rtc::PeerConnection> pc_ = nullptr;
     NabtoDeviceVirtualConnection* nabtoConnection_ = NULL;
     WebrtcCoapChannelPtr coapChannel_ = nullptr;
+    WebrtcStreamChannelPtr streamChannel_ = nullptr;
 
 
 };
