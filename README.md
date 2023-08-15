@@ -3,6 +3,7 @@ WebRTC example implementation for Nabto Embedded SDK
 
 ## Current limitations
 
+ * Nabto WebRTC uses signaling over Nabto Streaming meaning the signaling server is only needed by browsers (native Nabto Clients creates their own signaling stream directly). The example is currently ONLY tested with a browser through the signaling server (Though native clients should work fine).
  * No IAM at all. Everyone is allowed to connect and get a feed.
  * The demo uses the DEV basestation as TURN credentials are not deployed to prod.
  * `--rtpport` can be used to set the port number of the video video. It is then assumed the audio feed is on `port+1` and that the received audio should be sent to `port+2`;

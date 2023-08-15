@@ -141,6 +141,7 @@ void NabtoDeviceImpl::newFileStream(NabtoDeviceFuture* future, NabtoDeviceError 
     // TODO: check IAM
     if (true)
     {
+        // TODO: split into seperate stream class so we can have multiple file streams in parallel.
         std::cout << "Got new file stream" << std::endl;
         nabto_device_stream_accept(self->fileStream_, future);
         nabto_device_future_set_callback(future, fileStreamAccepted, self);
