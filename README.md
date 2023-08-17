@@ -9,8 +9,7 @@ WebRTC example implementation for Nabto Embedded SDK
  * `--rtpport` can be used to set the port number of the video video. It is then assumed the audio feed is on `port+1` and that the received audio should be sent to `port+2`;
  * H264 video feed and OPUS audio feed (This is very simple to fix if requested)
  * limited RTSP support:
- * - control attribute hardcoded to `stream=0`
- * - Only supports receiving video feed, no audio
+ * - Only supports device sending video/audio feed, no recieving audio
  * - RTSP requests are all sent on startup, so RTSP server must run before device.
  * - No RTSP TEARDOWN on termination
  * No RTCP. We have not found any streamers which actually reacts to RTCP, so we do not handle it.
