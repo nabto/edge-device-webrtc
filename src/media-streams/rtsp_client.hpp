@@ -52,7 +52,6 @@ private:
     std::string parseControlAttribute(std::string& att);
 
     static size_t writeFunc(void* ptr, size_t size, size_t nmemb, void* self);
-    static size_t writeHeaderFunc(void* ptr, size_t size, size_t nmemb, void* self);
 
     std::string trackId_;
     std::string url_;

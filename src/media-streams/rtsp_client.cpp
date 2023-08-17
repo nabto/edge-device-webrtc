@@ -79,14 +79,9 @@ bool RtspClient::setupCurl() {
         std::cout << "Failed to set Curl progress option" << std::endl;
         return false;
     }
-    res = curl_easy_setopt(curl_, CURLOPT_HEADERDATA, &curlHeaders_);
+    res = curl_easy_setopt(curl_, CURLOPT_HEADERDATA, stdout);
     if (res != CURLE_OK) {
         std::cout << "Failed to set Curl header data option" << std::endl;
-        return false;
-    }
-    res = curl_easy_setopt(curl_, CURLOPT_HEADERFUNCTION, writeHeaderFunc);
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl header function option" << std::endl;
         return false;
     }
     res = curl_easy_setopt(curl_, CURLOPT_URL, url_.c_str());
@@ -127,6 +122,12 @@ bool RtspClient::setupRtsp() {
     std::string readBuffer;
     curlHeaders_.clear();
 
+    res = curl_easy_setopt(curl_, CURLOPT_HEADERDATA, &curlHeaders_);
+    if (res != CURLE_OK) {
+        std::cout << "Failed to set Curl header data option" << std::endl;
+        return false;
+    }
+
     res = curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, writeFunc);
     if (res != CURLE_OK) {
         std::cout << "Failed to set Curl write function option" << std::endl;
@@ -151,14 +152,11 @@ bool RtspClient::setupRtsp() {
         return false;
     }
 
+    res = curl_easy_setopt(curl_, CURLOPT_HEADERDATA, stdout);
     res = curl_easy_setopt(curl_, CURLOPT_WRITEDATA, stdout);
     res = curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, NULL);
 
     std::cout << "Read SDP description: " << std::endl << readBuffer << std::endl;
-
-    // std::string axis = "v=0\r\no=- 9316026343136633650 1 IN IP4 192.168.0.106\r\ns=Session streamed with GStreamer\r\ni=rtsp-server\r\nt=0 0\r\na=tool:GStreamer\r\na=type:broadcast\r\na=range:npt=now-\r\na=control:rtsp://192.168.0.106/axis-media/media.amp\r\nm=video 0 RTP/AVP 96\r\nc=IN IP4 0.0.0.0\r\nb=AS:50000\r\na=rtpmap:96 H264/90000\r\na=fmtp:96 packetization-mode=1;profile-level-id=640029;sprop-parameter-sets=Z2QAKaw0yAeAIn5cBbgICAoAAAfQAAGGodDAABfWoAAAX1ppd5caGAAC+tQAAAvrTS7y4b6g,aO48MA==\r\na=ts-refclk:local\r\na=mediaclk:sender\r\na=recvonly\r\na=control:rtsp://192.168.0.106/axis-media/media.amp/stream=0\r\na=framerate:25.000000\r\na=transform:1.000000,0.000000,0.000000;0.000000,1.000000,0.000000;0.000000,0.000000,1.000000\r\nm=audio 0 RTP/AVP 97\r\nc=IN IP4 0.0.0.0\r\nb=AS:32\r\na=rtpmap:97 MPEG4-GENERIC/8000/1\r\na=fmtp:97 streamtype=5;profile-level-id=2;mode=AAC-hbr;config=1588;sizelength=13;indexlength=3;indexdeltalength=3;bitrate=32000\r\na=ts-refclk:local\r\na=mediaclk:sender\r\na=recvonly\r\na=control:rtsp://192.168.0.106/axis-media/media.amp/stream=1\r\n";
-    // readBuffer = axis;
-    // std::cout << "Axis readbuffer: " << std::endl << readBuffer << std::endl;
 
     // RFC2326 C.1:
     // ... look for a base URL in the following order:
@@ -223,51 +221,37 @@ bool RtspClient::rtspPlay() {
     std::string uri = sessionControlUrl_;
     res = curl_easy_setopt(curl_, CURLOPT_RTSP_STREAM_URI, uri.c_str());
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 18" << std::endl;
+        std::cout << "Failed to set Curl RTSP stream URI option" << std::endl;
         return false;
     }
     res = curl_easy_setopt(curl_, CURLOPT_RANGE, range);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 19" << std::endl;
+        std::cout << "Failed to set Curl RTSP Range option" << std::endl;
         return false;
     }
     res = curl_easy_setopt(curl_, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_PLAY);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 20" << std::endl;
+        std::cout << "Failed to set Curl RTSP Request option" << std::endl;
         return false;
     }
     res = curl_easy_perform(curl_);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 21" << std::endl;
+        std::cout << "Failed to perform RTSP PLAY request" << std::endl;
         return false;
     }
 
     // switch off using range again
     res = curl_easy_setopt(curl_, CURLOPT_RANGE, NULL);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 22" << std::endl;
+        std::cout << "Failed to reset Curl RTSP Range option" << std::endl;
         return false;
     }
 
     return true;
 }
 
-// TODO: These 2 write functions could be identically, so remove one.
-size_t RtspClient::writeHeaderFunc(void* ptr, size_t size, size_t nmemb, void* s)
-{
-    try {
-        ((std::string*)s)->append((char*)ptr, size * nmemb);
-    }
-    catch (std::exception& ex) {
-        std::cout << "WriteHeaderFunc failure" << std::endl;
-        return size * nmemb;
-    }
-    return size * nmemb;
-}
-
 size_t RtspClient::writeFunc(void* ptr, size_t size, size_t nmemb, void* s)
 {
-    std::cout << "WriteFunc 1" << std::endl;
     if (s == stdout) {
         std::cout << "s was stdout, this is header data" << std::endl;
         std::string data((char*)ptr, size * nmemb);
@@ -281,7 +265,6 @@ size_t RtspClient::writeFunc(void* ptr, size_t size, size_t nmemb, void* s)
         std::cout << "WriteFunc failure" << std::endl;
         return size * nmemb;
     }
-    std::cout << "WriteFunc 2" << std::endl;
     return size * nmemb;
 }
 
@@ -289,14 +272,9 @@ bool RtspClient::parseSdpDescription(std::string& sdp)
 {
 
     auto desc = rtc::Description(sdp);
-
-    std::cout << "parsed sdp stringified: " << desc.generateSdp() << std::endl;
-
     auto atts = desc.attributes();
 
-    std::cout << "Session Attributes: " << std::endl;
     for (auto a : atts) {
-        std::cout << "  " << a << std::endl;
         if (a.rfind("control:",0) == 0) {
             sessionControlUrl_ = parseControlAttribute(a);
         }
@@ -306,7 +284,7 @@ bool RtspClient::parseSdpDescription(std::string& sdp)
     for (size_t i = 0; i < count; i++) {
         if (std::holds_alternative<rtc::Description::Media*>(desc.media(i))) {
             auto m = std::get<rtc::Description::Media*>(desc.media(i));
-            std::cout << "Media type: " << m->type() << std::endl;
+            std::cout << "Found Media type: " << m->type() << std::endl;
             std::string controlUrl;
 
             auto mAtts = m->attributes();
