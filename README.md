@@ -18,7 +18,7 @@ WebRTC example implementation for Nabto Embedded SDK
 
 ## RTP usage
 
-The RTP example supports sending video to the client, and sending and receiving audio from the client. We handle these 3 feeds using gstreamer.
+The RTP example supports sending video to the client, and sending and receiving audio from the client. This example handles these 3 feeds using gstreamer, but any RTP source/sink can be used as long as they use the proper UDP ports.
 
 ### Create a video feed
 In some terminal with gstreamer installed create an RTP stream using:
@@ -106,6 +106,8 @@ ts-node app.ts
 
 ## RTSP usage
 
+This example uses a Nabto provided RTSP demo container. However, any RTSP server can be used. It is important that the RTSP server and the device example has free network access to each other to enable the UDP streaming sockets to work properly. This is why the example uses `--network host`.
+
 start the [rtsp-demo-container](https://github.com/nabto/rtsp-demo-container) with:
 
 ```
@@ -118,13 +120,14 @@ Then start device with `--rtsp`:
 ./examples/webrtc-device/webrtc_device --rtsp rtsp://127.0.0.1:8554/video
 ```
 
+The streaming can now be tested with the web client in the same way as the RTP example above. **However, the RTSP demo container does not provide an audio feed so add Audio will not work.** Providing an RTSP server with an audio feed will make one-way audio work.
+
 ### RTSP Details
 
-This example this uses RTSP to start an RTP stream on port 45222. The UDP socket is bound to `0.0.0.0`, so it will also work with remote RTSP hosts.
+This example this uses RTSP to start an RTP video stream on port 45222 and, if the RTSP server has one, an RTP audio stream on port 45224. The UDP socket is bound to `0.0.0.0`, so it will also work with remote RTSP hosts.
 
-The `rtsp_client.hpp` handling RTSP searches for `a = control: %32s` in the SDP document returned by the RTSP server to determine which URI to setup in the SETUP request. In the case of the openIPC cam we tested on, it would also send an audio channel which was picked at random. For this reason, the `control` attribute is ignored and a static string is used. This will be fixed in the future.
+The RTSP client only supports one video and one audio stream. If the servers response to the RTSP `Describe` request contains more than one stream of a kind (video/audio), one will be picked and the remaining will be ignored.
 
-In this example, the browser will create a WebRTC connection by sending an offer only requesting a data channel. This data channel is then used to invoke a CoAP endpoint causing the device to add the desired media tracks to the WebRTC connection and then initiate a renegotiation by sending a new offer to the browser. This is done because 1) The data channel can be used for authentication before being allowed to get the media tracks and 2) The browser (at least chrome) will not support RTCP packets for a given ssrc unless it was in the negotiation from the start (ie. the track is in the offer).
 
 ## Usage details
 
@@ -140,3 +143,10 @@ These options will remain optional:
 - `--rtsp` If set to an RTSP url, the device will get the RTP stream using RTSP.
 - `--rtpport` If `--rtsp` is NOT used, the device binds to UDP on this port to receive RTP data. Defaults to 6000.
 
+## Implementation details
+
+The implementation follows this architecture:
+
+![arch](code-architecture.png)
+
+In this example, the browser will create a WebRTC connection by sending an offer only requesting a data channel. This data channel is then used to invoke a CoAP endpoint causing the device to add the desired media tracks to the WebRTC connection and then initiate a renegotiation by sending a new offer to the browser. This is done because 1) The data channel can be used for authentication before being allowed to get the media tracks and 2) The browser (at least chrome) will not support RTCP packets for a given ssrc unless it was in the negotiation from the start (ie. the track is in the offer).
