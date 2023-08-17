@@ -12,10 +12,12 @@ set(src
 
 add_executable(edge_device_webrtc "${src}")
 
+find_package(CURL REQUIRED)
+
 target_link_libraries(edge_device_webrtc
-    nabto_device
-    LibDataChannel::LibDataChannel
-    curl
+    nabto_device_static
+    datachannel-static
+    CURL::libcurl
 )
 
 install(TARGETS edge_device_webrtc

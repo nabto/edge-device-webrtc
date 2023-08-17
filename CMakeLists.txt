@@ -6,6 +6,8 @@ project(edge-device-webrtc
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,11 +18,19 @@ set(DEVICE_BUILD_APPS OFF)
 
 add_subdirectory(nabto-embedded-sdk)
 
+set(NO_TESTS ON CACHE BOOL "disable tests")
+set(NO_EXAMPLES ON CACHE BOOL "disable examples")
 add_subdirectory(3rdparty/libdatachannel)
 
 include_directories(src)
 include_directories(nabto-embedded-sdk/include)
 include_directories(3rdparty/libdatachannel/deps/json/include)
 include_directories(3rdparty/)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/optional/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/string-view-lite/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/variant-lite/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/byte-lite/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/shared_mutex/include)
 
 add_subdirectory(src)
