@@ -42,7 +42,7 @@ void RtspClient::start()
 
 void RtspClient::stop()
 {
-
+    // TODO: send RTSP TEARDOWN request
 }
 
 MediaStreamPtr RtspClient::getVideoStream()
