@@ -149,6 +149,7 @@ std::string RtpClient::getTrackId()
 
 void RtpClient::start()
 {
+    std::cout << "Starting RTP Client listen on port " << videoPort_ << std::endl;
     stopped_ = false;
     videoRtpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in addr = {};

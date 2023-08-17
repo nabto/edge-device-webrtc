@@ -1,5 +1,8 @@
 #include "rtsp_client.hpp"
 
+#include <sstream>
+#include <cstring>
+
 namespace nabto {
 
 RtspClientPtr RtspClient::create(std::string trackId, std::string& url)
@@ -32,7 +35,7 @@ void RtspClient::start()
     // TODO: create RtpClient for audio as well
     videoStream_ = RtpClient::create(trackId_ + "-video");
     videoStream_->setRtpCodecMatcher(&videoCodec_);
-    videoStream_->setVideoPort(45222);
+    videoStream_->setVideoPort(port_);
 
     rtspPlay();
 }
@@ -57,33 +60,38 @@ bool RtspClient::setupCurl() {
     CURLcode res;
     res = curl_global_init(CURL_GLOBAL_ALL);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 1" << std::endl;
+        std::cout << "Failed to initialize Curl global" << std::endl;
         return false;
     }
     curl_ = curl_easy_init();
     if (!curl_) {
-        std::cout << "FAILURE POINT 2" << std::endl;
+        std::cout << "Failed to initialize Curl easy" << std::endl;
         return false;
     }
 
     res = curl_easy_setopt(curl_, CURLOPT_VERBOSE, 0L);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 3" << std::endl;
+        std::cout << "Failed to set curl logging option" << std::endl;
         return false;
     }
     res = curl_easy_setopt(curl_, CURLOPT_NOPROGRESS, 1L);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 4" << std::endl;
+        std::cout << "Failed to set Curl progress option" << std::endl;
         return false;
     }
-    res = curl_easy_setopt(curl_, CURLOPT_HEADERDATA, stdout);
+    res = curl_easy_setopt(curl_, CURLOPT_HEADERDATA, &curlHeaders_);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 5" << std::endl;
+        std::cout << "Failed to set Curl header data option" << std::endl;
+        return false;
+    }
+    res = curl_easy_setopt(curl_, CURLOPT_HEADERFUNCTION, writeHeaderFunc);
+    if (res != CURLE_OK) {
+        std::cout << "Failed to set Curl header function option" << std::endl;
         return false;
     }
     res = curl_easy_setopt(curl_, CURLOPT_URL, url_.c_str());
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 6" << std::endl;
+        std::cout << "Failed to set Curl URL option" << std::endl;
         return false;
     }
     return true;
@@ -93,108 +101,126 @@ bool RtspClient::setupRtsp() {
     CURLcode res = CURLE_OK;
 
     // SENDING OPTIONS REQ
+    std::cout << "Sending RTSP OPTIONS request" << std::endl;
     res = curl_easy_setopt(curl_, CURLOPT_RTSP_STREAM_URI, url_.c_str());
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 7" << std::endl;
+        std::cout << "Failed to set Curl RTSP stream URI option" << std::endl;
         return false;
     }
     res = curl_easy_setopt(curl_, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_OPTIONS);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 8" << std::endl;
+        std::cout << "Failed to set Curl RTSP Request options" << std::endl;
         return false;
     }
     res = curl_easy_perform(curl_);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 9" << std::endl;
+        std::cout << "Failed to perform RTSP OPTIONS request" << std::endl;
         return false;
     }
+
+    std::cout << "Options request complete" << std::endl;
 
     // SENDING DESCRIBE REQ
 
-    // TODO: This part writes curl data to a file just to read it again immidiately. Replace this with something which writes to a buffer.
-    // TODO: In the file, we look for the "a=control:" string to get the control attribute. We then proceed to not use that value and just use the "stream=0" string known to be the control attribute of the video stream. Make a proper sdp parser and read the control attribute of both the video and audio stream.
+    std::cout << "Sending RTSP DESCRIBE request" << std::endl;
+    // memset(rtspDescription_, 0, 1024);
+    std::string readBuffer;
+    curlHeaders_.clear();
 
-    FILE* sdp_fp = fopen("test-video.sdp", "wb");
-    if (!sdp_fp) {
-        std::cout << "FAILURE POINT 10" << std::endl;
-        sdp_fp = stdout;
-    }
-    else {
-        std::cout << "Writing SDP to 'test-video.sdp'" << std::endl;
-    }
-
-    res = curl_easy_setopt(curl_, CURLOPT_WRITEDATA, sdp_fp);
+    res = curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, writeFunc);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 11" << std::endl;
+        std::cout << "Failed to set Curl write function option" << std::endl;
         return false;
     }
+
+    res = curl_easy_setopt(curl_, CURLOPT_WRITEDATA, (void*)&readBuffer);
+    if (res != CURLE_OK) {
+        std::cout << "Failed to set Curl write function option" << std::endl;
+        return false;
+    }
+
     res = curl_easy_setopt(curl_, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_DESCRIBE);
     if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 12" << std::endl;
+        std::cout << "Failed to set Curl RTSP request option" << std::endl;
         return false;
-    }
-    res = curl_easy_perform(curl_);
-    if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 13" << std::endl;
-        return false;
-    }
-    res = curl_easy_setopt(curl_, CURLOPT_WRITEDATA, stdout);
-    if (sdp_fp != stdout) {
-        fclose(sdp_fp);
     }
 
-    char control[256];
-    char s[256];
-    sdp_fp = fopen("test-video.sdp", "rb");
-    control[0] = '\0';
-    if (sdp_fp) {
-        while (fgets(s, 254, sdp_fp)) {
-            sscanf(s, " a = control: %32s", control);
-        }
-        fclose(sdp_fp);
+    res = curl_easy_perform(curl_);
+    if (res != CURLE_OK) {
+        std::cout << "Failed to perform RTSP DESCRIBE request" << std::endl;
+        return false;
     }
-    std::cout << "Read sdp control: " << control << std::endl;
+
+    res = curl_easy_setopt(curl_, CURLOPT_WRITEDATA, stdout);
+    res = curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, NULL);
+
+    std::cout << "Read SDP description: " << std::endl << readBuffer << std::endl;
+
+    // std::string axis = "v=0\r\no=- 9316026343136633650 1 IN IP4 192.168.0.106\r\ns=Session streamed with GStreamer\r\ni=rtsp-server\r\nt=0 0\r\na=tool:GStreamer\r\na=type:broadcast\r\na=range:npt=now-\r\na=control:rtsp://192.168.0.106/axis-media/media.amp\r\nm=video 0 RTP/AVP 96\r\nc=IN IP4 0.0.0.0\r\nb=AS:50000\r\na=rtpmap:96 H264/90000\r\na=fmtp:96 packetization-mode=1;profile-level-id=640029;sprop-parameter-sets=Z2QAKaw0yAeAIn5cBbgICAoAAAfQAAGGodDAABfWoAAAX1ppd5caGAAC+tQAAAvrTS7y4b6g,aO48MA==\r\na=ts-refclk:local\r\na=mediaclk:sender\r\na=recvonly\r\na=control:rtsp://192.168.0.106/axis-media/media.amp/stream=0\r\na=framerate:25.000000\r\na=transform:1.000000,0.000000,0.000000;0.000000,1.000000,0.000000;0.000000,0.000000,1.000000\r\nm=audio 0 RTP/AVP 97\r\nc=IN IP4 0.0.0.0\r\nb=AS:32\r\na=rtpmap:97 MPEG4-GENERIC/8000/1\r\na=fmtp:97 streamtype=5;profile-level-id=2;mode=AAC-hbr;config=1588;sizelength=13;indexlength=3;indexdeltalength=3;bitrate=32000\r\na=ts-refclk:local\r\na=mediaclk:sender\r\na=recvonly\r\na=control:rtsp://192.168.0.106/axis-media/media.amp/stream=1\r\n";
+    // readBuffer = axis;
+    // std::cout << "Axis readbuffer: " << std::endl << readBuffer << std::endl;
+
+    // RFC2326 C.1:
+    // ... look for a base URL in the following order:
+    // 1.     The RTSP Content-Base field
+    // 2.     The RTSP Content-Location field
+    // 3.     The RTSP request URL
+    size_t pos = curlHeaders_.find("Content-Base: ");
+    if (pos != std::string::npos) {
+        contentBase_ = curlHeaders_.substr(pos + strlen("Content-Base: "));
+        if ((pos = contentBase_.find("\r\n")) != std::string::npos) {
+            contentBase_ = contentBase_.substr(0, pos);
+        }
+    }
+    else if ((pos = curlHeaders_.find("Content-Location: ")) != std::string::npos) {
+        contentBase_ = curlHeaders_.substr(pos);
+        if ((pos = contentBase_.find("\r\n")) != std::string::npos) {
+            contentBase_ = contentBase_.substr(0, pos);
+        }
+    } else {
+        contentBase_ = url_;
+    }
+    std::cout << "Parsed Content-Base to: " << contentBase_ << std::endl;
+    parseSdpDescription(readBuffer);
+
+    std::cout << "Parsed SDP description!" << std::endl << "  videoControlUrl: " << videoControlUrl_ << " video PT: " << videoPayloadType_ << std::endl;
+    if(!audioControlUrl_.empty()) {
+        std::cout << "  audioControlUrl: " << audioControlUrl_ << " audio PT: " << audioPayloadType_ << std::endl;
+    } else {
+        std::cout << "  no audio media found" << std::endl;
+    }
 
     // SENDING SETUP REQ for video stream
 
     // TODO: maybe ephemeral ports
-
-    // std::string ctrlAttr(control);
-    // std::string ctrlAttr("video");
-    std::string ctrlAttr("stream=0");
-    std::string setupUri = url_ + "/" + ctrlAttr;
-    std::string transport = "RTP/AVP;unicast;client_port=45222-45223";
-
-
-    res = curl_easy_setopt(curl_, CURLOPT_RTSP_STREAM_URI, setupUri.c_str());
-    if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 14" << std::endl;
-        return false;
+    if (!videoControlUrl_.empty()) {
+        std::cout << "Sending RTSP SETUP request for video stream" << std::endl;
+        std::stringstream trans;
+        trans << "RTP/AVP;unicast;client_port=" << port_ << "-" << port_+1;
+        std::string transStr = trans.str();
+        if (!performSetupReq(videoControlUrl_, transStr)) {
+            std::cout << "Failed to send Video SETUP request" << std::endl;
+            return false;
+        }
     }
-    res = curl_easy_setopt(curl_, CURLOPT_RTSP_TRANSPORT, transport.c_str());
-    if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 15" << std::endl;
-        return false;
+    if (!audioControlUrl_.empty()) {
+        std::cout << "Sending RTSP SETUP request for audio stream" << std::endl;
+        std::stringstream trans;
+        trans << "RTP/AVP;unicast;client_port=" << port_+2 << "-" << port_ + 3;
+        std::string transStr = trans.str();
+        if (!performSetupReq(audioControlUrl_, transStr)) {
+            std::cout << "Failed to send Audio SETUP request" << std::endl;
+            return false;
+        }
     }
-    res = curl_easy_setopt(curl_, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_SETUP);
-    if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 16" << std::endl;
-        return false;
-    }
-    res = curl_easy_perform(curl_);
-    if (res != CURLE_OK) {
-        std::cout << "FAILURE POINT 17" << std::endl;
-        return false;
-    }
-
-    // TODO: SENDING SETUP REQ for audio stream
+    std::cout << "RTSP setup completed successfully" << std::endl;
     return true;
 }
 
 bool RtspClient::rtspPlay() {
     const char* range = "npt=now-";
     CURLcode res = CURLE_OK;
-    std::string uri = url_ + "/";
+    std::string uri = sessionControlUrl_;
     res = curl_easy_setopt(curl_, CURLOPT_RTSP_STREAM_URI, uri.c_str());
     if (res != CURLE_OK) {
         std::cout << "FAILURE POINT 18" << std::endl;
@@ -226,5 +252,142 @@ bool RtspClient::rtspPlay() {
     return true;
 }
 
+// TODO: These 2 write functions could be identically, so remove one.
+size_t RtspClient::writeHeaderFunc(void* ptr, size_t size, size_t nmemb, void* s)
+{
+    try {
+        ((std::string*)s)->append((char*)ptr, size * nmemb);
+    }
+    catch (std::exception& ex) {
+        std::cout << "WriteHeaderFunc failure" << std::endl;
+        return size * nmemb;
+    }
+    return size * nmemb;
+}
+
+size_t RtspClient::writeFunc(void* ptr, size_t size, size_t nmemb, void* s)
+{
+    std::cout << "WriteFunc 1" << std::endl;
+    if (s == stdout) {
+        std::cout << "s was stdout, this is header data" << std::endl;
+        std::string data((char*)ptr, size * nmemb);
+        std::cout << data << std::endl;
+        return size * nmemb;
+    }
+    try {
+        ((std::string*)s)->append((char*)ptr, size * nmemb);
+    }
+    catch (std::exception& ex) {
+        std::cout << "WriteFunc failure" << std::endl;
+        return size * nmemb;
+    }
+    std::cout << "WriteFunc 2" << std::endl;
+    return size * nmemb;
+}
+
+bool RtspClient::parseSdpDescription(std::string& sdp)
+{
+
+    auto desc = rtc::Description(sdp);
+
+    std::cout << "parsed sdp stringified: " << desc.generateSdp() << std::endl;
+
+    auto atts = desc.attributes();
+
+    std::cout << "Session Attributes: " << std::endl;
+    for (auto a : atts) {
+        std::cout << "  " << a << std::endl;
+        if (a.rfind("control:",0) == 0) {
+            sessionControlUrl_ = parseControlAttribute(a);
+        }
+    }
+
+    auto count = desc.mediaCount();
+    for (size_t i = 0; i < count; i++) {
+        if (std::holds_alternative<rtc::Description::Media*>(desc.media(i))) {
+            auto m = std::get<rtc::Description::Media*>(desc.media(i));
+            std::cout << "Media type: " << m->type() << std::endl;
+            std::string controlUrl;
+
+            auto mAtts = m->attributes();
+            for (auto a : mAtts) {
+                if (a.rfind("control:", 0) == 0) {
+                    controlUrl = parseControlAttribute(a);
+                }
+            }
+
+            auto ptVec = m->payloadTypes();
+
+            if (m->type() == "video") {
+                videoControlUrl_ = controlUrl;
+                if (ptVec.size() > 0) {
+                    videoPayloadType_ = ptVec[0];
+                } else {
+                    videoPayloadType_ = videoCodec_.payloadType();
+                }
+            }
+            else if (m->type() == "audio") {
+                audioControlUrl_ = controlUrl;
+                if (ptVec.size() > 0) {
+                    audioPayloadType_ = ptVec[0];
+                }
+                else {
+                    audioPayloadType_ = audioCodec_.payloadType();
+                }
+            }
+            else {
+                std::cout << "control attribute for unknown media type: " << m->type() << std::endl;
+            }
+        } else {
+            std::cout << "media type not media" << std::endl;
+        }
+    }
+    return true;
+}
+
+std::string RtspClient::parseControlAttribute(std::string& att)
+{
+    auto url = att.substr(strlen("control:"));
+    if (url.empty() || url[0] == '*') {
+        // if * use Content-Base
+        return contentBase_;
+    }
+    else if (url.rfind("rtsp://", 0) == 0) {
+        // is full url as it starts with rtsp://
+        return url;
+    }
+    else {
+        // is relative URL
+        return contentBase_ + url;
+    }
+
+}
+
+bool RtspClient::performSetupReq(std::string& url, std::string& transport)
+{
+    CURLcode res = CURLE_OK;
+    res = curl_easy_setopt(curl_, CURLOPT_RTSP_STREAM_URI, url.c_str());
+    if (res != CURLE_OK) {
+        std::cout << "Failed to set Curl RTSP stream URI option" << std::endl;
+        return false;
+    }
+    res = curl_easy_setopt(curl_, CURLOPT_RTSP_TRANSPORT, transport.c_str());
+    if (res != CURLE_OK) {
+        std::cout << "Failed to set Curl RTSP Transport option" << std::endl;
+        return false;
+    }
+    res = curl_easy_setopt(curl_, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_SETUP);
+    if (res != CURLE_OK) {
+        std::cout << "Failed to set Curl RTSP Request option" << std::endl;
+        return false;
+    }
+    res = curl_easy_perform(curl_);
+    if (res != CURLE_OK) {
+        std::cout << "Failed to perform RTSP SETUP request" << std::endl;
+        return false;
+    }
+    return true;
+
+}
 
 } // namespace
