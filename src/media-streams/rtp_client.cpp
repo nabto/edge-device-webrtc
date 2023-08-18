@@ -86,6 +86,7 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
         auto self = shared_from_this();
         int count = 0;
         track->onMessage([self, videoTrack, &count](rtc::message_variant data) {
+            // TODO: videoHost_ should be 0.0.0.0 if stream comes from remote host, but here we send data to videoHost_ which will fail.
             auto msg = rtc::make_message(data);
             if (msg->type == rtc::Message::Binary) {
                 std::byte* data = msg->data();
