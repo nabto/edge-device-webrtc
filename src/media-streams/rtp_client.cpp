@@ -51,6 +51,7 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
         if (stopped_) {
             start();
         }
+        // TODO: add receiving data as well
     }
     catch (std::exception ex) {
         std::cout << "GOT EXCEPTION!!! " << ex.what() << std::endl;
@@ -86,7 +87,6 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
         auto self = shared_from_this();
         int count = 0;
         track->onMessage([self, videoTrack, &count](rtc::message_variant data) {
-            // TODO: videoHost_ should be 0.0.0.0 if stream comes from remote host, but here we send data to videoHost_ which will fail.
             auto msg = rtc::make_message(data);
             if (msg->type == rtc::Message::Binary) {
                 std::byte* data = msg->data();
@@ -109,7 +109,7 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
 
                 struct sockaddr_in addr = {};
                 addr.sin_family = AF_INET;
-                addr.sin_addr.s_addr = inet_addr(self->videoHost_.c_str());
+                addr.sin_addr.s_addr = inet_addr(self->remoteHost_.c_str());
                 addr.sin_port = htons(self->remotePort_);
 
                 auto ret = sendto(self->videoRtpSock_, data, msg->size(), 0, (struct sockaddr*)&addr, sizeof(addr));
@@ -155,11 +155,11 @@ void RtpClient::start()
     videoRtpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(videoHost_.c_str());
+    addr.sin_addr.s_addr = inet_addr("0.0.0.0");
     addr.sin_port = htons(videoPort_);
     if (bind(videoRtpSock_, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0) {
-        std::string err = "Failed to bind UDP socket on " + videoHost_ + ":";
-        err += videoPort_;
+        std::string err = "Failed to bind UDP socket on 0.0.0.0:";
+        err += std::to_string(videoPort_);
         std::cout << err << std::endl;
         throw std::runtime_error(err);
     }

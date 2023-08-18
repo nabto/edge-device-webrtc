@@ -84,8 +84,9 @@ public:
 
     void removeConnection(std::shared_ptr<rtc::PeerConnection> pc);
 
-    void setVideoPort(uint16_t port) { videoPort_ = port; remotePort_ = port + 1; }
-    void setVideoHost(std::string host) { videoHost_ = host; }
+    void setPort(uint16_t port) { videoPort_ = port; remotePort_ = port + 1; }
+    // Remote Host used to send data to if stream is not SENDONLY
+    void setRemoteHost(std::string host) { remoteHost_ = host; }
     void setRtpCodecMatcher(RtpCodec* matcher) {matcher_ = matcher;}
 
 
@@ -105,7 +106,7 @@ private:
     std::vector<RtpTrack> videoTracks_;
     uint16_t videoPort_ = 6000;
     uint16_t remotePort_ = 6002;
-    std::string videoHost_ = "127.0.0.1";
+    std::string remoteHost_ = "127.0.0.1";
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
     RtpCodec* matcher_;

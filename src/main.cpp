@@ -46,14 +46,14 @@ int main(int argc, char** argv) {
         // rtspUrl was not set, default to RTP.
         uint16_t port = opts["rtpPort"].get<uint16_t>();
         auto rtp = nabto::RtpClient::create("frontdoor-video");
-        rtp->setVideoPort(port);
-        rtp->setVideoHost("127.0.0.1");
+        rtp->setPort(port);
+        rtp->setRemoteHost("127.0.0.1");
         rtp->setRtpCodecMatcher(&rtpVideoCodec);
         medias.push_back(rtp);
 
         auto audio = nabto::RtpClient::create("frontdoor-audio");
-        audio->setVideoPort(port+1);
-        audio->setVideoHost("127.0.0.1");
+        audio->setPort(port+1);
+        audio->setRemoteHost("127.0.0.1");
         audio->setRtpCodecMatcher(&rtpAudioCodec);
         medias.push_back(audio);
     }
