@@ -62,7 +62,7 @@ void SignalingStream::streamAccepted(NabtoDeviceFuture* future, NabtoDeviceError
 void SignalingStream::iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData) {
     SignalingStream* self = (SignalingStream*)userData;
     nabto_device_future_free(future);
-    if (ec != NABTO_DEVICE_EC_OK) {
+    if (ec != NABTO_DEVICE_EC_OK && ec != NABTO_DEVICE_EC_NOT_ATTACHED) {
         if (self->webrtcConnection_ != nullptr) {
             self->webrtcConnection_->stop();
         }
@@ -71,8 +71,12 @@ void SignalingStream::iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceE
         nabto_device_ice_servers_request_free(self->iceReq_);
         return;
     }
-    self->parseIceServers();
-    std::cout << "Got ICE servers, creating channel" << std::endl;
+    if (ec == NABTO_DEVICE_EC_OK) {
+        self->parseIceServers();
+        std::cout << "Got ICE servers, creating channel" << std::endl;
+    } else {
+        std::cout << "Failed to get ICE servers. Continuing without TURN" << std::endl;
+    }
     self->createWebrtcConnection();
     if (self->accepted_) {
         // If accepted returned first we start reading here
