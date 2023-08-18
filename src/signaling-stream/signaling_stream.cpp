@@ -63,7 +63,9 @@ void SignalingStream::iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceE
     SignalingStream* self = (SignalingStream*)userData;
     nabto_device_future_free(future);
     if (ec != NABTO_DEVICE_EC_OK) {
-        self->webrtcConnection_->stop();
+        if (self->webrtcConnection_ != nullptr) {
+            self->webrtcConnection_->stop();
+        }
         self->webrtcConnection_ = nullptr;
         self->self_ = nullptr;
         nabto_device_ice_servers_request_free(self->iceReq_);
