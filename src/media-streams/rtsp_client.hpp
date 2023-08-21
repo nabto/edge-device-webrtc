@@ -2,6 +2,7 @@
 
 #include "media_stream.hpp"
 #include "rtp_client.hpp"
+#include "rtcp_client.hpp"
 
 #include <rtc/description.hpp>
 
@@ -68,6 +69,7 @@ private:
     H264CodecMatcher videoCodec_;
     std::string videoControlUrl_;
     int videoPayloadType_;
+    RtcpClientPtr videoRtcp_ = nullptr;
 
     RtpClientPtr audioStream_ = nullptr;
     OpusCodecMatcher audioCodec_;
