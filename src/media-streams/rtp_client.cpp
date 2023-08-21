@@ -89,9 +89,8 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
         track->onMessage([self, videoTrack, &count](rtc::message_variant data) {
             auto msg = rtc::make_message(data);
             if (msg->type == rtc::Message::Binary) {
-                std::byte* data = msg->data();
-
-                auto rtp = reinterpret_cast<rtc::RtpHeader*>(data);
+                rtc::byte* data = msg->data();
+                auto rtp = reinterpret_cast<rtc::RtpHeader *>(data);
                 uint8_t pt = rtp->payloadType();
                 if (pt != videoTrack.dstPayloadType) {
                     return;

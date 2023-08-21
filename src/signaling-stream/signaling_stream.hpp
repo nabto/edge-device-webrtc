@@ -101,7 +101,8 @@ private:
     bool reading_ = false;
 
     uint8_t* writeBuf_ = NULL;
-    std::vector<std::string> writeBuffers_;
+    std::mutex writeBuffersMutex_;
+    std::queue<std::string> writeBuffers_;
 
     NabtoDeviceIceServersRequest* iceReq_;
     std::vector<WebrtcConnection::TurnServer> turnServers_;
