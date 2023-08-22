@@ -121,37 +121,49 @@ void SignalingStream::createWebrtcConnection() {
 
 void SignalingStream::sendSignalligObject(std::string& data)
 {
-    writeBuffers_.push_back(data);
+    {
+        std::lock_guard<std::mutex> lock(writeBuffersMutex_);
+        writeBuffers_.push(data);
+    }
 
     tryWriteStream();
 }
 
 void SignalingStream::tryWriteStream()
 {
-    if (writeBuffers_.empty()) {
-        return;
+    std::string data;
+    {
+        std::lock_guard<std::mutex> lock(writeBuffersMutex_);
+        if (writeBuf_ != NULL) {
+            std::cout << "Write while writing" << std::endl;
+            return;
+        }
+
+        if (writeBuffers_.empty()) {
+           return;
+        }
+        data = writeBuffers_.front();
+        writeBuffers_.pop();
     }
-    if (writeBuf_ != NULL) {
-        std::cout << "Write while writing" << std::endl;
-        return;
-    }
-    auto data = writeBuffers_.begin();
-    uint32_t size = data->size();
+
+    uint32_t size = data.size();
     writeBuf_ = (uint8_t*)calloc(1, size + 4);
     memcpy(writeBuf_, &size, 4);
-    memcpy(writeBuf_ + 4, data->data(), size);
+    memcpy(writeBuf_ + 4, data.data(), size);
 
     nabto_device_stream_write(stream_, writeFuture_, writeBuf_, size + 4);
     nabto_device_future_set_callback(writeFuture_, streamWriteCallback, this);
-    writeBuffers_.erase(data);
 }
 
 void SignalingStream::streamWriteCallback(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
     (void)ec;
     SignalingStream* self = (SignalingStream*)userData;
-    free(self->writeBuf_);
-    self->writeBuf_ = NULL;
+    {
+        std::lock_guard<std::mutex> lock(self->writeBuffersMutex_);
+        free(self->writeBuf_);
+        self->writeBuf_ = NULL;
+    }
     self->tryWriteStream();
 }
 

@@ -57,6 +57,12 @@ bool NabtoDeviceImpl::init(nlohmann::json& opts)
 bool NabtoDeviceImpl::start()
 {
     NabtoDeviceError ec;
+    if (nabto_device_set_log_std_out_callback(NULL) != NABTO_DEVICE_EC_OK ||
+        nabto_device_set_log_level(NULL, logLevel_.c_str()) != NABTO_DEVICE_EC_OK)
+    {
+        std::cout << "failed to set loglevel or logger" << std::endl;
+        return false;
+    }
     char* fp;
     if ((device_ = nabto_device_new()) == NULL) {
         std::cout << "Failed to create device" << std::endl;

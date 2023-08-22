@@ -35,7 +35,7 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
     try {
         auto media = track->description();
         int pt = matcher_->match(&media);
-        media.addSSRC(ssrc, trackId_);
+        media.addSSRC(ssrc, std::string(trackId_));
         auto track_ = pc->addTrack(media);
         // TODO: random ssrc
         RtpTrack videoTrack = {
@@ -89,9 +89,8 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
         track->onMessage([self, videoTrack, &count](rtc::message_variant data) {
             auto msg = rtc::make_message(data);
             if (msg->type == rtc::Message::Binary) {
-                std::byte* data = msg->data();
-
-                auto rtp = reinterpret_cast<rtc::RtpHeader*>(data);
+                rtc::byte* data = msg->data();
+                auto rtp = reinterpret_cast<rtc::RtpHeader *>(data);
                 uint8_t pt = rtp->payloadType();
                 if (pt != videoTrack.dstPayloadType) {
                     return;
@@ -216,7 +215,7 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
             // }
             // std::cout << std::dec << std::endl;
 
-            t.track->send(reinterpret_cast<const std::byte*>(buffer), len);
+            t.track->send(reinterpret_cast<const rtc::byte*>(buffer), len);
         }
 
     }
