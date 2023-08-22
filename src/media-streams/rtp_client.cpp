@@ -49,7 +49,6 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
                 ptWebrtc
             };
             std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
-            // TODO: thread safety
             videoTracks_.push_back(videoTrack);
             if (stopped_) {
                 start();
@@ -83,7 +82,6 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
         matcher_->payloadType()
     };
     std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
-    // TODO: thread safety
     videoTracks_.push_back(videoTrack);
     if (stopped_) {
         start();
@@ -139,7 +137,6 @@ void RtpClient::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
         for (std::vector<RtpTrack>::iterator it = videoTracks_.begin(); it != videoTracks_.end(); it++) {
             if (pcPtrComp(it->pc, pc)) {
                 std::cout << "Found PeerConnection" << std::endl;
-                // TODO: thread safety
                 videoTracks_.erase(it);
                 break;
             }
@@ -225,7 +222,6 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
             std::cout << std::endl;
             count = 0;
         }
-        // TODO: thread safety
         if (len < sizeof(rtc::RtpHeader)) {
             continue;
         }
