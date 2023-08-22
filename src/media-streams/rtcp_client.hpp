@@ -42,17 +42,12 @@ public:
 
     ~RtcpClient()
     {
-        if (rr_ != NULL) {
-            free(rr_);
-        }
-
     }
 
     void start()
     {
         std::cout << "Starting RTP Client listen on port " << port_ << std::endl;
         stopped_ = false;
-        buildRrTemplate();
         rtcpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
         struct sockaddr_in addr = {};
         addr.sin_family = AF_INET;
@@ -83,16 +78,11 @@ public:
     }
 
 private:
-
-    void buildRrTemplate()
-    {
-        rr_ = (rtc::RtcpRr*)calloc(1, rtc::RtcpRr::SizeWithReportBlocks(1));
-    }
-
-
     static void rtcpRunner(RtcpClient* self)
     {
         char buffer[RTP_BUFFER_SIZE];
+        char writeBuffer[64];
+        rtc::RtcpRr* rr = (rtc::RtcpRr*) writeBuffer;
         int len;
         int count = 0;
         struct sockaddr_in srcAddr;
@@ -112,13 +102,12 @@ private:
                 continue;
             }
             auto sr = reinterpret_cast<rtc::RtcpSr*>(buffer);
-            rtc::RtcpReportBlock* rb = self->rr_->getReportBlock(0);
+            rtc::RtcpReportBlock* rb = rr->getReportBlock(0);
             rb->preparePacket(sr->senderSSRC(), 0, 0, 0, 0, 0, sr->ntpTimestamp(), 0);
-            self->rr_->preparePacket(1, 1);
+            rr->preparePacket(1, 1);
 
-            auto ret = sendto(self->rtcpSock_, self->rr_, self->rr_->header.lengthInBytes(), 0, (struct sockaddr*)&srcAddr, srcAddrLen);
+            auto ret = sendto(self->rtcpSock_, rr, rr->header.lengthInBytes(), 0, (struct sockaddr*)&srcAddr, srcAddrLen);
         }
-
     }
 
     bool stopped_ = true;
@@ -127,8 +116,6 @@ private:
     std::string remoteHost_ = "127.0.0.1";
     SOCKET rtcpSock_ = 0;
     std::thread rtcpThread_;
-
-    rtc::RtcpRr* rr_ = NULL;
 
 };
 
