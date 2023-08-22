@@ -264,7 +264,11 @@ void WebrtcCoapChannel::handleStringMessage(std::string& data)
 
 void WebrtcCoapChannel::sendResponse(const nlohmann::json& response)
 {
-    channel_->send(response.dump());
+    try {
+        channel_->send(response.dump());
+    } catch(std::exception& ex) {
+        std::cout << "Failed to send Coap Response to data channel: " << ex.what() << std::endl;
+    }
 }
 
 
