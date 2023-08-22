@@ -13,6 +13,7 @@ typedef int SOCKET;
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <cstring>
 
 const int RTP_BUFFER_SIZE = 2048;
 
@@ -83,6 +84,7 @@ private:
         char buffer[RTP_BUFFER_SIZE];
         char writeBuffer[64];
         rtc::RtcpRr* rr = (rtc::RtcpRr*) writeBuffer;
+        memset(rr, 0, 64);
         int len;
         int count = 0;
         struct sockaddr_in srcAddr;

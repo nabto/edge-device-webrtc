@@ -45,6 +45,9 @@ void RtspClient::start()
 
 void RtspClient::stop()
 {
+    if (videoRtcp_ != nullptr) {
+        videoRtcp_->stop();
+    }
     // TODO: send RTSP TEARDOWN request
 }
 

@@ -70,6 +70,9 @@ int main(int argc, char** argv) {
 
     device->stop();
     medias.clear();
+    if (rtsp != nullptr) {
+        rtsp->stop();
+    }
     rtsp = nullptr;
 
     auto fut = rtc::Cleanup();
