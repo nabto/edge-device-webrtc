@@ -30,26 +30,30 @@ RtpClient::~RtpClient()
 
 void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
 {
-    const rtc::SSRC ssrc = matcher_->ssrc();
-
     try {
         auto media = track->description();
-        int pt = matcher_->match(&media);
-        media.addSSRC(ssrc, std::string(trackId_));
-        auto track_ = pc->addTrack(media);
-        // TODO: random ssrc
-        RtpTrack videoTrack = {
-            pc,
-            track_,
-            ssrc,
-            matcher_->payloadType(),
-            pt
-        };
-        std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
-        // TODO: thread safety
-        videoTracks_.push_back(videoTrack);
-        if (stopped_) {
-            start();
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+
+            const rtc::SSRC ssrc = matcher_->ssrc();
+            int ptWebrtc = matcher_->match(&media);
+            int ptRtp = matcher_->payloadType();
+            media.addSSRC(ssrc, std::string(trackId_));
+            auto track = pc->addTrack(media);
+            // TODO: random ssrc
+            RtpTrack videoTrack = {
+                pc,
+                track,
+                ssrc,
+                ptRtp,
+                ptWebrtc
+            };
+            std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
+            // TODO: thread safety
+            videoTracks_.push_back(videoTrack);
+            if (stopped_) {
+                start();
+            }
         }
         // TODO: add receiving data as well
     }
@@ -62,6 +66,8 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
 std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 
 {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     // TODO: random ssrc
     const rtc::SSRC ssrc = matcher_->ssrc();
 
@@ -126,19 +132,25 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
 void RtpClient::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
 {
     std::cout << "Removing PeerConnection from RTP" << std::endl;
-    for (std::vector<RtpTrack>::iterator it = videoTracks_.begin(); it != videoTracks_.end(); it++) {
-        if (pcPtrComp(it->pc, pc)) {
-            std::cout << "Found PeerConnection" << std::endl;
-            // TODO: thread safety
-            videoTracks_.erase(it);
-            break;
+    size_t videoTracksSize = 0;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        for (std::vector<RtpTrack>::iterator it = videoTracks_.begin(); it != videoTracks_.end(); it++) {
+            if (pcPtrComp(it->pc, pc)) {
+                std::cout << "Found PeerConnection" << std::endl;
+                // TODO: thread safety
+                videoTracks_.erase(it);
+                break;
+            }
         }
+        videoTracksSize = videoTracks_.size();
     }
-    if (videoTracks_.size() == 0) {
+    if (videoTracksSize == 0) {
         std::cout << "PeerConnection was last one. Stopping" << std::endl;
         stop();
     } else {
-        std::cout << "Still " << videoTracks_.size() << " PeerConnections. Not stopping" << std::endl;
+        std::cout << "Still " << videoTracksSize << " PeerConnections. Not stopping" << std::endl;
     }
 }
 
@@ -172,9 +184,13 @@ void RtpClient::start()
 void RtpClient::stop()
 {
     std::cout << "RtpClient stopped" << std::endl;
-    stopped_ = true;
-    if (videoRtpSock_ != 0) {
-        close(videoRtpSock_);
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        stopped_ = true;
+        if (videoRtpSock_ != 0) {
+            close(videoRtpSock_);
+        }
     }
     videoThread_.join();
     std::cout << "RtpClient thread joined" << std::endl;
@@ -187,7 +203,20 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
     int count = 0;
     struct sockaddr_in srcAddr;
     socklen_t srcAddrLen = sizeof(srcAddr);
-    while ((len = recvfrom(self->videoRtpSock_, buffer, RTP_BUFFER_SIZE, 0, (struct sockaddr*)&srcAddr, &srcAddrLen)) >= 0 && !self->stopped_) {
+    while (true) {
+        {
+            std::lock_guard<std::mutex> lock(self->mutex_);
+            if(self->stopped_) {
+                break;
+            }
+        }
+
+        len = recvfrom(self->videoRtpSock_, buffer, RTP_BUFFER_SIZE, 0, (struct sockaddr*)&srcAddr, &srcAddrLen);
+
+        if (len < 0) {
+            break;
+        }
+
         count++;
         if (count % 100 == 0) {
             std::cout << ".";
@@ -203,19 +232,23 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
 //        self->remotePort_ = ntohs(srcAddr.sin_port);
 
         auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
-        for (auto t : self->videoTracks_) {
-            if (!t.track || !t.track->isOpen()) {
-                continue;
-            }
-            rtp->setSsrc(t.ssrc);
-            rtp->setPayloadType(t.dstPayloadType);
-            // std::cout << "Sending RTP: " << std::endl;
-            // for (int i = 0; i < len; i++) {
-            //     std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)i;
-            // }
-            // std::cout << std::dec << std::endl;
 
-            t.track->send(reinterpret_cast<const rtc::byte*>(buffer), len);
+        {
+            std::lock_guard<std::mutex> lock(self->mutex_);
+            for (auto t : self->videoTracks_) {
+                if (!t.track || !t.track->isOpen()) {
+                    continue;
+                }
+                rtp->setSsrc(t.ssrc);
+                rtp->setPayloadType(t.dstPayloadType);
+                // std::cout << "Sending RTP: " << std::endl;
+                // for (int i = 0; i < len; i++) {
+                //     std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)i;
+                // }
+                // std::cout << std::dec << std::endl;
+
+                t.track->send(reinterpret_cast<const rtc::byte*>(buffer), len);
+            }
         }
 
     }

@@ -102,6 +102,8 @@ private:
 
     std::string trackId_;
     bool stopped_ = true;
+    std::mutex mutex_;
+
 
     std::vector<RtpTrack> videoTracks_;
     uint16_t videoPort_ = 6000;
