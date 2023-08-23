@@ -47,6 +47,7 @@ private:
     bool setupCurl();
     bool setupRtsp();
     bool rtspPlay();
+    void teardown();
     bool performSetupReq(std::string& url, std::string& transport);
 
     bool parseSdpDescription(std::string& desc);

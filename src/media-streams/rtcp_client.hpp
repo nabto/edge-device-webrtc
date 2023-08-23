@@ -72,10 +72,11 @@ public:
         std::cout << "RtcpClient stopped" << std::endl;
         stopped_ = true;
         if (rtcpSock_ != 0) {
+            shutdown(rtcpSock_, SHUT_RDWR);
             close(rtcpSock_);
         }
         rtcpThread_.join();
-        std::cout << "RtpClient thread joined" << std::endl;
+        std::cout << "RtcpClient thread joined" << std::endl;
     }
 
 private:

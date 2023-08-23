@@ -186,6 +186,7 @@ void RtpClient::stop()
 
         stopped_ = true;
         if (videoRtpSock_ != 0) {
+            shutdown(videoRtpSock_, SHUT_RDWR);
             close(videoRtpSock_);
         }
     }

@@ -60,15 +60,18 @@ void RtspStream::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
 {
     for (std::vector<RtspConnection>::iterator it = connections_.begin(); it != connections_.end(); it++) {
         if (pcPtrComp(it->pc, pc)) {
-            std::cout << "Found PeerConnection" << std::endl;
+            std::cout << "RTSP Stream Found PeerConnection" << std::endl;
             auto vid = it->client->getVideoStream();
             if (vid != nullptr) {
                 vid->removeConnection(pc);
+                std::cout << "RTSP Stream conn removed from Video" << std::endl;
             }
             auto au = it->client->getAudioStream();
             if (au != nullptr) {
                 au->removeConnection(pc);
+                std::cout << "RTSP Stream conn removed from audio" << std::endl;
             }
+            std::cout << "stopping RTSP client" << std::endl;
             it->client->stop();
             connections_.erase(it);
             break;

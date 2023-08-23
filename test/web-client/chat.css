@@ -19,9 +19,9 @@
   display: grid;
   min-width: 1250px;
   height: 100%;
-  grid-template-areas: "infobox infobox infobox"
-  "userlistbox logbox camerabox"
-  "picturebox picturebox picturebox";
+  grid-template-areas: "infobox infobox"
+  "logbox camerabox"
+  "logbox picturebox";
   grid-gap: 1rem;
 }
 

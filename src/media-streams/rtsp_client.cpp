@@ -32,20 +32,24 @@ void RtspClient::start()
         std::cout << "setupRtsp() failed" << std::endl;
         return;
     }
-    // TODO: create RtpClient for audio as well
-    videoStream_ = RtpClient::create(trackId_ + "-video");
-    videoStream_->setRtpCodecMatcher(&videoCodec_);
-    videoStream_->setPort(port_);
 
-    videoRtcp_ = RtcpClient::create(port_ + 1);
-    videoRtcp_->start();
+    if (!videoControlUrl_.empty()) {
+        videoStream_ = RtpClient::create(trackId_ + "-video");
+        videoStream_->setRtpCodecMatcher(&videoCodec_);
+        videoStream_->setPort(port_);
 
-    audioStream_ = RtpClient::create(trackId_ + "-audio");
-    audioStream_->setRtpCodecMatcher(&audioCodec_);
-    audioStream_->setPort(port_+2);
+        videoRtcp_ = RtcpClient::create(port_ + 1);
+        videoRtcp_->start();
+    }
 
-    audioRtcp_ = RtcpClient::create(port_ + 3);
-    audioRtcp_->start();
+    if (!audioControlUrl_.empty()) {
+        audioStream_ = RtpClient::create(trackId_ + "-audio");
+        audioStream_->setRtpCodecMatcher(&audioCodec_);
+        audioStream_->setPort(port_+2);
+
+        audioRtcp_ = RtcpClient::create(port_ + 3);
+        audioRtcp_->start();
+    }
 
     rtspPlay();
 }
@@ -55,7 +59,10 @@ void RtspClient::stop()
     if (videoRtcp_ != nullptr) {
         videoRtcp_->stop();
     }
-    // TODO: send RTSP TEARDOWN request
+    if (audioRtcp_ != nullptr) {
+        audioRtcp_->stop();
+    }
+    teardown();
 }
 
 MediaStreamPtr RtspClient::getVideoStream()
@@ -262,6 +269,31 @@ bool RtspClient::rtspPlay() {
 
     return true;
 }
+
+void RtspClient::teardown()
+{
+    // SENDING TEARDOWN REQ
+    std::cout << "Sending RTSP TEARDOWN request" << std::endl;
+    CURLcode res = curl_easy_setopt(curl_, CURLOPT_RTSP_STREAM_URI, sessionControlUrl_.c_str());
+    if (res != CURLE_OK) {
+        std::cout << "Failed to set Curl RTSP stream URI option" << std::endl;
+        return;
+    }
+    res = curl_easy_setopt(curl_, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_TEARDOWN);
+    if (res != CURLE_OK) {
+        std::cout << "Failed to set Curl RTSP Request options" << std::endl;
+        return;
+    }
+    res = curl_easy_perform(curl_);
+    if (res != CURLE_OK) {
+        std::cout << "Failed to perform RTSP TEARDOWN request" << std::endl;
+        return;
+    }
+
+    std::cout << "Teardown request complete" << std::endl;
+
+}
+
 
 size_t RtspClient::writeFunc(void* ptr, size_t size, size_t nmemb, void* s)
 {
