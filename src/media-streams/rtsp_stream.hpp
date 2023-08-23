@@ -53,6 +53,8 @@ private:
     std::string trackId_;
     std::string url_;
 
+    size_t counter_ = 0;
+
     std::vector<RtspConnection> connections_;
 };
 

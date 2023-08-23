@@ -28,8 +28,10 @@ void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc
 
 std::shared_ptr<rtc::Track> RtspStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 {
+
     RtspConnection conn;
     conn.client = RtspClient::create(trackId_, url_);
+    conn.client->setRtpStartPort(42222+(counter_*4));
     conn.client->start();
     std::shared_ptr<rtc::Track> track;
 
@@ -43,6 +45,7 @@ std::shared_ptr<rtc::Track> RtspStream::createTrack(std::shared_ptr<rtc::PeerCon
     }
     conn.pc = pc;
     connections_.push_back(conn);
+    counter_++;
     // TODO: How to handle if we only want to add video not audio?
     // TODO: which track do we return? caller does not use it, should we just remove?
     return track;

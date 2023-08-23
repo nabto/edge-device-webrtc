@@ -37,8 +37,15 @@ void RtspClient::start()
     videoStream_->setRtpCodecMatcher(&videoCodec_);
     videoStream_->setPort(port_);
 
-    videoRtcp_ = RtcpClient::create(port_+1);
+    videoRtcp_ = RtcpClient::create(port_ + 1);
     videoRtcp_->start();
+
+    audioStream_ = RtpClient::create(trackId_ + "-audio");
+    audioStream_->setRtpCodecMatcher(&audioCodec_);
+    audioStream_->setPort(port_+2);
+
+    audioRtcp_ = RtcpClient::create(port_ + 3);
+    audioRtcp_->start();
 
     rtspPlay();
 }

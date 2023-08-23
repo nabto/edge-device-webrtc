@@ -314,7 +314,7 @@ async function handleTrackEvent(event) {
     } else {
       audio.src = URL.createObjectURL(stream);
     }
-    await addAudioTrack(event);
+    // await addAudioTrack(event);
     return;
   }
 

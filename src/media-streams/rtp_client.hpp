@@ -68,6 +68,16 @@ public:
     enum Direction direction() { return SEND_RECV; }
 };
 
+class PcmuCodecMatcher : public RtpCodec
+{
+public:
+    int match(rtc::Description::Media* media);
+    rtc::Description::Media createMedia();
+    int payloadType() { return 0; }
+    int ssrc() { return 44; }
+    enum Direction direction() { return SEND_ONLY; }
+};
+
 class RtpClient : public MediaStream,
                   public std::enable_shared_from_this<RtpClient>
 {

@@ -340,4 +340,42 @@ rtc::Description::Media OpusCodecMatcher::createMedia()
     return media;
 }
 
+int PcmuCodecMatcher::match(rtc::Description::Media* media)
+{
+    rtc::Description::Media::RtpMap* rtp = NULL;
+    for (auto pt : media->payloadTypes()) {
+        rtc::Description::Media::RtpMap* r = NULL;
+        try {
+            r = media->rtpMap(pt);
+        }
+        catch (std::exception& ex) {
+            std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+            continue;
+        }
+        if (r != NULL && r->format == "pcmu" && r->clockRate == 8000) {
+            std::cout << "Found RTP codec for audio! pt: " << r->payloadType << std::endl;
+            rtp = r;
+            rtp->removeFeedback("nack");
+            rtp->removeFeedback("goog-remb");
+            rtp->removeFeedback("transport-cc");
+            rtp->removeFeedback("ccm fir");
+        }
+        else {
+            // std::cout << "no match, removing" << std::endl;
+            media->removeRtpMap(pt);
+        }
+    }
+    return rtp == NULL ? 0 : rtp->payloadType;
+}
+
+rtc::Description::Media PcmuCodecMatcher::createMedia()
+{
+    rtc::Description::Audio media("audio", rtc::Description::Direction::SendRecv);
+    media.addPCMUCodec(0);
+    auto r = media.rtpMap(0);
+    r->removeFeedback("nack");
+    r->removeFeedback("goog-remb");
+    return media;
+}
+
 } // namespace
