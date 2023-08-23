@@ -7,12 +7,12 @@ WebRTC example implementation for Nabto Embedded SDK
  * No IAM at all. Everyone is allowed to connect and get a feed.
  * The demo uses the DEV basestation as TURN credentials are not deployed to prod.
  * `--rtpport` can be used to set the port number of the video video. It is then assumed the audio feed is on `port+1` and that the received audio should be sent to `port+2`;
- * H264 video feed and OPUS audio feed (This is very simple to fix if requested)
+ * H264 video codec (it is pretty simple to add codecs)
+ * PCMU audio codec for RTSP feeds and OPUS audio codec for RTP feeds (Still simple to add/change codecs, but requires code changes to switch)
  * limited RTSP support:
  * - Only supports device sending video/audio feed, no recieving audio
- * - RTSP requests are all sent on startup, so RTSP server must run before device.
- * - No RTSP TEARDOWN on termination
- * No RTCP. We have not found any streamers which actually reacts to RTCP, so we do not handle it.
+ * - The device will receive RTCP packets, and return dummy Receiver reports as our test cam uses this as keep alive.
+ * No RTCP for RTP streams. We have not found any streamers which actually reacts to RTCP, so we do not handle it.
 
 
 ## RTP usage
