@@ -2,6 +2,7 @@ set(src
     main.cpp
     nabto-device/nabto_device.cpp
     media-streams/rtp_client.cpp
+    media-streams/rtp_stream.cpp
     media-streams/rtsp_client.cpp
     media-streams/rtsp_stream.cpp
     signaling-stream/signaling_stream.cpp

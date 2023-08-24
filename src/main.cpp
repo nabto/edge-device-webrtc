@@ -1,7 +1,7 @@
 
 #include "signaling-stream/signaling_stream_manager.hpp"
 #include "nabto-device/nabto_device.hpp"
-#include "media-streams/rtp_client.hpp"
+#include "media-streams/rtp_stream.hpp"
 #include "media-streams/rtsp_stream.hpp"
 #include "media-streams/media_stream.hpp"
 #include "util.hpp"
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     nabto::OpusCodecMatcher rtpAudioCodec;
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
-        rtsp = nabto::RtspStream::create("frontdoor-video", rtspUrl);
+        rtsp = nabto::RtspStream::create("frontdoor", rtspUrl);
         medias.push_back(rtsp);
 
         // rtsp->start();
@@ -47,17 +47,10 @@ int main(int argc, char** argv) {
     } catch (std::exception& ex) {
         // rtspUrl was not set, default to RTP.
         uint16_t port = opts["rtpPort"].get<uint16_t>();
-        auto rtp = nabto::RtpClient::create("frontdoor-video");
-        rtp->setPort(port);
-        rtp->setRemoteHost("127.0.0.1");
-        rtp->setRtpCodecMatcher(&rtpVideoCodec);
+        auto rtp = nabto::RtpStream::create("frontdoor");
+        rtp->setVideoConf(port, &rtpVideoCodec);
+        rtp->setAudioConf(port+1, &rtpAudioCodec);
         medias.push_back(rtp);
-
-        auto audio = nabto::RtpClient::create("frontdoor-audio");
-        audio->setPort(port+1);
-        audio->setRemoteHost("127.0.0.1");
-        audio->setRtpCodecMatcher(&rtpAudioCodec);
-        medias.push_back(audio);
     }
 
     std::cout << "medias size: " << medias.size() << std::endl;

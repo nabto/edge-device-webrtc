@@ -28,7 +28,7 @@
 .infobox {
   grid-area: infobox;
   overflow: auto;
-  height: 100px;
+  height: 120px;
 }
 
 .userlistbox {
@@ -60,7 +60,6 @@
   overflow-y:auto;
   overflow-x:hidden;
   width: 500px;
-  height: 600px;
 }
 
 .logbox li {

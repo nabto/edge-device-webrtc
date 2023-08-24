@@ -63,9 +63,7 @@ function getImage()
 }
 
 function addAudio() {
-  nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-audio", undefined, undefined, (response) => {
-    boxLog("Got coap response: " + response);
-  });
+  addAudioTrack();
 }
 
 // Open a websocket connection to the signaling server and make it connect to the device.
@@ -163,7 +161,7 @@ function connect() {
       nabtoConnection.setCoapDataChannel(coapChannel);
 
       if (!singleOffer) {
-        nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-video", undefined, undefined, (response) => {
+        nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor", undefined, undefined, (response) => {
           boxLog("Got coap response: " + response);
         });
         // nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-audio", undefined, undefined, (response) => {
@@ -258,7 +256,7 @@ function createPeerConnection() {
 let localStream;
 
 
-async function addAudioTrack(event)
+async function addAudioTrack()
 {
   const constraints = window.constraints = {
     audio: true,
@@ -314,7 +312,6 @@ async function handleTrackEvent(event) {
     } else {
       audio.src = URL.createObjectURL(stream);
     }
-    // await addAudioTrack(event);
     return;
   }
 

@@ -23,7 +23,22 @@ RtspStream::~RtspStream()
 
 void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
 {
+    RtspConnection conn;
+    conn.client = RtspClient::create(trackId_, url_);
+    conn.client->setRtpStartPort(42222 + (counter_ * 4));
+    conn.client->start();
 
+    auto video = conn.client->getVideoStream();
+    if (video != nullptr) {
+        video->addTrack(track, pc);
+    }
+    auto audio = conn.client->getAudioStream();
+    if (audio != nullptr) {
+        audio->addTrack(track, pc);
+    }
+    conn.pc = pc;
+    connections_.push_back(conn);
+    counter_++;
 }
 
 std::shared_ptr<rtc::Track> RtspStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
