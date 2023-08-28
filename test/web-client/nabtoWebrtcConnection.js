@@ -4,6 +4,7 @@ let cbor = require('cbor');
 
 class NabtoWebrtcConnection {
 
+  myPeerConnection;
   coapDataChannel;
 
   coapRequests = new Map();
@@ -12,6 +13,10 @@ class NabtoWebrtcConnection {
     return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
       (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
     );
+  }
+
+  setPeerConnection(conn) {
+    this.myPeerConnection = conn;
   }
 
   setCoapDataChannel(channel) {
@@ -77,6 +82,10 @@ class NabtoWebrtcConnection {
       // let devFp = '73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54';
       let clifp = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
       let devFp = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+
+      clifp = this.fpFromSdp(this.myPeerConnection.localDescription.sdp);
+      devFp = this.fpFromSdp(this.myPeerConnection.remoteDescription.sdp);
+
       s.calculateK(response.payload);
       let KcA = s.calculateKey(clifp, devFp);
       this.coapInvoke("POST", "/p2p/pwd-auth/2", 42, KcA, (resp2) => {
@@ -101,6 +110,20 @@ class NabtoWebrtcConnection {
     });
   }
 
+
+  fpFromSdp(sdp)
+  {
+    const searchStr = "a=fingerprint:sha-256 ";
+    let fpAttStart = sdp.search(searchStr);
+    if (fpAttStart == -1) {
+      console.log("Failed to find fingerprint in SDP: ", sdp);
+      return "";
+    }
+    let fp = sdp.substr(fpAttStart+searchStr.length, 64+31); //fp is 64 chars with a `:` between every 2 chars
+    fp = fp.replace(/:/g, "");
+    console.log("Found fingerprint: ", fp);
+    return fp;
+  }
 
 };
 

@@ -66,6 +66,17 @@ function addAudio() {
   addAudioTrack();
 }
 
+function passAuth() {
+  nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
+    if (success) {
+      boxLog("Successfully authenticated using password");
+    } else {
+      boxLog("Failed to authenticate using password");
+    }
+  });
+
+}
+
 // Open a websocket connection to the signaling server and make it connect to the device.
 function connect() {
   reset();
@@ -251,6 +262,7 @@ function createPeerConnection() {
   myPeerConnection.onicegatheringstatechange = handleICEGatheringStateChangeEvent;
   myPeerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;
   myPeerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
+  nabtoConnection.setPeerConnection(myPeerConnection);
 }
 
 let localStream;

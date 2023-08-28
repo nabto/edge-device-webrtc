@@ -29,6 +29,10 @@ public:
 
 private:
 
+    bool setupPassword();
+    void nextPasswordRequest();
+    static void newPasswordRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+
     bool setupFileStream();
     void nextFileStream();
     static void newFileStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
@@ -50,6 +54,11 @@ private:
     NabtoDeviceFuture* fileStreamFut_ = NULL;
     NabtoDeviceStream* fileStream_ = NULL;
     std::ifstream inputFile_;
+
+    NabtoDeviceListener* passwordListen_ = NULL;
+    NabtoDeviceFuture* passwordFut_ = NULL;
+    NabtoDevicePasswordAuthenticationRequest* passwordReq_ = NULL;
+
 };
 
 } // namespace

@@ -81,7 +81,7 @@
 .picturebox {
   grid-area: picturebox;
   width: 600px;
-  height: 400px;
+  height: 340px;
   border: 1px solid black;
   vertical-align: top;
   display: block;

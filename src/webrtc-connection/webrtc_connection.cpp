@@ -235,7 +235,7 @@ void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> 
             nabtoConnection_ = nabto_device_virtual_connection_new(device_->getDevice());
 
         }
-        coapChannel_ = WebrtcCoapChannel::create(incoming, device_, nabtoConnection_);
+        coapChannel_ = WebrtcCoapChannel::create(pc_, incoming, device_, nabtoConnection_);
     }
     else if (incoming->label() == "stream-655") {    // TODO: ephemeral port number
         if (nabtoConnection_ == NULL) {

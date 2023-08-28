@@ -191,15 +191,15 @@ private:
 
 
 
-WebrtcCoapChannelPtr WebrtcCoapChannel::create(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection)
+WebrtcCoapChannelPtr WebrtcCoapChannel::create(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection)
 {
-    auto ptr = std::make_shared<WebrtcCoapChannel>(channel, device, nabtoConnection);
+    auto ptr = std::make_shared<WebrtcCoapChannel>(pc, channel, device, nabtoConnection);
     ptr->init();
     return ptr;
 }
 
-WebrtcCoapChannel::WebrtcCoapChannel(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection)
-    : channel_(channel), device_(device), nabtoConnection_(nabtoConnection)
+WebrtcCoapChannel::WebrtcCoapChannel(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection)
+    : pc_(pc), channel_(channel), device_(device), nabtoConnection_(nabtoConnection)
 {
 }
 
@@ -208,10 +208,18 @@ void WebrtcCoapChannel::init()
 {
     auto self = shared_from_this();
     // TODO: get local/remote description and extract fingerprints from there
-    const char* clifp = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-    const char* devFp = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
-    nabto_device_virtual_connection_set_client_fingerprint(nabtoConnection_, clifp);
-    nabto_device_virtual_connection_set_device_fingerprint(nabtoConnection_, devFp);
+    std::string cliFp = *(pc_->remoteDescription()->fingerprint());
+    std::string devFp = *(pc_->localDescription()->fingerprint());
+    cliFp.erase(std::remove(cliFp.begin(), cliFp.end(), ':'), cliFp.end());
+    devFp.erase(std::remove(devFp.begin(), devFp.end(), ':'), devFp.end());
+
+    std::cout << "Client FP: " << cliFp << std::endl;
+    std::cout << "Device FP: " << devFp << std::endl;
+
+    // const char* cliFp = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    // const char* devFp = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+    nabto_device_virtual_connection_set_client_fingerprint(nabtoConnection_, cliFp.c_str());
+    nabto_device_virtual_connection_set_device_fingerprint(nabtoConnection_, devFp.c_str());
 
     channel_->onMessage([self](rtc::binary data) {
         std::cout << "Got Data channel binary data"

@@ -112,9 +112,47 @@ bool NabtoDeviceImpl::start()
         std::cout << "Failed to start device, ec=" << nabto_device_error_get_message(ec) << std::endl;
         return false;
     }
-    return setupFileStream();
+    // TODO: remove setupPassword() when IAM implements passwords
+    return setupFileStream() && setupPassword();
 }
 
+bool NabtoDeviceImpl::setupPassword()
+{
+    if ((passwordListen_ = nabto_device_listener_new(device_)) == NULL ||
+        nabto_device_password_authentication_request_init_listener(device_, passwordListen_) != NABTO_DEVICE_EC_OK ||
+        (passwordFut_ = nabto_device_future_new(device_)) == NULL) {
+        std::cout << "Failed to listen for password authorization requests" << std::endl;
+        return false;
+    }
+    nextPasswordRequest();
+    return true;
+}
+
+void NabtoDeviceImpl::nextPasswordRequest()
+{
+    nabto_device_listener_new_password_authentication_request(passwordListen_, passwordFut_, &passwordReq_);
+    nabto_device_future_set_callback(passwordFut_, newPasswordRequest, this);
+}
+
+void NabtoDeviceImpl::newPasswordRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+{
+    NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
+    if (ec != NABTO_DEVICE_EC_OK)
+    {
+        std::cout << "password request wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        nabto_device_future_free(future);
+        nabto_device_listener_free(self->passwordListen_);
+        return;
+    }
+    const char* uname = nabto_device_password_authentication_request_get_username(self->passwordReq_);
+    std::cout << "Got password request for username: " << std::string(uname) << std::endl;
+    if (std::string(uname) == std::string("foo")) {
+        std::cout << "    Setting password \"bar\"" << std::endl;
+        nabto_device_password_authentication_request_set_password(self->passwordReq_, "bar");
+    }
+    nabto_device_password_authentication_request_free(self->passwordReq_);
+    self->nextPasswordRequest();
+}
 
 bool NabtoDeviceImpl::setupFileStream()
 {
@@ -142,6 +180,8 @@ void NabtoDeviceImpl::newFileStream(NabtoDeviceFuture* future, NabtoDeviceError 
     if (ec != NABTO_DEVICE_EC_OK)
     {
         std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        nabto_device_future_free(future);
+        nabto_device_listener_free(self->fileStreamListen_);
         return;
     }
     // TODO: check IAM
