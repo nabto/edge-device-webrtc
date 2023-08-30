@@ -77,14 +77,9 @@ class NabtoWebrtcConnection {
       }
       console.log("Password round 1 response: ", resp);
       let response = JSON.parse(resp);
-      // TODO: use real fingerprints
-      // let clifp = 'cff2f65cd103488b8cb2b93e838acc0f719d6deae37f8a4b74fa825244d28af8';
-      // let devFp = '73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54';
-      let clifp = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-      let devFp = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 
-      clifp = this.fpFromSdp(this.myPeerConnection.localDescription.sdp);
-      devFp = this.fpFromSdp(this.myPeerConnection.remoteDescription.sdp);
+      let clifp = this.fpFromSdp(this.myPeerConnection.localDescription.sdp);
+      let devFp = this.fpFromSdp(this.myPeerConnection.remoteDescription.sdp);
 
       s.calculateK(response.payload);
       let KcA = s.calculateKey(clifp, devFp);
