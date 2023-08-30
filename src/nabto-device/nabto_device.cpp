@@ -164,7 +164,8 @@ bool NabtoDeviceImpl::setupFileStream()
 
     fileStreamListener_->setStreamCallback([self](NabtoDeviceStream* stream) {
         // TODO: split into seperate stream class so we can have multiple file streams in parallel.
-        if (self->fileStream_ == NULL && true)// TODO: check IAM
+        // TODO: check IAM
+        if (self->fileStream_ == NULL && true)
         {
             // if we don't already have an open file stream
             // and IAM allowed the stream

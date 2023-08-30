@@ -38,7 +38,6 @@ void WebrtcFileStreamChannel::init()
 
     future_ = nabto_device_future_new(device_->getDevice());
     nabtoStream_= nabto_device_virtual_stream_new(nabtoConnection_);
-    // TODO: ephemeral stream port
     nabto_device_virtual_stream_open(nabtoStream_, future_, streamPort_);
     nabto_device_future_set_callback(future_, streamOpened, this);
 }
