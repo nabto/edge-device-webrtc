@@ -260,4 +260,64 @@ void NabtoDeviceImpl::stop() {
     return nabto_device_stop(device_);
 }
 
+NabtoDeviceStreamListenerPtr NabtoDeviceStreamListener::create(NabtoDeviceImplPtr device)
+{
+    auto ptr = std::make_shared<NabtoDeviceStreamListener>(device);
+    if (ptr->start()) {
+        return ptr;
+    }
+    return nullptr;
+}
+
+NabtoDeviceStreamListener::NabtoDeviceStreamListener(NabtoDeviceImplPtr device) : device_(device)
+{
+    streamListen_ = nabto_device_listener_new(device_->getDevice());
+    streamFut_ = nabto_device_future_new(device_->getDevice());
+}
+
+NabtoDeviceStreamListener::~NabtoDeviceStreamListener()
+{
+    nabto_device_future_free(streamFut_);
+    nabto_device_listener_free(streamListen_);
+}
+
+bool NabtoDeviceStreamListener::start()
+{
+    if (streamListen_ == NULL ||
+        streamFut_ == NULL ||
+        nabto_device_stream_init_listener_ephemeral(device_->getDevice(), streamListen_, &streamPort_) != NABTO_DEVICE_EC_OK)
+    {
+        std::cout << "Failed to listen for streams" << std::endl;
+        return false;
+    }
+    me_ = shared_from_this();
+    nextStream();
+    return true;
+
+}
+
+void NabtoDeviceStreamListener::nextStream()
+{
+    nabto_device_listener_new_stream(streamListen_, streamFut_, &stream_);
+    nabto_device_future_set_callback(streamFut_, newStream, this);
+}
+
+void NabtoDeviceStreamListener::newStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+{
+    NabtoDeviceStreamListener* self = (NabtoDeviceStreamListener*)userData;
+    if (ec != NABTO_DEVICE_EC_OK)
+    {
+        std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        self->me_ = nullptr;
+        self->streamCb_ = nullptr;
+        self->device_ = nullptr;
+        return;
+    }
+    self->streamCb_(self->stream_);
+    self->stream_ = NULL;
+    self->nextStream();
+
+}
+
+
 } // Namespace

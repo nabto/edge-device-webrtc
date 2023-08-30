@@ -14,8 +14,7 @@ SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDeviceImplPtr devi
 
 SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias) : device_(device), medias_(medias)
 {
-    streamListener_ = nabto_device_listener_new(device_->getDevice());
-    streamListenFuture_ = nabto_device_future_new(device_->getDevice());
+    streamListener_ = NabtoDeviceStreamListener::create(device_);
     coapInfoListener_ = nabto_device_listener_new(device_->getDevice());
     coapInfoListenFuture_ = nabto_device_future_new(device_->getDevice());
     coapVideoListener_ = nabto_device_listener_new(device_->getDevice());
@@ -29,25 +28,11 @@ SignalingStreamManager::~SignalingStreamManager()
     nabto_device_listener_free(coapInfoListener_);
     nabto_device_future_free(coapVideoListenFuture_);
     nabto_device_listener_free(coapVideoListener_);
-    nabto_device_future_free(streamListenFuture_);
-    nabto_device_listener_free(streamListener_);
 }
 
 bool SignalingStreamManager::start()
 {
-    if (streamListener_ == NULL || streamListenFuture_ == NULL) {
-        std::cout << "Failed to create stream listener or its future" << std::endl;
-        return false;
-    }
-
-    NabtoDeviceError ec;
-    ec = nabto_device_stream_init_listener_ephemeral(device_->getDevice(), streamListener_, &streamPort_);
-    if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "Failed to initialize stream listener with error: " << nabto_device_error_get_message(ec) << std::endl;
-        return false;
-    }
-
-    ec = nabto_device_coap_init_listener(device_->getDevice(), coapInfoListener_, NABTO_DEVICE_COAP_GET, coapInfoPath);
+    NabtoDeviceError ec = nabto_device_coap_init_listener(device_->getDevice(), coapInfoListener_, NABTO_DEVICE_COAP_GET, coapInfoPath);
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "Failed to initialize coap info listener with error: " << nabto_device_error_get_message(ec) << std::endl;
         return false;
@@ -59,45 +44,24 @@ bool SignalingStreamManager::start()
         return false;
     }
 
+    auto self = shared_from_this();
+    streamListener_->setStreamCallback([self](NabtoDeviceStream* stream) {
+        if (true) // TODO: check IAM
+        {
+            std::cout << "Creating Signaling stream" << std::endl;
+            SignalingStreamPtr s = SignalingStream::create(self->device_, stream, self, self->medias_);
+            self->streams_.push_back(s);
+            s->start();
+        }
+        else {
+            nabto_device_stream_free(stream);
+        }
+    });
     // Keep myself alive until listeners are closed
     me_ = shared_from_this();
-    nextStream();
     nextInfoRequest();
     nextVideoRequest();
     return true;
-}
-
-void SignalingStreamManager::nextStream()
-{
-    nabto_device_listener_new_stream(streamListener_, streamListenFuture_, &stream_);
-    nabto_device_future_set_callback(streamListenFuture_, newStream, this);
-}
-
-void SignalingStreamManager::newStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
-{
-    SignalingStreamManager* self = (SignalingStreamManager*)userData;
-    if (ec != NABTO_DEVICE_EC_OK)
-    {
-        std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
-        // TODO: only reset me_ if coap is also closed
-        self->me_ = nullptr;
-        self->device_ = nullptr;
-        return;
-    }
-    // TODO: check IAM
-    if (true) //self->accessCb_(nabto_device_stream_get_connection_ref(self->stream_), streamAction, self->accessUserData_))
-    {
-        std::cout << "Creating Signaling stream" << std::endl;
-        SignalingStreamPtr s = SignalingStream::create(self->device_, self->stream_, self->me_, self->medias_);
-        self->streams_.push_back(s);
-        s->start();
-    }
-    else {
-        nabto_device_stream_free(self->stream_);
-    }
-    self->stream_ = NULL;
-    self->nextStream();
-
 }
 
 void SignalingStreamManager::nextInfoRequest()
@@ -121,7 +85,7 @@ void SignalingStreamManager::newInfoRequest(NabtoDeviceFuture* future, NabtoDevi
     if (true) //self->accessCb_(nabto_device_stream_get_connection_ref(self->stream_), streamAction, self->accessUserData_))
     {
         nlohmann::json resp = {
-            {"SignalingStreamPort", self->streamPort_},
+            {"SignalingStreamPort", self->streamListener_->getStreamPort()},
             {"FileStreamPort", self->device_->getFileStreamPort()}
         };
         std::cout << "Sending info response: " << resp.dump() << std::endl;

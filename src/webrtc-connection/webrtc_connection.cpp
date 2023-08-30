@@ -60,14 +60,16 @@ void WebrtcConnection::handleOffer(std::string& data)
     if (!pc_) {
         createPeerConnection();
     }
-    // TODO: handle json exceptions
-    nlohmann::json sdp = nlohmann::json::parse(data);
-    rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
     try {
+        nlohmann::json sdp = nlohmann::json::parse(data);
+        rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
         pc_->setRemoteDescription(remDesc);
     }
     catch (std::invalid_argument& ex) {
         std::cout << "GOT INVALID ARGUMENT: " << ex.what() << std::endl;
+    }
+    catch (nlohmann::json::exception& ex) {
+        std::cout << "json exception: " << ex.what() << std::endl;
     }
 
 }
@@ -75,19 +77,27 @@ void WebrtcConnection::handleOffer(std::string& data)
 void WebrtcConnection::handleAnswer(std::string& data)
 {
     std::cout << "Got Answer: " << data << std::endl;
-    // TODO: handle json exceptions
-    nlohmann::json sdp = nlohmann::json::parse(data);
-    rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
-    pc_->setRemoteDescription(remDesc);
+    try {
+        nlohmann::json sdp = nlohmann::json::parse(data);
+        rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
+        pc_->setRemoteDescription(remDesc);
+    }
+    catch (nlohmann::json::exception& ex) {
+        std::cout << "json exception: " << ex.what() << std::endl;
+    }
 }
 
 void WebrtcConnection::handleIce(std::string& data)
 {
     std::cout << "Got ICE: " << data << std::endl;
-    // TODO: handle json exceptions
-    nlohmann::json candidate = nlohmann::json::parse(data);
-    rtc::Candidate cand(candidate["candidate"].get<std::string>(), candidate["sdpMid"].get<std::string>());
-    pc_->addRemoteCandidate(cand);
+    try {
+        nlohmann::json candidate = nlohmann::json::parse(data);
+        rtc::Candidate cand(candidate["candidate"].get<std::string>(), candidate["sdpMid"].get<std::string>());
+        pc_->addRemoteCandidate(cand);
+    }
+    catch (nlohmann::json::exception& ex) {
+        std::cout << "json exception: " << ex.what() << std::endl;
+    }
 }
 
 void WebrtcConnection::createPeerConnection()
@@ -227,19 +237,22 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
 void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
 {
     std::cout << "Track event metadata: " << metadata_.dump() << std::endl;
+    try {
+        auto mid = track->mid();
 
-    auto mid = track->mid();
-
-    // TODO: handle json exceptions
-    auto metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
-    for (auto mt : metaTracks) {
-        if (mt["mid"].get<std::string>() == mid) {
-            std::cout << "Found metaTrack: " << mt.dump() << std::endl;
-            auto trackId = mt["trackId"].get<std::string>();
-            for (auto m : medias_) {
-                m->addTrack(track, pc_, trackId);
+        auto metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
+        for (auto mt : metaTracks) {
+            if (mt["mid"].get<std::string>() == mid) {
+                std::cout << "Found metaTrack: " << mt.dump() << std::endl;
+                auto trackId = mt["trackId"].get<std::string>();
+                for (auto m : medias_) {
+                    m->addTrack(track, pc_, trackId);
+                }
             }
         }
+    }
+    catch (nlohmann::json::exception& ex) {
+        std::cout << "json exception: " << ex.what() << std::endl;
     }
     // TODO: handle not found error
 }

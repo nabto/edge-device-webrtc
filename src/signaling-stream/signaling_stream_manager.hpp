@@ -22,9 +22,6 @@ public:
     bool start();
 
 private:
-    void nextStream();
-    static void newStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
-
     void nextInfoRequest();
     static void newInfoRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
@@ -43,10 +40,7 @@ private:
     NabtoDeviceFuture* coapVideoListenFuture_;
     NabtoDeviceCoapRequest* coapVideoRequest_;
 
-    uint32_t streamPort_ = 0;
-    NabtoDeviceListener* streamListener_;
-    NabtoDeviceFuture* streamListenFuture_;
-    NabtoDeviceStream* stream_;
+    NabtoDeviceStreamListenerPtr streamListener_;
 
     std::vector<SignalingStreamWeakPtr> streams_;
     SignalingStreamManagerPtr me_ = nullptr;

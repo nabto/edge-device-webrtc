@@ -67,44 +67,52 @@ public:
     bool createRequest(nlohmann::json& request, std::function<void (const nlohmann::json& response)> responeReady)
     {
         std::cout << "parsed json: " << request.dump() << std::endl;
-        // TODO: json exceptions
-        coapRequestId_ = request["requestId"].get<std::string>();
-        std::string methodStr = request["method"].get<std::string>();
+        try {
+            coapRequestId_ = request["requestId"].get<std::string>();
+            std::string methodStr = request["method"].get<std::string>();
 
-        if (methodStr == "GET") {
-            method_ = NABTO_DEVICE_COAP_GET;
-        } else if (methodStr == "POST") {
-            method_ = NABTO_DEVICE_COAP_POST;
-        } else if (methodStr == "PUT") {
-            method_ = NABTO_DEVICE_COAP_PUT;
-        } else if (methodStr == "DELETE") {
-            method_ = NABTO_DEVICE_COAP_DELETE;
-        } else {
-            std::cout << "Invalid coap method string: " << methodStr << std::endl << "Expected one of: GET, POST, PUT, DELETE" << std::endl;
-            errorResponse_ = "Invalid method";
+            if (methodStr == "GET") {
+                method_ = NABTO_DEVICE_COAP_GET;
+            }
+            else if (methodStr == "POST") {
+                method_ = NABTO_DEVICE_COAP_POST;
+            }
+            else if (methodStr == "PUT") {
+                method_ = NABTO_DEVICE_COAP_PUT;
+            }
+            else if (methodStr == "DELETE") {
+                method_ = NABTO_DEVICE_COAP_DELETE;
+            }
+            else {
+                std::cout << "Invalid coap method string: " << methodStr << std::endl << "Expected one of: GET, POST, PUT, DELETE" << std::endl;
+                errorResponse_ = "Invalid method";
+                return false;
+            }
+
+            std::string path = request["path"].get<std::string>();
+
+            PathSegments segments = PathSegments::parse(path);
+
+            parsePayload(request);
+            coap_ = nabto_device_virtual_coap_request_new(nabtoConnection_, method_, segments.getSegments());
+
+            if (!payload_.empty()) {
+                std::cout << "Setting payload with content format: " << contentType_ << std::endl;
+                nabto_device_virtual_coap_request_set_payload(coap_, payload_.data(), payload_.size());
+                nabto_device_virtual_coap_request_set_content_format(coap_, contentType_);
+            }
+
+            NabtoDeviceFuture* fut = nabto_device_future_new(device_->getDevice());
+            nabto_device_virtual_coap_request_execute(coap_, fut);
+
+            me_ = shared_from_this();
+            responeReady_ = responeReady;
+            nabto_device_future_set_callback(fut, coapCallback, this);
+        }
+        catch (nlohmann::json::exception& ex) {
+            std::cout << "json exception: " << ex.what() << std::endl;
             return false;
         }
-
-        std::string path = request["path"].get<std::string>();
-
-        PathSegments segments = PathSegments::parse(path);
-
-        parsePayload(request);
-
-        coap_ = nabto_device_virtual_coap_request_new(nabtoConnection_, method_, segments.getSegments());
-
-        if (!payload_.empty()) {
-            std::cout << "Setting payload with content format: " << contentType_ << std::endl;
-            nabto_device_virtual_coap_request_set_payload(coap_, payload_.data(), payload_.size());
-            nabto_device_virtual_coap_request_set_content_format(coap_, contentType_);
-        }
-
-        NabtoDeviceFuture* fut = nabto_device_future_new(device_->getDevice());
-        nabto_device_virtual_coap_request_execute(coap_, fut);
-
-        me_ = shared_from_this();
-        responeReady_ = responeReady;
-        nabto_device_future_set_callback(fut, coapCallback, this);
         return true;
     }
 
@@ -207,7 +215,6 @@ WebrtcCoapChannel::WebrtcCoapChannel(std::shared_ptr<rtc::PeerConnection> pc, st
 void WebrtcCoapChannel::init()
 {
     auto self = shared_from_this();
-    // TODO: get local/remote description and extract fingerprints from there
     std::string cliFp = *(pc_->remoteDescription()->fingerprint());
     std::string devFp = *(pc_->localDescription()->fingerprint());
     cliFp.erase(std::remove(cliFp.begin(), cliFp.end(), ':'), cliFp.end());
@@ -216,8 +223,6 @@ void WebrtcCoapChannel::init()
     std::cout << "Client FP: " << cliFp << std::endl;
     std::cout << "Device FP: " << devFp << std::endl;
 
-    // const char* cliFp = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-    // const char* devFp = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
     nabto_device_virtual_connection_set_client_fingerprint(nabtoConnection_, cliFp.c_str());
     nabto_device_virtual_connection_set_device_fingerprint(nabtoConnection_, devFp.c_str());
 
@@ -241,20 +246,24 @@ void WebrtcCoapChannel::init()
 void WebrtcCoapChannel::handleStringMessage(std::string& data)
 {
     auto self = shared_from_this();
-    // TODO: json execptions
-    nlohmann::json message = nlohmann::json::parse(data);
-    int type = message["type"].get<int>();
-    if (type == coapMessageType::COAP_REQUEST) {
-        std::shared_ptr<VirtualCoapRequest> req = std::make_shared<VirtualCoapRequest>(device_, nabtoConnection_);
-        if (!req->createRequest(message, [self, req](const nlohmann::json& response) {
-            self->sendResponse(response);
-        })) {
-            sendResponse(req->getErrorResponse());
+    try {
+        nlohmann::json message = nlohmann::json::parse(data);
+        int type = message["type"].get<int>();
+        if (type == coapMessageType::COAP_REQUEST) {
+            std::shared_ptr<VirtualCoapRequest> req = std::make_shared<VirtualCoapRequest>(device_, nabtoConnection_);
+            if (!req->createRequest(message, [self, req](const nlohmann::json& response) {
+                self->sendResponse(response);
+                })) {
+                sendResponse(req->getErrorResponse());
+            }
         }
-    } else {
-        std::cout << "unhandled message type: " << type << std::endl;
+        else {
+            std::cout << "unhandled message type: " << type << std::endl;
+        }
     }
-
+    catch (nlohmann::json::exception& ex) {
+        std::cout << "json exception: " << ex.what() << std::endl;
+    }
 }
 
 void WebrtcCoapChannel::sendResponse(const nlohmann::json& response)
