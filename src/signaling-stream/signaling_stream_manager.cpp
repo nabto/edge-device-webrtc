@@ -16,26 +16,16 @@ SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device, std::v
 {
     streamListener_ = NabtoDeviceStreamListener::create(device_);
     coapInfoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapInfoPath);
-
-    coapVideoListener_ = nabto_device_listener_new(device_->getDevice());
-    coapVideoListenFuture_ = nabto_device_future_new(device_->getDevice());
+    coapVideoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapVideoPath);
 }
 
 SignalingStreamManager::~SignalingStreamManager()
 {
     std::cout << "SignalingStreamManager Destructor" << std::endl;
-    nabto_device_future_free(coapVideoListenFuture_);
-    nabto_device_listener_free(coapVideoListener_);
 }
 
 bool SignalingStreamManager::start()
 {
-    NabtoDeviceError ec = nabto_device_coap_init_listener(device_->getDevice(), coapVideoListener_, NABTO_DEVICE_COAP_GET, coapVideoPath);
-    if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "Failed to initialize coap video listener with error: " << nabto_device_error_get_message(ec) << std::endl;
-        return false;
-    }
-
     auto self = shared_from_this();
     streamListener_->setStreamCallback([self](NabtoDeviceStream* stream) {
         if (true) // TODO: check IAM
@@ -71,45 +61,24 @@ bool SignalingStreamManager::start()
 
     });
 
-    // Keep myself alive until listeners are closed
-    me_ = shared_from_this();
-    nextVideoRequest();
+    coapVideoListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
+        std::cout << "Got new coap request" << std::endl;
+        self->handleVideoRequest(coap);
+        std::cout << "Freeing coap request" << std::endl;
+        nabto_device_coap_request_free(coap);
+
+    });
     return true;
 }
 
-void SignalingStreamManager::nextVideoRequest()
-{
-    std::cout << "Getting next coap request" << std::endl;
-    nabto_device_listener_new_coap_request(coapVideoListener_, coapVideoListenFuture_, &coapVideoRequest_);
-    nabto_device_future_set_callback(coapVideoListenFuture_, newVideoRequest, this);
-}
-
-void SignalingStreamManager::newVideoRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
-{
-    SignalingStreamManager* self = (SignalingStreamManager*)userData;
-    if (ec != NABTO_DEVICE_EC_OK)
-    {
-        std::cout << "CoAP future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
-        // TODO: only reset me_ if stream and info is also closed
-        self->me_ = nullptr;
-        self->device_ = nullptr;
-        return;
-    }
-    std::cout << "Got new coap request" << std::endl;
-    self->handleVideoRequest();
-    std::cout << "Freeing coap request" << std::endl;
-    nabto_device_coap_request_free(self->coapVideoRequest_);
-    self->nextVideoRequest();
-}
-
-void SignalingStreamManager::handleVideoRequest()
+void SignalingStreamManager::handleVideoRequest(NabtoDeviceCoapRequest* coap)
 {
     // TODO: check IAM
     if (true) {
         std::cout << "Handling video coap request" << std::endl;
-        const char* feedC = nabto_device_coap_request_get_parameter(coapVideoRequest_, "feed");
+        const char* feedC = nabto_device_coap_request_get_parameter(coap, "feed");
         std::string feed(feedC);
-        NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coapVideoRequest_);
+        NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
         SignalingStreamPtr stream = nullptr;
 
@@ -123,7 +92,7 @@ void SignalingStreamManager::handleVideoRequest()
 
         if (stream == nullptr) {
             std::cout << "Did not find matching singaling stream" << std::endl;
-            nabto_device_coap_error_response(coapVideoRequest_, 400, "Invalid connection");
+            nabto_device_coap_error_response(coap, 400, "Invalid connection");
             return;
         }
 
@@ -136,7 +105,7 @@ void SignalingStreamManager::handleVideoRequest()
                 found = true;
                 if(!stream->createTrack(m)) {
                     std::cout << "Failed to create track for video feed" << std::endl;
-                    nabto_device_coap_error_response(coapVideoRequest_, 400, "Invalid connection");
+                    nabto_device_coap_error_response(coap, 400, "Invalid connection");
                     return;
                 }
             }
@@ -144,14 +113,14 @@ void SignalingStreamManager::handleVideoRequest()
 
         if (found) {
             std::cout << "found track ID in feeds returning 201" << std::endl;
-            nabto_device_coap_response_set_code(coapVideoRequest_, 201);
-            nabto_device_coap_response_ready(coapVideoRequest_);
+            nabto_device_coap_response_set_code(coap, 201);
+            nabto_device_coap_response_ready(coap);
         } else {
             std::cout << "Failed to find track for video feed" << std::endl;
-            nabto_device_coap_error_response(coapVideoRequest_, 404, "No such feed");
+            nabto_device_coap_error_response(coap, 404, "No such feed");
         }
     } else {
-        nabto_device_coap_error_response(coapVideoRequest_, 401, NULL);
+        nabto_device_coap_error_response(coap, 401, NULL);
     }
 }
 

@@ -22,18 +22,14 @@ public:
     bool start();
 
 private:
-    void nextVideoRequest();
-    static void newVideoRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
-    void handleVideoRequest();
+    void handleVideoRequest(NabtoDeviceCoapRequest* coap);
 
     NabtoDeviceImplPtr device_;
     std::vector<nabto::MediaStreamPtr> medias_;
 
     NabtoDeviceCoapListenerPtr coapInfoListener_ = nullptr;
 
-    NabtoDeviceListener* coapVideoListener_;
-    NabtoDeviceFuture* coapVideoListenFuture_;
-    NabtoDeviceCoapRequest* coapVideoRequest_;
+    NabtoDeviceCoapListenerPtr coapVideoListener_ = nullptr;
 
     NabtoDeviceStreamListenerPtr streamListener_;
 
