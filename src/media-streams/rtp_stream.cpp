@@ -48,7 +48,7 @@ void RtpStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
     }
 }
 
-std::shared_ptr<rtc::Track> RtpStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
+void RtpStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 
 {
     std::cout << "RTP Stream Create track. ";
@@ -61,7 +61,7 @@ std::shared_ptr<rtc::Track> RtpStream::createTrack(std::shared_ptr<rtc::PeerConn
         audioClient_->createTrack(pc);
     }
     std::cout << std::endl;
-    return nullptr;
+    return;
 }
 
 void RtpStream::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)

@@ -26,6 +26,7 @@ public:
     void stop();
 
     NabtoDevice* getDevice() { return device_; }
+    uint32_t getFileStreamPort() { return fileStreamPort_; }
 
 private:
 
@@ -54,6 +55,7 @@ private:
     NabtoDeviceFuture* fileStreamFut_ = NULL;
     NabtoDeviceStream* fileStream_ = NULL;
     std::ifstream inputFile_;
+    uint32_t fileStreamPort_ = 0;
 
     NabtoDeviceListener* passwordListen_ = NULL;
     NabtoDeviceFuture* passwordFut_ = NULL;

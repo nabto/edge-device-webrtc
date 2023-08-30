@@ -25,6 +25,7 @@ void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc
 {
     RtspConnection conn;
     conn.client = RtspClient::create(trackId_, url_);
+    // TODO: maybe ephemeral ports
     conn.client->setRtpStartPort(42222 + (counter_ * 4));
     conn.client->start();
 
@@ -41,29 +42,27 @@ void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc
     counter_++;
 }
 
-std::shared_ptr<rtc::Track> RtspStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
+void RtspStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 {
 
     RtspConnection conn;
     conn.client = RtspClient::create(trackId_, url_);
+    // TODO: maybe ephemeral ports
     conn.client->setRtpStartPort(42222+(counter_*4));
     conn.client->start();
-    std::shared_ptr<rtc::Track> track;
 
     auto video = conn.client->getVideoStream();
     if (video != nullptr) {
-        track = video->createTrack(pc);
+        video->createTrack(pc);
     }
     auto audio = conn.client->getAudioStream();
     if (audio != nullptr) {
-        track = audio->createTrack(pc);
+        audio->createTrack(pc);
     }
     conn.pc = pc;
     connections_.push_back(conn);
     counter_++;
-    // TODO: How to handle if we only want to add video not audio?
-    // TODO: which track do we return? caller does not use it, should we just remove?
-    return track;
+    return;
 }
 
 std::string RtspStream::getTrackId()

@@ -210,7 +210,6 @@ bool RtspClient::setupRtsp() {
 
     // SENDING SETUP REQ for video stream
 
-    // TODO: maybe ephemeral ports
     if (!videoControlUrl_.empty()) {
         std::cout << "Sending RTSP SETUP request for video stream" << std::endl;
         std::stringstream trans;

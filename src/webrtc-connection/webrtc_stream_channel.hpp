@@ -9,20 +9,20 @@
 
 namespace nabto {
 
-class WebrtcStreamChannel;
-typedef std::shared_ptr<WebrtcStreamChannel> WebrtcStreamChannelPtr;
+class WebrtcFileStreamChannel;
+typedef std::shared_ptr<WebrtcFileStreamChannel> WebrtcStreamChannelPtr;
 
 class VirtualCoapRequest;
 
-class WebrtcStreamChannel : public std::enable_shared_from_this < WebrtcStreamChannel>
+class WebrtcFileStreamChannel : public std::enable_shared_from_this < WebrtcFileStreamChannel>
 {
 public:
-    static WebrtcStreamChannelPtr create(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection);
+    static WebrtcStreamChannelPtr create(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, uint32_t streamPort);
 
-    WebrtcStreamChannel(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection);
+    WebrtcFileStreamChannel(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, uint32_t streamPort);
 
-    ~WebrtcStreamChannel() {
-        std::cout << "WebrtcStreamChannel Destructor" << std::endl;
+    ~WebrtcFileStreamChannel() {
+        std::cout << "WebrtcFileStreamChannel Destructor" << std::endl;
     }
 
     void init();
@@ -36,8 +36,8 @@ private:
 
     std::shared_ptr<rtc::DataChannel> channel_;
     NabtoDeviceImplPtr device_;
-
     NabtoDeviceVirtualConnection* nabtoConnection_;
+    uint32_t streamPort_ = 0;
 
     NabtoDeviceVirtualStream* nabtoStream_;
     NabtoDeviceFuture* future_;

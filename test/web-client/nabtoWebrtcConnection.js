@@ -54,6 +54,12 @@ class NabtoWebrtcConnection {
 
   }
 
+  decodeCborPayload(payload)
+  {
+    let val = cbor.decodeAllSync(Buffer.from(payload));
+    return val[0];
+  }
+
   // TODO: switch to promises
   passwordAuthenticate(username, password, callback) {
     if (!this.coapDataChannel) {

@@ -62,7 +62,7 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
 
 }
 
-std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
+void RtpClient::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 
 {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -124,7 +124,7 @@ std::shared_ptr<rtc::Track> RtpClient::createTrack(std::shared_ptr<rtc::PeerConn
         });
     }
 
-    return track;
+    return;
 }
 
 void RtpClient::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)

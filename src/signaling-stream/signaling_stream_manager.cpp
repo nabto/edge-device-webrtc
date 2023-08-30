@@ -121,7 +121,8 @@ void SignalingStreamManager::newInfoRequest(NabtoDeviceFuture* future, NabtoDevi
     if (true) //self->accessCb_(nabto_device_stream_get_connection_ref(self->stream_), streamAction, self->accessUserData_))
     {
         nlohmann::json resp = {
-            {"SignalingStreamPort", self->streamPort_}
+            {"SignalingStreamPort", self->streamPort_},
+            {"FileStreamPort", self->device_->getFileStreamPort()}
         };
         std::cout << "Sending info response: " << resp.dump() << std::endl;
         auto payload = nlohmann::json::to_cbor(resp);

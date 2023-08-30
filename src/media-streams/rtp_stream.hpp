@@ -40,7 +40,7 @@ public:
 
     void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc);
 
-    std::shared_ptr<rtc::Track> createTrack(std::shared_ptr<rtc::PeerConnection> pc);
+    void createTrack(std::shared_ptr<rtc::PeerConnection> pc);
 
     std::string getTrackId();
 

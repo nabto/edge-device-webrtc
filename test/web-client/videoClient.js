@@ -47,19 +47,36 @@ function bufferToBase64( buffer ) {
 
 function getImage()
 {
-  // TODO: ephemeral stream port
-  let stream = myPeerConnection.createDataChannel("stream-655");
-  nabtoConnection.readStream(stream, (data) => {
-    console.log("read stream data");
-    appendBuffer(data);
-  });
-  stream.addEventListener("close", (event) => {
-    console.log("Stream channel closed event. buffer length: ", pictureBuffer.byteLength);
+  nabtoConnection.coapInvoke("GET", "/webrtc/info", undefined, undefined, (response) => {
+    let resp = JSON.parse(response);
+    boxLog("Got /webrtc/info coap response: " + JSON.stringify(resp));
+    if (resp.statusCode != 205) {
+      boxLog("Failed to get WebRTC info from device: " + resp.statusCode);
+      return;
+    }
+    try {
+      let payloadObj = nabtoConnection.decodeCborPayload(resp.payload);
+      let streamPort = payloadObj.FileStreamPort;
 
-    img = document.getElementById("nabtoimage");
-    img.src = 'data:image/png;base64,' + bufferToBase64(pictureBuffer);
+      // TODO: ephemeral stream port
+      console.log("Opening stream to port: ", streamPort);
+      let stream = myPeerConnection.createDataChannel("stream-"+streamPort);
+      nabtoConnection.readStream(stream, (data) => {
+        console.log("read stream data");
+        appendBuffer(data);
+      });
+      stream.addEventListener("close", (event) => {
+        console.log("Stream channel closed event. buffer length: ", pictureBuffer.byteLength);
 
+        img = document.getElementById("nabtoimage");
+        img.src = 'data:image/png;base64,' + bufferToBase64(pictureBuffer);
+
+      });
+    } catch (err) {
+      console.log("ERROR: ", err);
+    }
   });
+
 }
 
 function addAudio() {

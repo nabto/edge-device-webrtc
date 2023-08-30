@@ -158,7 +158,7 @@ bool NabtoDeviceImpl::setupFileStream()
 {
     // TODO: ephemeral port number
     if ((fileStreamListen_ = nabto_device_listener_new(device_)) == NULL ||
-        nabto_device_stream_init_listener(device_, fileStreamListen_, 655) != NABTO_DEVICE_EC_OK ||
+        nabto_device_stream_init_listener_ephemeral(device_, fileStreamListen_, &fileStreamPort_) != NABTO_DEVICE_EC_OK ||
         (fileStreamFut_ = nabto_device_future_new(device_)) == NULL)
     {
         std::cout << "Failed to listen for streams" << std::endl;

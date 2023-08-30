@@ -17,7 +17,7 @@ public:
 
     virtual void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc) = 0;
 
-    virtual std::shared_ptr<rtc::Track> createTrack(std::shared_ptr<rtc::PeerConnection> pc) = 0;
+    virtual void createTrack(std::shared_ptr<rtc::PeerConnection> pc) = 0;
 
     virtual std::string getTrackId() = 0;
 

@@ -30,13 +30,15 @@ public:
     ~RtspStream();
 
     void stop() {
-        // TODO: loop through conns and stop them
+        for (auto c : connections_) {
+            c.client->stop();
+        }
         connections_.clear();
     }
 
     void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc);
 
-    std::shared_ptr<rtc::Track> createTrack(std::shared_ptr<rtc::PeerConnection> pc);
+    void createTrack(std::shared_ptr<rtc::PeerConnection> pc);
 
     std::string getTrackId();
 

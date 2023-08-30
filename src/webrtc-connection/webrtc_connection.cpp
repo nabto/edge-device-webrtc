@@ -47,7 +47,7 @@ void WebrtcConnection::handleOfferRequest()
     handleDatachannelEvent(chan);
 
     for (auto m : medias_) {
-        auto t = m->createTrack(pc_);
+        m->createTrack(pc_);
     }
     pc_->setLocalDescription();
 
@@ -237,12 +237,21 @@ void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> 
         }
         coapChannel_ = WebrtcCoapChannel::create(pc_, incoming, device_, nabtoConnection_);
     }
-    else if (incoming->label() == "stream-655") {    // TODO: ephemeral port number
+    else if (incoming->label().find("stream-") == 0) {
+        std::cout << "Stream channel opened: " << incoming->label() << std::endl;
+        std::cout << "Stream port: " << incoming->label().substr(7) << std::endl;
+        try {
+        uint32_t port = std::stoul(incoming->label().substr(7));
+        std::cout << "Stream port: " << port << std::endl;
+
         if (nabtoConnection_ == NULL) {
             nabtoConnection_ = nabto_device_virtual_connection_new(device_->getDevice());
 
         }
-        streamChannel_ = WebrtcStreamChannel::create(incoming, device_, nabtoConnection_);
+        streamChannel_ = WebrtcFileStreamChannel::create(incoming, device_, nabtoConnection_, port);
+        } catch (std::exception &e) {
+            std::cout << "error " << e.what() << std::endl;
+        }
     }
 
 }
