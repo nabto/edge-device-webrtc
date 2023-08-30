@@ -218,10 +218,7 @@ void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
             std::cout << "Found metaTrack: " << mt.dump() << std::endl;
             auto trackId = mt["trackId"].get<std::string>();
             for (auto m : medias_) {
-                if (m->getTrackId() == trackId) {
-                    m->addTrack(track, pc_);
-                    return;
-                }
+                m->addTrack(track, pc_, trackId);
             }
         }
     }

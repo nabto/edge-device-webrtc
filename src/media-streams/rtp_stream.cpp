@@ -38,13 +38,19 @@ void RtpStream::setAudioConf(uint16_t port, RtpCodec* matcher, std::string host)
 
 }
 
-void RtpStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
+void RtpStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId)
 {
-    if (videoClient_ != nullptr) {
-        videoClient_->addTrack(track, pc);
-    }
-    if (audioClient_ != nullptr) {
-        audioClient_->addTrack(track, pc);
+    if (trackId.find(trackId_) == 0) {
+        // incoming trackId contains our track ID
+        // eg. our ID is frontdoor, and incoming is frontdoor, frontdoor-audio, or frontdoor-video
+        if (videoClient_ != nullptr && (trackId_ == trackId || trackId == trackId_ + "-video")) {
+            // exact match or video
+            videoClient_->addTrack(track, pc, trackId_ + "-video");
+        }
+        if (audioClient_ != nullptr && (trackId_ == trackId || trackId == trackId_ + "-audio")) {
+            // exact match or audio
+            audioClient_->addTrack(track, pc, trackId_ + "-audio");
+        }
     }
 }
 

@@ -28,8 +28,12 @@ RtpClient::~RtpClient()
     std::cout << "RtpClient destructor" << std::endl;
 }
 
-void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
+void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId)
 {
+    if (trackId != trackId_) {
+        std::cout << "RtpClient got addTrack from wrong track ID: " << trackId << " != " << trackId_ << std::endl;
+        return;
+    }
     try {
         auto media = track->description();
         {

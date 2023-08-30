@@ -21,8 +21,13 @@ RtspStream::~RtspStream()
 }
 
 
-void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc)
+void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId)
 {
+    if (trackId.find(trackId_) != 0) {
+        std::cout << "RtspStream got addTrack from wrong track ID: " << trackId << " != " << trackId_ << std::endl;
+        return;
+    }
+
     RtspConnection conn;
     conn.client = RtspClient::create(trackId_, url_);
     // TODO: maybe ephemeral ports
@@ -30,12 +35,14 @@ void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc
     conn.client->start();
 
     auto video = conn.client->getVideoStream();
-    if (video != nullptr) {
-        video->addTrack(track, pc);
+    if (video != nullptr && (trackId_ == trackId || trackId == trackId_ + "-video")) {
+        // exact match or video
+        video->addTrack(track, pc, trackId_ + "-video");
     }
     auto audio = conn.client->getAudioStream();
-    if (audio != nullptr) {
-        audio->addTrack(track, pc);
+    if (audio != nullptr && (trackId_ == trackId || trackId == trackId_ + "-audio")) {
+        // exact match or audio
+        audio->addTrack(track, pc, trackId_ + "-audio");
     }
     conn.pc = pc;
     connections_.push_back(conn);

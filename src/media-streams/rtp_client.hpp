@@ -86,7 +86,7 @@ public:
     RtpClient(std::string& trackId);
     ~RtpClient();
 
-    void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc);
+    void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId);
 
     void createTrack(std::shared_ptr<rtc::PeerConnection> pc);
 
