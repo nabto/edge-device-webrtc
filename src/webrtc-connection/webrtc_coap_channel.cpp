@@ -91,10 +91,10 @@ public:
 
             std::string path = request["path"].get<std::string>();
 
-            PathSegments segments = PathSegments::parse(path);
+            // PathSegments segments = PathSegments::parse(path);
 
             parsePayload(request);
-            coap_ = nabto_device_virtual_coap_request_new(nabtoConnection_, method_, segments.getSegments());
+            coap_ = nabto_device_virtual_coap_request_new(nabtoConnection_, method_, path.c_str());
 
             if (!payload_.empty()) {
                 std::cout << "Setting payload with content format: " << contentType_ << std::endl;
