@@ -14,11 +14,13 @@ NabtoDeviceImplPtr NabtoDeviceImpl::create(nlohmann::json& opts)
 
 NabtoDeviceImpl::NabtoDeviceImpl() : fileBuffer_(1024, 0)
 {
-
 }
 
 NabtoDeviceImpl::~NabtoDeviceImpl()
 {
+    if (fileStreamFut_ != NULL) {
+        nabto_device_future_free(fileStreamFut_);
+    }
     nabto_device_free(device_);
 }
 
@@ -156,48 +158,28 @@ void NabtoDeviceImpl::newPasswordRequest(NabtoDeviceFuture* future, NabtoDeviceE
 
 bool NabtoDeviceImpl::setupFileStream()
 {
-    // TODO: ephemeral port number
-    if ((fileStreamListen_ = nabto_device_listener_new(device_)) == NULL ||
-        nabto_device_stream_init_listener_ephemeral(device_, fileStreamListen_, &fileStreamPort_) != NABTO_DEVICE_EC_OK ||
-        (fileStreamFut_ = nabto_device_future_new(device_)) == NULL)
-    {
-        std::cout << "Failed to listen for streams" << std::endl;
-        return false;
-    }
-    nextFileStream();
-    return true;
-}
+    fileStreamFut_ = nabto_device_future_new(device_);
+    auto self = shared_from_this();
+    fileStreamListener_ = NabtoDeviceStreamListener::create(self);
 
-void NabtoDeviceImpl::nextFileStream()
-{
-    nabto_device_listener_new_stream(fileStreamListen_, fileStreamFut_, &fileStream_);
-    nabto_device_future_set_callback(fileStreamFut_, newFileStream, this);
-}
-
-void NabtoDeviceImpl::newFileStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
-{
-    NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
-    if (ec != NABTO_DEVICE_EC_OK)
-    {
-        std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
-        nabto_device_future_free(future);
-        nabto_device_listener_free(self->fileStreamListen_);
-        return;
-    }
-    // TODO: check IAM
-    if (true)
-    {
+    fileStreamListener_->setStreamCallback([self](NabtoDeviceStream* stream) {
         // TODO: split into seperate stream class so we can have multiple file streams in parallel.
-        std::cout << "Got new file stream" << std::endl;
-        nabto_device_stream_accept(self->fileStream_, future);
-        nabto_device_future_set_callback(future, fileStreamAccepted, self);
-    }
-    else {
-        nabto_device_stream_free(self->fileStream_);
-        self->fileStream_ = NULL;
-        self->nextFileStream();
-    }
+        if (self->fileStream_ == NULL && true)// TODO: check IAM
+        {
+            // if we don't already have an open file stream
+            // and IAM allowed the stream
+            std::cout << "Got new file stream" << std::endl;
+            self->fileStream_ = stream;
+            self->me_ = self; // keep self alive until stream is closed
+            nabto_device_stream_accept(self->fileStream_, self->fileStreamFut_);
+            nabto_device_future_set_callback(self->fileStreamFut_, fileStreamAccepted, self.get());
+        }
+        else {
+            nabto_device_stream_free(stream);
+        }
 
+    });
+    return true;
 }
 
 void NabtoDeviceImpl::fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
@@ -205,6 +187,8 @@ void NabtoDeviceImpl::fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceE
     NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "file stream accept failed" << std::endl;
+        self->fileStream_ = NULL;
+        self->me_ = nullptr;
         return;
     }
     std::cout << "File stream accepted" << std::endl;
@@ -221,7 +205,6 @@ void NabtoDeviceImpl::doStreamFile()
         std::cout << "Read " << s << "bytes, writing to nabto stream" << std::endl;
         nabto_device_stream_write(fileStream_, fileStreamFut_, fileBuffer_.data(), s);
         nabto_device_future_set_callback(fileStreamFut_, writeFileStreamCb, this);
-        return;
     } else {
         std::cout << "File reached EOF, closing nabto stream" << std::endl;
         nabto_device_stream_close(fileStream_, fileStreamFut_);
@@ -235,6 +218,8 @@ void NabtoDeviceImpl::writeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceEr
     NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "file stream write failed" << std::endl;
+        self->fileStream_ = NULL;
+        self->me_ = nullptr;
         return;
     }
     std::cout << "nabto stream write callback" << std::endl;
@@ -247,14 +232,21 @@ void NabtoDeviceImpl::closeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceEr
     NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "file stream close failed" << std::endl;
+        self->fileStream_ = NULL;
+        self->me_ = nullptr;
         return;
     }
     std::cout << "Stream closed" << std::endl;
     nabto_device_stream_abort(self->fileStream_);
     // We never read, we are not writing, we are done closeing, so we do not have unresolved futures.
     nabto_device_stream_free(self->fileStream_);
-    self->nextFileStream();
 }
+
+uint32_t NabtoDeviceImpl::getFileStreamPort()
+{
+    return fileStreamListener_->getStreamPort();
+}
+
 
 void NabtoDeviceImpl::stop() {
     return nabto_device_stop(device_);

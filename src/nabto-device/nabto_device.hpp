@@ -28,7 +28,7 @@ public:
     void stop();
 
     NabtoDevice* getDevice() { return device_; }
-    uint32_t getFileStreamPort() { return fileStreamPort_; }
+    uint32_t getFileStreamPort();
 
 private:
 
@@ -53,15 +53,16 @@ private:
     std::string logLevel_ = "info";
     std::string serverUrl_;
 
-    NabtoDeviceListener* fileStreamListen_ = NULL;
+    NabtoDeviceStreamListenerPtr fileStreamListener_ = nullptr;
+    std::ifstream inputFile_;
     NabtoDeviceFuture* fileStreamFut_ = NULL;
     NabtoDeviceStream* fileStream_ = NULL;
-    std::ifstream inputFile_;
-    uint32_t fileStreamPort_ = 0;
 
     NabtoDeviceListener* passwordListen_ = NULL;
     NabtoDeviceFuture* passwordFut_ = NULL;
     NabtoDevicePasswordAuthenticationRequest* passwordReq_ = NULL;
+
+    NabtoDeviceImplPtr me_ = nullptr;
 
 };
 
