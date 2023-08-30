@@ -312,4 +312,68 @@ void NabtoDeviceStreamListener::newStream(NabtoDeviceFuture* future, NabtoDevice
 }
 
 
+NabtoDeviceCoapListenerPtr NabtoDeviceCoapListener::create(NabtoDeviceImplPtr device, NabtoDeviceCoapMethod method, const char** path)
+{
+    auto ptr = std::make_shared<NabtoDeviceCoapListener>(device);
+    if (ptr->start(method, path)) {
+        return ptr;
+    }
+    return nullptr;
+
+}
+
+NabtoDeviceCoapListener::NabtoDeviceCoapListener(NabtoDeviceImplPtr device) : device_(device)
+{
+    listener_ = nabto_device_listener_new(device_->getDevice());
+    future_ = nabto_device_future_new(device_->getDevice());
+
+}
+
+NabtoDeviceCoapListener::~NabtoDeviceCoapListener()
+{
+    nabto_device_future_free(future_);
+    nabto_device_listener_free(listener_);
+
+}
+
+bool NabtoDeviceCoapListener::start(NabtoDeviceCoapMethod method, const char** path)
+{
+    if (listener_ == NULL ||
+        future_ == NULL ||
+        nabto_device_coap_init_listener(device_->getDevice(), listener_, method, path) != NABTO_DEVICE_EC_OK)
+    {
+        std::cout << "Failed to listen for CoAP requests" << std::endl;
+        return false;
+    }
+    me_ = shared_from_this();
+    nextCoapRequest();
+    return true;
+
+}
+
+void NabtoDeviceCoapListener::nextCoapRequest()
+{
+    nabto_device_listener_new_coap_request(listener_, future_, &coap_);
+    nabto_device_future_set_callback(future_, newCoapRequest, this);
+
+}
+
+void NabtoDeviceCoapListener::newCoapRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+{
+    NabtoDeviceCoapListener* self = (NabtoDeviceCoapListener*)userData;
+    if (ec != NABTO_DEVICE_EC_OK)
+    {
+        std::cout << "Coap listener future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        self->me_ = nullptr;
+        self->coapCb_ = nullptr;
+        self->device_ = nullptr;
+        return;
+    }
+    self->coapCb_(self->coap_);
+    self->coap_ = NULL;
+    self->nextCoapRequest();
+}
+
+
+
 } // Namespace

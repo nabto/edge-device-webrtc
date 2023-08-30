@@ -13,9 +13,11 @@ namespace nabto {
 
 class NabtoDeviceImpl;
 class NabtoDeviceStreamListener;
+class NabtoDeviceCoapListener;
 
 typedef std::shared_ptr<NabtoDeviceImpl> NabtoDeviceImplPtr;
 typedef std::shared_ptr<NabtoDeviceStreamListener> NabtoDeviceStreamListenerPtr;
+typedef std::shared_ptr<NabtoDeviceCoapListener> NabtoDeviceCoapListenerPtr;
 
 class NabtoDeviceImpl : public std::enable_shared_from_this <NabtoDeviceImpl> {
 public:
@@ -92,6 +94,32 @@ private:
     NabtoDeviceStream* stream_ = NULL;
 
     NabtoDeviceStreamListenerPtr me_ = nullptr;
+
+};
+
+class NabtoDeviceCoapListener : public std::enable_shared_from_this <NabtoDeviceCoapListener> {
+public:
+    static NabtoDeviceCoapListenerPtr create(NabtoDeviceImplPtr device, NabtoDeviceCoapMethod method, const char** path);
+    NabtoDeviceCoapListener(NabtoDeviceImplPtr device);
+    ~NabtoDeviceCoapListener();
+
+    bool start(NabtoDeviceCoapMethod method, const char** path);
+
+    void setCoapCallback(std::function<void(NabtoDeviceCoapRequest* coap)> coapCb) { coapCb_ = coapCb; }
+
+private:
+    void nextCoapRequest();
+    static void newCoapRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+
+
+    NabtoDeviceImplPtr device_;
+    std::function<void(NabtoDeviceCoapRequest* coap)> coapCb_;
+
+    NabtoDeviceListener* listener_ = NULL;
+    NabtoDeviceFuture* future_ = NULL;
+    NabtoDeviceCoapRequest* coap_ = NULL;
+
+    NabtoDeviceCoapListenerPtr me_ = nullptr;
 
 };
 
