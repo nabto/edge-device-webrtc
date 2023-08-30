@@ -5,52 +5,6 @@
 
 namespace nabto {
 
-class PathSegments {
- public:
-     PathSegments(const std::vector<std::string> &segments)
-         : segments_(segments)
-     {
-        for(auto const& s : segments_) {
-            segmentsNullTerminated_.push_back(s.c_str());
-        }
-        segmentsNullTerminated_.push_back(NULL);
-
-     }
-
-    static PathSegments parse(const std::string &inPath)
-    {
-        std::vector<std::string> segments;
-        std::string path = inPath;
-        if (path[0] == '/') {
-            path = path.substr(1);
-        }
-
-        size_t pos = 0;
-        size_t count = 0;
-        pos = path.find("/");
-        while (pos != std::string::npos) {
-            std::string segment = path.substr(0, pos);
-            std::cout << "found segment at pos: " << pos << ": " << segment << std::endl;
-            segments.push_back(segment);
-            path = path.substr(pos + 1);
-            pos = path.find("/");
-        }
-
-        segments.push_back(path);
-        std::cout << "found last segment: " << path << std::endl;
-
-        return PathSegments(segments);
-    }
-
-    const char **getSegments() {
-        return segmentsNullTerminated_.data();
-    }
-
- private:
-    std::vector<std::string> segments_;
-    std::vector<const char *> segmentsNullTerminated_;
-};
-
 class VirtualCoapRequest : public std::enable_shared_from_this<VirtualCoapRequest> {
 public:
     VirtualCoapRequest(NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection)
@@ -90,8 +44,6 @@ public:
             }
 
             std::string path = request["path"].get<std::string>();
-
-            // PathSegments segments = PathSegments::parse(path);
 
             parsePayload(request);
             coap_ = nabto_device_virtual_coap_request_new(nabtoConnection_, method_, path.c_str());

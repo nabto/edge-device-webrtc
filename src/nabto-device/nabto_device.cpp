@@ -18,6 +18,7 @@ NabtoDeviceImpl::NabtoDeviceImpl() : fileBuffer_(1024, 0)
 
 NabtoDeviceImpl::~NabtoDeviceImpl()
 {
+    fileStreamListener_.reset();
     if (fileStreamFut_ != NULL) {
         nabto_device_future_free(fileStreamFut_);
     }
