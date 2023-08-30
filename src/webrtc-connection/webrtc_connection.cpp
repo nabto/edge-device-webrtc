@@ -146,15 +146,17 @@ void WebrtcConnection::createPeerConnection()
 
     pc_->onLocalCandidate([self](rtc::Candidate cand) {
         std::cout << "Got local candidate: " << cand << std::endl;
-        nlohmann::json candidate;
-        candidate["sdpMid"] = cand.mid();
-        candidate["candidate"] = cand.candidate();
-        auto data = candidate.dump();
+        if (self->canTrickle_) {
+            nlohmann::json candidate;
+            candidate["sdpMid"] = cand.mid();
+            candidate["candidate"] = cand.candidate();
+            auto data = candidate.dump();
 
-        // TODO: add metadata
-        nlohmann::json metadata;
+            // TODO: add metadata
+            nlohmann::json metadata;
 
-        self->sigStream_->signalingSendIce(data, metadata);
+            self->sigStream_->signalingSendIce(data, metadata);
+        }
     });
 
     pc_->onTrack([self](std::shared_ptr<rtc::Track> track) {
@@ -170,6 +172,20 @@ void WebrtcConnection::createPeerConnection()
     pc_->onGatheringStateChange(
         [self](rtc::PeerConnection::GatheringState state) {
             std::cout << "Gathering State: " << state << std::endl;
+            if (state == rtc::PeerConnection::GatheringState::Complete && !self->canTrickle_) {
+                auto description = self->pc_->localDescription();
+                nlohmann::json message = {
+                    {"type", description->typeString()},
+                    {"sdp", std::string(description.value())} };
+                auto data = message.dump();
+                // TODO: construct metadata if we are making the offer
+                if (description->type() == rtc::Description::Type::Offer) {
+                    self->sigStream_->signalingSendOffer(data, self->metadata_);
+                }
+                else {
+                    self->sigStream_->signalingSendAnswer(data, self->metadata_);
+                }
+            }
         });
 
 }
@@ -191,16 +207,19 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
         std::cout << "Got unhandled signaling state: " << state << std::endl;
         return;
     }
-    auto description = pc_->localDescription();
-    nlohmann::json message = {
-        {"type", description->typeString()},
-        {"sdp", std::string(description.value())} };
-    auto data = message.dump();
-    // TODO: construct metadata if we are making the offer
-    if (description->type() == rtc::Description::Type::Offer) {
-        sigStream_->signalingSendOffer(data, metadata_);
-    } else {
-        sigStream_->signalingSendAnswer(data, metadata_);
+    if (canTrickle_) {
+        auto description = pc_->localDescription();
+        nlohmann::json message = {
+            {"type", description->typeString()},
+            {"sdp", std::string(description.value())} };
+        auto data = message.dump();
+        // TODO: construct metadata if we are making the offer
+        if (description->type() == rtc::Description::Type::Offer) {
+            sigStream_->signalingSendOffer(data, metadata_);
+        }
+        else {
+            sigStream_->signalingSendAnswer(data, metadata_);
+        }
     }
 
 }

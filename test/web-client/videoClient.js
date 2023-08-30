@@ -149,7 +149,8 @@ function connect() {
               mid: audioTrans.mid,
               trackId: "frontdoor-audio"
             }
-          ]
+          ],
+          noTrickle: true
         };
     } else {
       let offer = await myPeerConnection.createOffer();

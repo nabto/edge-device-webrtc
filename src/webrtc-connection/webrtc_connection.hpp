@@ -60,6 +60,14 @@ public:
     void setMetadata(nlohmann::json& metadata)
     {
         metadata_ = metadata;
+        try {
+            bool noTrickle = metadata_["noTrickle"].get<bool>();
+            if (noTrickle) {
+                canTrickle_ = false;
+            }
+        } catch(std::exception& ex) {
+            // Ignore missing noTrickle
+        }
     }
 
     void setEventHandler(std::function<void(enum ConnectionState)> eventHandler)
@@ -98,6 +106,8 @@ private:
     NabtoDeviceVirtualConnection* nabtoConnection_ = NULL;
     WebrtcCoapChannelPtr coapChannel_ = nullptr;
     WebrtcStreamChannelPtr streamChannel_ = nullptr;
+
+    bool canTrickle_ = true;
 
 
 };
