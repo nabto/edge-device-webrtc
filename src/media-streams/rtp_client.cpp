@@ -260,6 +260,7 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
 int H264CodecMatcher::match(rtc::Description::Media* media)
 {
     rtc::Description::Media::RtpMap* rtp = NULL;
+    bool found = false;
     for (auto pt : media->payloadTypes()) {
         rtc::Description::Media::RtpMap* r = NULL;
         try {
@@ -269,16 +270,11 @@ int H264CodecMatcher::match(rtc::Description::Media* media)
             // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
             continue;
         }
-        std::string profLvlId = "42e01f";
-        std::string lvlAsymAllowed = "1";
-        std::string pktMode = "1";
-        if (r != NULL && r->fmtps.size() > 0 &&
-            r->fmtps[0].find("profile-level-id=" + profLvlId) != std::string::npos &&
-            r->fmtps[0].find("level-asymmetry-allowed=" + lvlAsymAllowed) != std::string::npos &&
-            r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
-            ) {
+        if (!found && r->format == "H264" && r->clockRate == 90000) {
+            found = true; // found a match, just remove any remaining rtpMaps
             std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
             rtp = r;
+            std::cout << "Format: " << rtp->format << " clockRate: " << rtp->clockRate << " encParams: " << rtp->encParams << std::endl;
             std::cout << "rtcp fbs:" << std::endl;
             for (auto s : rtp->rtcpFbs) {
                 std::cout << "   " << s << std::endl;
@@ -288,6 +284,26 @@ int H264CodecMatcher::match(rtc::Description::Media* media)
             rtp->removeFeedback("transport-cc");
             rtp->removeFeedback("ccm fir");
         }
+        // std::string profLvlId = "42e01f";
+        // std::string lvlAsymAllowed = "1";
+        // std::string pktMode = "1";
+        // if (r != NULL && r->fmtps.size() > 0 &&
+        //     r->fmtps[0].find("profile-level-id=" + profLvlId) != std::string::npos &&
+        //     r->fmtps[0].find("level-asymmetry-allowed=" + lvlAsymAllowed) != std::string::npos &&
+        //     r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
+        //     ) {
+        //     std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
+        //     rtp = r;
+        //     std::cout << "Format: " << rtp->format << " clockRate: " << rtp->clockRate << " encParams: " << rtp->encParams << std::endl;
+        //     std::cout << "rtcp fbs:" << std::endl;
+        //     for (auto s : rtp->rtcpFbs) {
+        //         std::cout << "   " << s << std::endl;
+        //     }
+        //     rtp->removeFeedback("nack");
+        //     rtp->removeFeedback("goog-remb");
+        //     rtp->removeFeedback("transport-cc");
+        //     rtp->removeFeedback("ccm fir");
+        // }
         else {
             // std::cout << "no match, removing" << std::endl;
             media->removeRtpMap(pt);
