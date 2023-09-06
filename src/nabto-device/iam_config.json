@@ -1,0 +1,124 @@
+{
+    "Version": 1,
+    "Policies": [
+      {
+        "Id": "Pairing",
+        "Statements": [
+          {
+            "Effect": "Allow",
+            "Actions": [
+              "IAM:SetDeviceInfo",
+              "IAM:GetPairing",
+              "IAM:PairingPasswordInvite",
+              "IAM:PairingLocalInitial",
+              "IAM:PairingLocalOpen",
+              "IAM:PairingPasswordOpen"
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "Webrtc",
+        "Statements": [
+          {
+            "Effect": "Allow",
+            "Actions": [
+              "Webrtc:VideoStream",
+              "Webrtc:FileStream"
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "WebrtcSignaling",
+        "Statements": [
+          {
+            "Effect": "Allow",
+            "Actions": [
+              "Webrtc:Signaling",
+              "Webrtc:GetInfo"
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "ManageIAM",
+        "Statements": [
+          {
+            "Effect": "Allow",
+            "Actions": [
+              "IAM:ListUsers",
+              "IAM:GetUser",
+              "IAM:DeleteUser",
+              "IAM:SetUserRole",
+              "IAM:ListRoles",
+              "IAM:CreateUser",
+              "IAM:SetUserPassword",
+              "IAM:SetUserDisplayName",
+              "IAM:SetSettings",
+              "IAM:GetSettings"
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "ManageOwnUser",
+        "Statements": [
+          {
+            "Effect": "Allow",
+            "Actions": [
+              "IAM:GetUser",
+              "IAM:DeleteUser",
+              "IAM:SetUserFriendlyName"
+            ],
+            "Conditions": [
+              {
+                "StringEquals": {
+                  "IAM:Username": [
+                    "${Connection:Username}"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "Effect": "Allow",
+            "Actions": [
+              "IAM:ListRoles",
+              "IAM:ListUsers"
+            ]
+          }
+        ]
+      }
+    ],
+    "Roles": [
+      {
+        "Id": "Unpaired",
+        "Policies": [
+          "Pairing",
+          "WebrtcSignaling"
+        ]
+      },
+      {
+        "Id": "Administrator",
+        "Policies": [
+          "ManageIAM",
+          "Webrtc",
+          "Pairing",
+          "WebrtcSignaling"
+        ]
+      },
+      {
+        "Id": "Standard",
+        "Policies": [
+          "Webrtc",
+          "Pairing",
+          "ManageOwnUser",
+          "WebrtcSignaling"
+        ]
+      }
+    ],
+    "Config": {
+      "UnpairedRole": "Unpaired"
+    }
+  }

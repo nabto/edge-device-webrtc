@@ -1,7 +1,29 @@
 #include "nabto_device.hpp"
 #include <nabto/nabto_device_experimental.h>
+#include <modules/iam/nm_iam_serializer.h>
 
 namespace nabto {
+
+const std::string defaultState = R"({
+  "Version": 1,
+  "OpenPairingPassword": "demoOpenPairing",
+  "OpenPairingSct": "demosct",
+  "LocalOpenPairing": true,
+  "PasswordOpenPairing": true,
+  "PasswordInvitePairing": true,
+  "LocalInitialPairing": true,
+  "OpenPairingRole": "Administrator",
+  "InitialPairingUsername": "admin",
+  "FriendlyName": "Webrtc demo example",
+  "Users": [
+    {
+      "Username": "admin",
+      "ServerConnectToken": "demosct",
+      "Role": "Administrator",
+      "Password": "demoAdminPwd"
+    }
+  ]
+})";
 
 NabtoDeviceImplPtr NabtoDeviceImpl::create(nlohmann::json& opts)
 {
@@ -29,28 +51,40 @@ bool NabtoDeviceImpl::init(nlohmann::json& opts)
 {
 
     try {
-        this->productId_ = opts["productId"].get<std::string>();
-        this->deviceId_ = opts["deviceId"].get<std::string>();
-        this->rawPrivateKey_ = opts["rawPrivateKey"].get<std::string>();
+        productId_ = opts["productId"].get<std::string>();
+        deviceId_ = opts["deviceId"].get<std::string>();
+        rawPrivateKey_ = opts["rawPrivateKey"].get<std::string>();
     } catch (std::exception& e ) {
         std::cout << "Missing input option. Options must include: productId, deviceId, rawPrivateKey" << std::endl;
         return false;
     }
 
     try {
-        this->serverUrl_ = opts["serverUrl"].get<std::string>();
+        serverUrl_ = opts["serverUrl"].get<std::string>();
     } catch (std::exception& e) {
         // ignore missing optional option
     }
 
     try {
-        this->sct_ = opts["sct"].get<std::string>();
+        sct_ = opts["sct"].get<std::string>();
     } catch (std::exception& e) {
         // ignore missing optional option
     }
 
     try {
-        this->logLevel_ = opts["logLevel"].get<std::string>();
+        logLevel_ = opts["logLevel"].get<std::string>();
+        if (logLevel_ == "trace") {
+            iamLogLevel_ = NN_LOG_SEVERITY_TRACE;
+        }
+        else if (logLevel_ == "warn") {
+            iamLogLevel_ = NN_LOG_SEVERITY_WARN;
+        }
+        else if (logLevel_ == "info") {
+            iamLogLevel_ = NN_LOG_SEVERITY_INFO;
+        }
+        else if (logLevel_ == "error") {
+            iamLogLevel_ = NN_LOG_SEVERITY_ERROR;
+        }
     } catch (std::exception& e) {
         // ignore missing optional option
     }
@@ -71,6 +105,14 @@ bool NabtoDeviceImpl::start()
         std::cout << "Failed to create device" << std::endl;
         return false;
 
+    }
+
+    iamLog_.logPrint = &iamLogger;
+    iamLog_.userData = this;
+
+    if (!nm_iam_init(&iam_, device_, &iamLog_) || !setupIam()) {
+        std::cout << "Failed to initialize IAM module" << std::endl;
+        return false;
     }
 
     uint8_t key[32];
@@ -116,45 +158,62 @@ bool NabtoDeviceImpl::start()
         return false;
     }
     // TODO: remove setupPassword() when IAM implements passwords
-    return setupFileStream() && setupPassword();
+    return setupFileStream(); // && setupPassword();
 }
 
-bool NabtoDeviceImpl::setupPassword()
+bool NabtoDeviceImpl::setupIam()
 {
-    if ((passwordListen_ = nabto_device_listener_new(device_)) == NULL ||
-        nabto_device_password_authentication_request_init_listener(device_, passwordListen_) != NABTO_DEVICE_EC_OK ||
-        (passwordFut_ = nabto_device_future_new(device_)) == NULL) {
-        std::cout << "Failed to listen for password authorization requests" << std::endl;
+    try {
+        auto configFile = std::ifstream(iamConfPath_);
+        if (!configFile.good()) {
+            // file does not exist
+            std::cout << "IAM configuration file does not exist at: " << iamConfPath_ << std::endl;
+            return false;
+        }
+        auto iamConf = nlohmann::json::parse(configFile);
+        std::string confStr = iamConf.dump();
+        struct nm_iam_configuration* conf = nm_iam_configuration_new();
+        nm_iam_serializer_configuration_load_json(conf, confStr.c_str(), NULL);
+        if (!nm_iam_load_configuration(&iam_, conf)) {
+            std::cout << "Failed to load IAM configuration" << std::endl;
+            nm_iam_configuration_free(conf);
+            return false;
+        }
+    }
+    catch (std::exception& ex) {
+        std::cout << "Failed to load IAM config" << std::endl;
         return false;
     }
-    nextPasswordRequest();
+
+    try {
+        auto stateFile = std::ifstream(iamStatePath_);
+        if (!stateFile.good()) {
+            // file does not exist
+            std::cout << "State file does not exist at: " << iamStatePath_ << std::endl << "  Creating one with default values" << std::endl;
+            if (!createDefaultIamState()) {
+                std::cout << "Failed to create IAM state file" << std::endl;
+                return false;
+            }
+            stateFile = std::ifstream(iamStatePath_);
+        }
+        auto iamState = nlohmann::json::parse(stateFile);
+        std::string stateStr = iamState.dump();
+        struct nm_iam_state* state = nm_iam_state_new();
+        nm_iam_serializer_state_load_json(state, stateStr.c_str(), NULL);
+        if (!nm_iam_load_state(&iam_, state)) {
+            std::cout << "Failed to load IAM state" << std::endl;
+            nm_iam_state_free(state);
+            return false;
+        }
+    }
+    catch (std::exception& ex) {
+        std::cout << "Failed to load IAM state" << ex.what() << std::endl;
+        return false;
+    }
+
+    // TODO: setup IAM state change listener
+
     return true;
-}
-
-void NabtoDeviceImpl::nextPasswordRequest()
-{
-    nabto_device_listener_new_password_authentication_request(passwordListen_, passwordFut_, &passwordReq_);
-    nabto_device_future_set_callback(passwordFut_, newPasswordRequest, this);
-}
-
-void NabtoDeviceImpl::newPasswordRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
-{
-    NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
-    if (ec != NABTO_DEVICE_EC_OK)
-    {
-        std::cout << "password request wait failed: " << nabto_device_error_get_message(ec) << std::endl;
-        nabto_device_future_free(future);
-        nabto_device_listener_free(self->passwordListen_);
-        return;
-    }
-    const char* uname = nabto_device_password_authentication_request_get_username(self->passwordReq_);
-    std::cout << "Got password request for username: " << std::string(uname) << std::endl;
-    if (std::string(uname) == std::string("foo")) {
-        std::cout << "    Setting password \"bar\"" << std::endl;
-        nabto_device_password_authentication_request_set_password(self->passwordReq_, "bar");
-    }
-    nabto_device_password_authentication_request_free(self->passwordReq_);
-    self->nextPasswordRequest();
 }
 
 bool NabtoDeviceImpl::setupFileStream()
@@ -165,8 +224,8 @@ bool NabtoDeviceImpl::setupFileStream()
 
     fileStreamListener_->setStreamCallback([self](NabtoDeviceStream* stream) {
         // TODO: split into seperate stream class so we can have multiple file streams in parallel.
-        // TODO: check IAM
-        if (self->fileStream_ == NULL && true)
+        NabtoDeviceConnectionRef ref = nabto_device_stream_get_connection_ref(stream);
+        if (self->fileStream_ == NULL && nm_iam_check_access(&self->iam_,ref, "Webrtc:FileStream", NULL))
         {
             // if we don't already have an open file stream
             // and IAM allowed the stream
@@ -177,12 +236,27 @@ bool NabtoDeviceImpl::setupFileStream()
             nabto_device_future_set_callback(self->fileStreamFut_, fileStreamAccepted, self.get());
         }
         else {
+            std::cout << "FileStream opened, but " << (self->fileStream_ == NULL ? "IAM rejected it" : "another is already opened") << std::endl;
             nabto_device_stream_free(stream);
         }
 
     });
     return true;
 }
+
+bool NabtoDeviceImpl::createDefaultIamState()
+{
+    try {
+        auto jsonState = nlohmann::json::parse(defaultState);
+        std::ofstream stateFile(iamStatePath_);
+        stateFile << jsonState;
+    } catch (std::exception& ex ) {
+        std::cout << "Failed to write to state file: " << iamStatePath_ << " exception: " << ex.what() << std::endl;
+        return false;
+    }
+    return true;
+}
+
 
 void NabtoDeviceImpl::fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
@@ -253,6 +327,56 @@ uint32_t NabtoDeviceImpl::getFileStreamPort()
 void NabtoDeviceImpl::stop() {
     return nabto_device_stop(device_);
 }
+
+void NabtoDeviceImpl::iamLogger(void* data, enum nn_log_severity severity, const char* module,
+    const char* file, int line,
+    const char* fmt, va_list args)
+{
+    NabtoDeviceImpl* self = (NabtoDeviceImpl*)data;
+    if (severity <= self->iamLogLevel_) {
+        char log[256];
+        int ret;
+
+        ret = vsnprintf(log, 256, fmt, args);
+        if (ret >= 256) {
+            // TODO: handle too long log lines
+            // The log line was too large for the array
+        }
+        size_t fileLen = strlen(file);
+        char fileTmp[16 + 4];
+        if (fileLen > 16) {
+            strcpy(fileTmp, "...");
+            strcpy(fileTmp + 3, file + fileLen - 16);
+        }
+        else {
+            strcpy(fileTmp, file);
+        }
+        const char* level;
+        switch (severity) {
+        case NN_LOG_SEVERITY_ERROR:
+            level = "ERROR";
+            break;
+        case NN_LOG_SEVERITY_WARN:
+            level = "_WARN";
+            break;
+        case NN_LOG_SEVERITY_INFO:
+            level = "_INFO";
+            break;
+        case NN_LOG_SEVERITY_TRACE:
+            level = "TRACE";
+            break;
+        default:
+            // should not happen as it would be caugth by the if
+            level = "_NONE";
+            break;
+        }
+
+        printf("%s(%03u)[%s] %s\n",
+            fileTmp, line, level, log);
+
+    }
+}
+
 
 NabtoDeviceStreamListenerPtr NabtoDeviceStreamListener::create(NabtoDeviceImplPtr device)
 {

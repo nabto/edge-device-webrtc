@@ -28,20 +28,27 @@ bool SignalingStreamManager::start()
 {
     auto self = shared_from_this();
     streamListener_->setStreamCallback([self](NabtoDeviceStream* stream) {
-        if (true) // TODO: check IAM
+        NabtoDeviceConnectionRef ref = nabto_device_stream_get_connection_ref(stream);
+        if (nm_iam_check_access(self->device_->getIam(), ref, "Webrtc:Signaling", NULL))
         {
-            std::cout << "Creating Signaling stream" << std::endl;
+            char* fp;
+            nabto_device_connection_get_client_fingerprint(self->device_->getDevice(), ref, &fp);
+            std::cout << "Creating Signaling stream for client fp: " << fp << std::endl;
+            nabto_device_string_free(fp);
             SignalingStreamPtr s = SignalingStream::create(self->device_, stream, self, self->medias_);
             self->streams_.push_back(s);
             s->start();
         }
         else {
+            std::cout << "New signaling stream opened, but IAM rejected it" << std::endl;
             nabto_device_stream_free(stream);
         }
     });
 
     coapInfoListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
-        if (true) // TODO: check IAM
+        NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
+
+        if (nm_iam_check_access(self->device_->getIam(), ref, "Webrtc:GetInfo", NULL))
         {
             nlohmann::json resp = {
                 {"SignalingStreamPort", self->streamListener_->getStreamPort()},
@@ -55,6 +62,7 @@ bool SignalingStreamManager::start()
             nabto_device_coap_response_ready(coap);
         }
         else {
+            std::cout << "Got CoAP info request but IAM rejected it" << std::endl;
             nabto_device_coap_error_response(coap, 401, NULL);
         }
         nabto_device_coap_request_free(coap);
@@ -74,7 +82,9 @@ bool SignalingStreamManager::start()
 void SignalingStreamManager::handleVideoRequest(NabtoDeviceCoapRequest* coap)
 {
     // TODO: check IAM
-    if (true) {
+    NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
+
+    if (nm_iam_check_access(device_->getIam(), ref, "Webrtc:VideoStream", NULL)) {
         std::cout << "Handling video coap request" << std::endl;
         const char* feedC = nabto_device_coap_request_get_parameter(coap, "feed");
         std::string feed(feedC);
@@ -120,6 +130,17 @@ void SignalingStreamManager::handleVideoRequest(NabtoDeviceCoapRequest* coap)
             nabto_device_coap_error_response(coap, 404, "No such feed");
         }
     } else {
+        bool pwd = nabto_device_connection_is_password_authenticated(device_->getDevice(), ref);
+        char* username;
+
+        if (pwd) {
+            nabto_device_connection_get_password_authentication_username(device_->getDevice(), ref, &username);
+        }
+
+        std::cout << "Got CoAP video stream request but IAM rejected it" << std::endl << "  was pwd: " << pwd << std::endl << "  username: " << (pwd ? username : "") << std::endl;
+        if (pwd) {
+            nabto_device_string_free(username);
+        }
         nabto_device_coap_error_response(coap, 401, NULL);
     }
 }

@@ -92,6 +92,7 @@ private:
     void handleSignalingStateChange(rtc::PeerConnection::SignalingState state);
     void handleTrackEvent(std::shared_ptr<rtc::Track> track);
     void handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> incoming);
+    void acceptTrack(std::shared_ptr<rtc::Track> track);
 
     SignalingStreamPtr sigStream_;
     NabtoDeviceImplPtr device_;
@@ -108,6 +109,7 @@ private:
     WebrtcStreamChannelPtr streamChannel_ = nullptr;
 
     bool canTrickle_ = true;
+    std::vector<std::shared_ptr<rtc::Track> > tracks_;
 
 
 };

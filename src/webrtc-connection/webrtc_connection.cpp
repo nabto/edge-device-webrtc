@@ -63,13 +63,61 @@ void WebrtcConnection::handleOffer(std::string& data)
     try {
         nlohmann::json sdp = nlohmann::json::parse(data);
         rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
+
+        if (remDesc.hasAudioOrVideo()) {
+            NabtoDeviceConnectionRef ref = (nabtoConnection_ == NULL ? sigStream_->getSignalingConnectionRef() : nabto_device_connection_get_connection_ref(nabtoConnection_));
+            if (!nm_iam_check_access(device_->getIam(), ref, "Webrtc:VideoStream", NULL)) {
+                std::cout << "  Offer contained video Track rejected by IAM" << std::endl;
+                int c = remDesc.mediaCount();
+                for (int i = 0; i < c; i++) {
+                    if (rtc::holds_alternative<rtc::Description::Media*>(remDesc.media(i))) {
+                        auto m = rtc::get<rtc::Description::Media*>(remDesc.media(i));
+                        if (m->type() == "video" || m->type() == "audio") {
+                            m->setDirection(rtc::Description::Direction::Inactive);
+                            std::cout << "    setting media of type " << m->type() << " to InActive" << std::endl;
+                        } else {
+                            std::cout << "    Unknown media type: " << m->type() << std::endl;
+                        }
+                    }
+
+                }
+            } else if (tracks_.size() != 0){
+                // If we already have a remote description in pc_
+                //   And both the incoming and current description has the video feed
+                //   And the existing feed has direction "inactive"
+                //   And IAM has allowed the video feed
+                // Then we must activate the existing feeds
+                for (auto t : tracks_) {
+                    if (t->direction() == rtc::Description::Direction::Inactive) {
+                        auto desc = t->description();
+                        if (desc.type() == "video") {
+                            desc.setDirection(rtc::Description::Direction::SendOnly);
+                        } else {
+                            desc.setDirection(rtc::Description::Direction::SendRecv);
+                        }
+                        t->setDescription(desc);
+
+                        acceptTrack(t);
+                    }
+                }
+            }
+
+        }
+
+        // std::cout << "Setting remDesc: " << remDesc << std::endl;
         pc_->setRemoteDescription(remDesc);
+
+        for (auto t : tracks_) {
+            if (t->direction() == rtc::Description::Direction::Inactive) {
+                std::cout << "Track " << t->mid() << " inactive after set remote description" << std::endl;
+            }
+        }
     }
     catch (std::invalid_argument& ex) {
         std::cout << "GOT INVALID ARGUMENT: " << ex.what() << std::endl;
     }
     catch (nlohmann::json::exception& ex) {
-        std::cout << "json exception: " << ex.what() << std::endl;
+        std::cout << "handleOffer json exception: " << ex.what() << std::endl;
     }
 
 }
@@ -83,7 +131,7 @@ void WebrtcConnection::handleAnswer(std::string& data)
         pc_->setRemoteDescription(remDesc);
     }
     catch (nlohmann::json::exception& ex) {
-        std::cout << "json exception: " << ex.what() << std::endl;
+        std::cout << "handleAnswer json exception: " << ex.what() << std::endl;
     }
 }
 
@@ -96,7 +144,7 @@ void WebrtcConnection::handleIce(std::string& data)
         pc_->addRemoteCandidate(cand);
     }
     catch (nlohmann::json::exception& ex) {
-        std::cout << "json exception: " << ex.what() << std::endl;
+        std::cout << "handleIce json exception: " << ex.what() << std::endl;
     }
 }
 
@@ -190,9 +238,11 @@ void WebrtcConnection::createPeerConnection()
                 auto data = message.dump();
                 // TODO: construct metadata if we are making the offer
                 if (description->type() == rtc::Description::Type::Offer) {
+                    std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
                     self->sigStream_->signalingSendOffer(data, self->metadata_);
                 }
                 else {
+                    std::cout << "Sending answer: " << std::string(description.value()) << std::endl;
                     self->sigStream_->signalingSendAnswer(data, self->metadata_);
                 }
             }
@@ -217,7 +267,7 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
         std::cout << "Got unhandled signaling state: " << state << std::endl;
         return;
     }
-    if (canTrickle_) {
+    if (canTrickle_ || pc_->gatheringState() == rtc::PeerConnection::GatheringState::Complete) {
         auto description = pc_->localDescription();
         nlohmann::json message = {
             {"type", description->typeString()},
@@ -225,9 +275,11 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
         auto data = message.dump();
         // TODO: construct metadata if we are making the offer
         if (description->type() == rtc::Description::Type::Offer) {
+            std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
             sigStream_->signalingSendOffer(data, metadata_);
         }
         else {
+            std::cout << "Sending answer: " << std::string(description.value()) << std::endl;
             sigStream_->signalingSendAnswer(data, metadata_);
         }
     }
@@ -237,6 +289,27 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
 void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
 {
     std::cout << "Track event metadata: " << metadata_.dump() << std::endl;
+    tracks_.push_back(track);
+    if (track->direction() == rtc::Description::Direction::Inactive) {
+        track->onOpen([track]() {
+            std::cout << "  TRACK OPENED " << track->mid() << " " << track->direction() << std::endl;
+            });
+        track->onClosed([track]() {
+            std::cout << "  TRACK CLOSED " << track->mid() << " " << track->direction() << std::endl;
+            });
+        track->onError([track](std::string err) {
+            std::cout << "  TRACK ERROR " << err << " " << track->mid() << " " << track->direction() << std::endl;
+            });
+
+        std::cout << "  Track was inactive, ignoring" << std::endl;
+        return;
+    }
+    acceptTrack(track);
+}
+
+void WebrtcConnection::acceptTrack(std::shared_ptr<rtc::Track> track)
+{
+    std::cout << "acceptTrack metadata: " << metadata_.dump() << std::endl;
     try {
         auto mid = track->mid();
 
@@ -252,9 +325,10 @@ void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
         }
     }
     catch (nlohmann::json::exception& ex) {
-        std::cout << "json exception: " << ex.what() << std::endl;
+        std::cout << "acceptTrack json exception: " << ex.what() << std::endl;
     }
     // TODO: handle not found error
+
 }
 
 void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> incoming)

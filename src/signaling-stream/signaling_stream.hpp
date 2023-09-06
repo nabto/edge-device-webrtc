@@ -60,6 +60,11 @@ public:
         return false;
     }
 
+    NabtoDeviceConnectionRef getSignalingConnectionRef()
+    {
+        return nabto_device_stream_get_connection_ref(stream_);
+    }
+
 private:
     static void iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
     void parseIceServers();

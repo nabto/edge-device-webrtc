@@ -57,8 +57,40 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
             if (stopped_) {
                 start();
             }
+            if (matcher_->direction() != RtpCodec::SEND_ONLY) {
+                // We are also gonna receive data
+                auto self = shared_from_this();
+                int count = 0;
+                track->onMessage([self, videoTrack, &count](rtc::message_variant data) {
+                    auto msg = rtc::make_message(data);
+                    if (msg->type == rtc::Message::Binary) {
+                        rtc::byte* data = msg->data();
+                        auto rtp = reinterpret_cast<rtc::RtpHeader*>(data);
+                        uint8_t pt = rtp->payloadType();
+                        if (pt != videoTrack.dstPayloadType) {
+                            return;
+                        }
+                        count++;
+                        if (count % 100 == 0) {
+                            std::cout << ":";
+                        }
+                        if (count % 1600 == 0) {
+                            std::cout << std::endl;
+                            count = 0;
+                        }
+
+                        rtp->setSsrc(videoTrack.srcPayloadType);
+
+                        struct sockaddr_in addr = {};
+                        addr.sin_family = AF_INET;
+                        addr.sin_addr.s_addr = inet_addr(self->remoteHost_.c_str());
+                        addr.sin_port = htons(self->remotePort_);
+
+                        auto ret = sendto(self->videoRtpSock_, data, msg->size(), 0, (struct sockaddr*)&addr, sizeof(addr));
+                    }
+                    });
+            }
         }
-        // TODO: add receiving data as well
     }
     catch (std::exception ex) {
         std::cout << "GOT EXCEPTION!!! " << ex.what() << std::endl;
@@ -270,9 +302,27 @@ int H264CodecMatcher::match(rtc::Description::Media* media)
             // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
             continue;
         }
-        if (!found && r->format == "H264" && r->clockRate == 90000) {
+        if (r->format == "H264" && r->clockRate == 90000) {
+            std::string profLvlId = "42e01f";
+            std::string lvlAsymAllowed = "1";
+            std::string pktMode = "1";
+
+            if (found && r->fmtps.size() > 0 &&
+                r->fmtps[0].find("profile-level-id=" + profLvlId) != std::string::npos &&
+                r->fmtps[0].find("level-asymmetry-allowed=" + lvlAsymAllowed) != std::string::npos &&
+                r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
+            ) {
+                // Found better match use this
+                media->removeRtpMap(rtp->payloadType);
+                rtp = r;
+                std::cout << "FOUND RTP BETTER codec match!!! " << pt << std::endl;
+            } else if (found) {
+                media->removeRtpMap(pt);
+                continue;
+            } else {
+                std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
+            }
             found = true; // found a match, just remove any remaining rtpMaps
-            std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
             rtp = r;
             std::cout << "Format: " << rtp->format << " clockRate: " << rtp->clockRate << " encParams: " << rtp->encParams << std::endl;
             std::cout << "rtcp fbs:" << std::endl;

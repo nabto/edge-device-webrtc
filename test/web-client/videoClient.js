@@ -22,6 +22,7 @@ var singleOffer = false;
 var myPeerConnection = null;    // RTCPeerConnection
 var transceiver = null;         // RTCRtpTransceiver
 var webcamStream = null;        // MediaStream from webcam
+let metadata = undefined;
 
 var iceServers = [{ urls: "stun:stun.nabto.net" }]; // Servers to use for Turn/stun
 
@@ -84,7 +85,7 @@ function addAudio() {
 }
 
 function passAuth() {
-  nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
+  nabtoConnection.passwordAuthenticate("admin", "demoAdminPwd", (success) => {
     if (success) {
       boxLog("Successfully authenticated using password");
     } else {
@@ -131,7 +132,6 @@ function connect() {
     // We create a data channel in the peer connection to use for coap invocations
     let coapChannel = myPeerConnection.createDataChannel("coap");
 
-    let metadata = undefined;
     if (singleOffer) {
       // We also want to receive a video feed from the device
       let transceiver = myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
@@ -190,8 +190,15 @@ function connect() {
       nabtoConnection.setCoapDataChannel(coapChannel);
 
       if (!singleOffer) {
-        nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor", undefined, undefined, (response) => {
-          boxLog("Got coap response: " + response);
+        nabtoConnection.passwordAuthenticate("admin", "demoAdminPwd", (success) => {
+          if (success) {
+            boxLog("Successfully logged in as admin");
+            nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor", undefined, undefined, (response) => {
+              boxLog("Got coap response: " + response);
+            });
+          } else {
+            boxLog("Failed to do password login, NOT OPENING STREAM");
+          }
         });
         // nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-audio", undefined, undefined, (response) => {
         //   boxLog("Got coap response: " + response);
@@ -303,7 +310,7 @@ async function addAudioTrack()
   localStream.getTracks().forEach(track => myPeerConnection.addTrack(track, localStream));
   let offer = await myPeerConnection.createOffer();
   await myPeerConnection.setLocalDescription(offer);
-  nabtoSignaling.sendOffer(myPeerConnection.localDescription);
+  nabtoSignaling.sendOffer(myPeerConnection.localDescription, metadata);
 
 
 }
@@ -367,6 +374,16 @@ function handleICEConnectionStateChangeEvent(event) {
   console.log("*** ICE connection state changed to " + myPeerConnection.iceConnectionState);
 
   switch (myPeerConnection.iceConnectionState) {
+    case "connected":
+      myPeerConnection.getTransceivers().forEach(transceiver => {
+        console.log("transceiver: ", transceiver);
+        if (transceiver.currentDirection == "inactive") {
+          boxLog("Peer Connection established, but transceiver mid: " + transceiver.mid + " kind: " + transceiver.receiver.track.kind + " is inactive");
+          boxLog("You may not have the proper IAM permissions to access this track");
+        }
+      });
+
+      break;
     case "closed":
     case "failed":
     case "disconnected":
@@ -517,6 +534,7 @@ function reset() {
   myPeerConnection = null;    // RTCPeerConnection
   transceiver = null;         // RTCRtpTransceiver
   webcamStream = null;        // MediaStream from webcam
+  metadata = undefined;
 
 }
 

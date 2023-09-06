@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nabto/nabto_device.h>
+#include <modules/iam/nm_iam.h>
 
 #include <nlohmann/json.hpp>
 
@@ -26,17 +27,23 @@ public:
     ~NabtoDeviceImpl();
     bool init(nlohmann::json& opts);
 
+    void setIamConfigFile(std::string& path) { iamConfPath_ = path; }
+    void setIamStateFile(std::string& path) { iamStatePath_ = path; }
+
     bool start();
     void stop();
 
     NabtoDevice* getDevice() { return device_; }
     uint32_t getFileStreamPort();
+    struct nm_iam* getIam() { return &iam_; }
 
 private:
 
-    bool setupPassword();
-    void nextPasswordRequest();
-    static void newPasswordRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+    bool setupIam();
+    bool createDefaultIamState();
+    static void iamLogger(void* data, enum nn_log_severity severity, const char* module,
+        const char* file, int line,
+        const char* fmt, va_list args);
 
     bool setupFileStream();
     void nextFileStream();
@@ -53,6 +60,7 @@ private:
     std::string rawPrivateKey_;
     std::string sct_ = "demosct";
     std::string logLevel_ = "info";
+    enum nn_log_severity iamLogLevel_ = NN_LOG_SEVERITY_INFO;
     std::string serverUrl_;
 
     NabtoDeviceStreamListenerPtr fileStreamListener_ = nullptr;
@@ -60,11 +68,12 @@ private:
     NabtoDeviceFuture* fileStreamFut_ = NULL;
     NabtoDeviceStream* fileStream_ = NULL;
 
-    NabtoDeviceListener* passwordListen_ = NULL;
-    NabtoDeviceFuture* passwordFut_ = NULL;
-    NabtoDevicePasswordAuthenticationRequest* passwordReq_ = NULL;
-
     NabtoDeviceImplPtr me_ = nullptr;
+
+    struct nm_iam iam_;
+    struct nn_log iamLog_;
+    std::string iamConfPath_ = "iam_config.json";
+    std::string iamStatePath_ = "iam_state.json";
 
 };
 

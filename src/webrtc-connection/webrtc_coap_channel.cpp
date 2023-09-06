@@ -62,7 +62,7 @@ public:
             nabto_device_future_set_callback(fut, coapCallback, this);
         }
         catch (nlohmann::json::exception& ex) {
-            std::cout << "json exception: " << ex.what() << std::endl;
+            std::cout << "coap createRequest json exception: " << ex.what() << std::endl;
             return false;
         }
         return true;
@@ -214,7 +214,7 @@ void WebrtcCoapChannel::handleStringMessage(std::string& data)
         }
     }
     catch (nlohmann::json::exception& ex) {
-        std::cout << "json exception: " << ex.what() << std::endl;
+        std::cout << "coapChannel handleStringmessage json exception: " << ex.what() << std::endl;
     }
 }
 

@@ -24,6 +24,7 @@ add_subdirectory(3rdparty/libdatachannel)
 
 include_directories(src)
 include_directories(nabto-embedded-sdk/include)
+include_directories(nabto-embedded-sdk/src)
 include_directories(3rdparty/libdatachannel/deps/json/include)
 include_directories(3rdparty/)
 
@@ -32,5 +33,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/str
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/variant-lite/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/byte-lite/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/shared_mutex/include)
+
+macro(install_dependencies TARGET)
+    install(FILES ${CMAKE_SOURCE_DIR}/src/nabto-device/nabto.png DESTINATION .)
+    install(FILES ${CMAKE_SOURCE_DIR}/src/nabto-device/iam_config.json DESTINATION .)
+endmacro()
 
 add_subdirectory(src)
