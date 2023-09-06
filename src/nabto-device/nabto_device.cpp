@@ -211,9 +211,22 @@ bool NabtoDeviceImpl::setupIam()
         return false;
     }
 
-    // TODO: setup IAM state change listener
+    nm_iam_set_state_changed_callback(&iam_, iamStateChanged, this);
 
     return true;
+}
+
+void NabtoDeviceImpl::iamStateChanged(struct nm_iam* iam, void* userdata)
+{
+    std::cout << "IAM state changed callback" << std::endl;
+    NabtoDeviceImpl* self = (NabtoDeviceImpl*)userdata;
+    char* stateCStr;
+    if (nm_iam_serializer_state_dump_json(nm_iam_dump_state(iam), &stateCStr)) {
+        std::string state(stateCStr);
+        std::cout << "    Writing state: " << state << std::endl;
+        std::ofstream stateFile(self->iamStatePath_);
+        stateFile << state;
+    }
 }
 
 bool NabtoDeviceImpl::setupFileStream()

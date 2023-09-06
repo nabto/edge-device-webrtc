@@ -44,6 +44,7 @@ private:
     static void iamLogger(void* data, enum nn_log_severity severity, const char* module,
         const char* file, int line,
         const char* fmt, va_list args);
+    static void iamStateChanged(struct nm_iam* iam, void* userdata);
 
     bool setupFileStream();
     void nextFileStream();
