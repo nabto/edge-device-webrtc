@@ -19,10 +19,13 @@
   display: grid;
   min-width: 1250px;
   height: 100%;
-  grid-template-areas: "infobox infobox"
-  "logbox camerabox"
-  "logbox picturebox";
+  grid-template-areas:
+    "infobox infobox"
+    "ctrlbox ctrlbox"
+    "logbox camerabox"
+    "logbox picturebox";
   grid-gap: 1rem;
+  grid-auto-rows: auto;
 }
 
 .infobox {
@@ -31,23 +34,10 @@
   height: 120px;
 }
 
-.userlistbox {
-  grid-area: userlistbox;
-  border: 1px solid black;
-  margin:0;
-  margin-left:5em;
-  padding:1px;
-  list-style:none;
-  line-height:1.1;
-  overflow-y:auto;
-  overflow-x:hidden;
-  width: 150px;
-  height: 600px;
-}
-
-.userlistbox li {
-  cursor: pointer;
-  padding: 1px;
+.controlbox {
+  grid-area: ctrlbox;
+  overflow: auto;
+  height: 40px;
 }
 
 .logbox {

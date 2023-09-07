@@ -31,13 +31,17 @@
         <input id="product" type="text" maxlength="12" required inputmode="verbatim" value="pr-4nmagfvj">
         <input id="device" type="text" maxlength="12" required inputmode="verbatim" value="de-sw9unmnn">
         <input id="sct" type="text" maxlength="12" required inputmode="verbatim" value="demosct">
-        <label for="singleoffer">Offer to receive:</label>
-        <input id="singleoffer" type="checkbox" required>
-        <input type="button" name="login" value="Connect" onclick="connect()">
-        <input type="button" name="addaudio" value="Add downstream Audio" onclick="addAudio()">
-        <input type="button" name="passAuth" value="Password Authenticate" onclick="passAuth()">
-        <input type="button" name="oAuth" value="Oauth login" onclick="oAuth()">
       </p>
+    </div>
+    <div class="controlbox">
+      <label for="singleoffer">Offer to receive:</label>
+      <input id="singleoffer" type="checkbox" required>
+      <input type="button" name="login" value="Connect" onclick="connect()">
+      <input type="button" name="reqVid" value="Request Video" onclick="requestVideo()">
+      <input type="button" name="addaudio" value="Add downstream Audio" onclick="addAudio()">
+      <input type="button" name="passAuth" value="Password Authenticate" onclick="passAuth()">
+      <input type="button" name="oAuth" value="Oauth login" onclick="oAuth()">
+      <input type="button" name="getimage" value="Get Image" onclick="getImage()">
     </div>
     <ul class="logbox"><b>LOG:</b></ul>
     <div class="camerabox">
@@ -48,8 +52,6 @@
       <audio id="received_audio" autoplay></audio>
     </div>
     <div class="picturebox">
-      <input type="button" name="getimage" value="Get Image" onclick="getImage()">
-
       <img id="nabtoimage" width="600" height="315">
     </div>
   </div>

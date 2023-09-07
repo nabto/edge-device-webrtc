@@ -107,6 +107,13 @@ function passAuth() {
 
 }
 
+function requestVideo() {
+  nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor", undefined, undefined, (response) => {
+    boxLog("Got coap response: " + response);
+  });
+
+}
+
 // Open a websocket connection to the signaling server and make it connect to the device.
 function connect() {
   reset();
@@ -201,29 +208,29 @@ function connect() {
       // We add the data channel to the nabtoConnection so it can use it for coap requests
       nabtoConnection.setCoapDataChannel(coapChannel);
 
-      if (!singleOffer) {
-        nabtoConnection.passwordAuthenticate("admin", "demoAdminPwd", (success) => {
-          if (success) {
-            boxLog("Successfully logged in as admin");
-            nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor", undefined, undefined, (response) => {
-              boxLog("Got coap response: " + response);
-            });
-          } else {
-            boxLog("Failed to do password login, NOT OPENING STREAM");
-          }
-        });
-        // nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-audio", undefined, undefined, (response) => {
-        //   boxLog("Got coap response: " + response);
-        // });
-      } else {
-        // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
-        //   if (success) {
-        //     boxLog("Successfully authenticated using password");
-        //   } else {
-        //     boxLog("Failed to authenticate using password");
-        //   }
-        // });
-      }
+      // if (!singleOffer) {
+      //   nabtoConnection.passwordAuthenticate("admin", "demoAdminPwd", (success) => {
+      //     if (success) {
+      //       boxLog("Successfully logged in as admin");
+      //       nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor", undefined, undefined, (response) => {
+      //         boxLog("Got coap response: " + response);
+      //       });
+      //     } else {
+      //       boxLog("Failed to do password login, NOT OPENING STREAM");
+      //     }
+      //   });
+      //   // nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor-audio", undefined, undefined, (response) => {
+      //   //   boxLog("Got coap response: " + response);
+      //   // });
+      // } else {
+      //   // nabtoConnection.passwordAuthenticate("foo", "bar", (success) => {
+      //   //   if (success) {
+      //   //     boxLog("Successfully authenticated using password");
+      //   //   } else {
+      //   //     boxLog("Failed to authenticate using password");
+      //   //   }
+      //   // });
+      // }
 
     });
 
