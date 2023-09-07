@@ -84,6 +84,18 @@ function addAudio() {
   addAudioTrack();
 }
 
+function oAuth() {
+  nabtoConnection.coapInvoke("POST", "/webrtc/oauth", undefined, undefined, (response) => {
+    let resp = JSON.parse(response);
+    if (resp.statusCode != 201) {
+      boxLog("Failed perform Oauth login: " + resp.statusCode);
+    } else {
+      boxLog("Oauth login successful");
+    }
+
+  });
+}
+
 function passAuth() {
   nabtoConnection.passwordAuthenticate("admin", "demoAdminPwd", (success) => {
     if (success) {

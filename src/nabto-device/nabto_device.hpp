@@ -69,6 +69,8 @@ private:
     NabtoDeviceFuture* fileStreamFut_ = NULL;
     NabtoDeviceStream* fileStream_ = NULL;
 
+    NabtoDeviceCoapListenerPtr coapOauthListener_ = nullptr;
+
     NabtoDeviceImplPtr me_ = nullptr;
 
     struct nm_iam iam_;

@@ -25,6 +25,8 @@ const std::string defaultState = R"({
   ]
 })";
 
+const char* coapOauthPath[] = {"webrtc", "oauth", NULL};
+
 NabtoDeviceImplPtr NabtoDeviceImpl::create(nlohmann::json& opts)
 {
     auto ptr = std::make_shared<NabtoDeviceImpl>();
@@ -44,6 +46,7 @@ NabtoDeviceImpl::~NabtoDeviceImpl()
     if (fileStreamFut_ != NULL) {
         nabto_device_future_free(fileStreamFut_);
     }
+    coapOauthListener_.reset();
     nabto_device_free(device_);
 }
 
@@ -157,8 +160,22 @@ bool NabtoDeviceImpl::start()
         std::cout << "Failed to start device, ec=" << nabto_device_error_get_message(ec) << std::endl;
         return false;
     }
-    // TODO: remove setupPassword() when IAM implements passwords
-    return setupFileStream(); // && setupPassword();
+
+    auto self = shared_from_this();
+    coapOauthListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapOauthPath);
+
+    coapOauthListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
+        NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
+        // TODO: Get the token from payload and validate it!
+
+        // TODO: Do not just authorize as admin user!
+        nm_iam_authorize_connection(&self->iam_, ref, "admin");
+        nabto_device_coap_response_set_code(coap, 201);
+        nabto_device_coap_response_ready(coap);
+        nabto_device_coap_request_free(coap);
+    });
+
+    return setupFileStream();
 }
 
 bool NabtoDeviceImpl::setupIam()
