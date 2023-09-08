@@ -26,6 +26,10 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    auto url = opts["jwksUrl"].get<std::string>();
+    auto issuer = opts["jwksIssuer"].get<std::string>();
+    device->setJwksConfig(url, issuer);
+
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
     nabto::H264CodecMatcher rtpVideoCodec;
@@ -89,6 +93,8 @@ void parse_options(int argc, char** argv, json& opts)
             ("k,privatekey", "Raw private key to use", cxxopts::value<std::string>()->default_value("b5b45deb271a63071924a219a42b0b67146e50f15e2147c9c5b28f7cf9d1015d"))
             ("r,rtsp", "Use RTSP at the provided url instead of RTP (eg. rtsp://127.0.0.l:8554/video)", cxxopts::value<std::string>())
             ("rtpport", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
+            ("j,jwksurl", "URL for jwks server for oAuth", cxxopts::value<std::string>()->default_value("http://localhost:3000/jwks"))
+            ("i,jwksissuer", "Issuer of oAuth tokens", cxxopts::value<std::string>()->default_value("http://localhost:3000"))
             ("h,help", "Shows this help text");
         auto result = options.parse(argc, argv);
 
@@ -107,6 +113,8 @@ void parse_options(int argc, char** argv, json& opts)
             opts["rtspUrl"] = result["rtsp"].as<std::string>();
         }
         opts["rtpPort"] = result["rtpport"].as<uint16_t>();
+        opts["jwksUrl"] = result["jwksurl"].as<std::string>();
+        opts["jwksIssuer"] = result["jwksissuer"].as<std::string>();
 
     }
     catch (const cxxopts::OptionException& e)

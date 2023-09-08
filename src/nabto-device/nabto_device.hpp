@@ -29,6 +29,7 @@ public:
 
     void setIamConfigFile(std::string& path) { iamConfPath_ = path; }
     void setIamStateFile(std::string& path) { iamStatePath_ = path; }
+    void setJwksConfig(std::string& url, std::string& issuer) { jwksUrl_ = url; jwksIssuer_ = issuer; }
 
     bool start();
     void stop();
@@ -54,6 +55,8 @@ private:
     static void writeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
     static void closeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
+    void handleOauthRequest(NabtoDeviceCoapRequest* req);
+
     std::vector<char> fileBuffer_;
     NabtoDevice* device_;
     std::string productId_;
@@ -77,6 +80,9 @@ private:
     struct nn_log iamLog_;
     std::string iamConfPath_ = "iam_config.json";
     std::string iamStatePath_ = "iam_state.json";
+
+    std::string jwksUrl_ = "http://localhost:3000/jwks";
+    std::string jwksIssuer_ = "http://localhost:3000";
 
 };
 

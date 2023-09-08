@@ -40,13 +40,18 @@ class NabtoWebrtcConnection {
     // crypto.randomUUID() is not available on remote http
     let requestId = this.uuidv4();//crypto.randomUUID();
 
+    let pl = payload;
+    if (payload && typeof payload == typeof "string") {
+      pl = Buffer.from(payload, "utf-8");
+    }
+
     let req = {
       type: 0,
       requestId: requestId,
       method: method,
       path: path,
       contentType: contentType,
-      payload: payload
+      payload: pl
     }
 
     this.coapRequests.set(requestId, cb);

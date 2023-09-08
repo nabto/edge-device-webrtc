@@ -20,6 +20,8 @@ RtspClient::RtspClient(std::string& trackId, std::string& url)
 RtspClient::~RtspClient()
 {
     std::cout << "RtspClient destructor" << std::endl;
+    curl_easy_cleanup(curl_);
+    curl_global_cleanup();
 }
 
 void RtspClient::start()

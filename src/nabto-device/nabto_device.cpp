@@ -1,4 +1,7 @@
 #include "nabto_device.hpp"
+
+#include "oauth_validator.hpp"
+
 #include <nabto/nabto_device_experimental.h>
 #include <modules/iam/nm_iam_serializer.h>
 
@@ -42,6 +45,7 @@ NabtoDeviceImpl::NabtoDeviceImpl() : fileBuffer_(1024, 0)
 
 NabtoDeviceImpl::~NabtoDeviceImpl()
 {
+    nm_iam_deinit(&iam_);
     fileStreamListener_.reset();
     if (fileStreamFut_ != NULL) {
         nabto_device_future_free(fileStreamFut_);
@@ -165,14 +169,7 @@ bool NabtoDeviceImpl::start()
     coapOauthListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapOauthPath);
 
     coapOauthListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
-        NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
-        // TODO: Get the token from payload and validate it!
-
-        // TODO: Do not just authorize as admin user!
-        nm_iam_authorize_connection(&self->iam_, ref, "admin");
-        nabto_device_coap_response_set_code(coap, 201);
-        nabto_device_coap_response_ready(coap);
-        nabto_device_coap_request_free(coap);
+        self->handleOauthRequest(coap);
     });
 
     return setupFileStream();
@@ -357,6 +354,54 @@ uint32_t NabtoDeviceImpl::getFileStreamPort()
 void NabtoDeviceImpl::stop() {
     return nabto_device_stop(device_);
 }
+
+void NabtoDeviceImpl::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
+    uint16_t cf; // expect content format text/plain: cf == 0
+    NabtoDeviceError ec;
+    if ((ec = nabto_device_coap_request_get_content_format(coap, &cf)) != NABTO_DEVICE_EC_OK || cf != 0) {
+        std::cout << "  Invalid content format: " << cf << " ec: " << nabto_device_error_get_message(ec) << std::endl;
+        nabto_device_coap_error_response(coap, 400, "invalid content format");
+        nabto_device_coap_request_free(coap);
+        return;
+    }
+
+    char* payload;
+    size_t payloadLen;
+
+    if (nabto_device_coap_request_get_payload(coap, (void**)&payload, &payloadLen) != NABTO_DEVICE_EC_OK) {
+        nabto_device_coap_error_response(coap, 400, "missing payload");
+        nabto_device_coap_request_free(coap);
+        return;
+
+    }
+
+    std::string token(payload, payloadLen);
+
+    auto self = shared_from_this();
+
+    // TODO: use real device info
+    std::string p = "pr-0";
+    std::string d = "de-0";
+    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, p, d);
+
+    oauth->validateToken(token, [self, coap](bool valid, std::string username) {
+        if (valid) {
+            NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
+
+            if (nm_iam_authorize_connection(&self->iam_, ref, username.c_str()) == NM_IAM_ERROR_OK) {
+                nabto_device_coap_response_set_code(coap, 201);
+                nabto_device_coap_response_ready(coap);
+            } else {
+                nabto_device_coap_error_response(coap, 404, "no such user");
+            }
+        } else {
+            nabto_device_coap_error_response(coap, 401, "Invalid token");
+        }
+        nabto_device_coap_request_free(coap);
+    });
+
+}
+
 
 void NabtoDeviceImpl::iamLogger(void* data, enum nn_log_severity severity, const char* module,
     const char* file, int line,

@@ -31,13 +31,11 @@
 .infobox {
   grid-area: infobox;
   overflow: auto;
-  height: 120px;
 }
 
 .controlbox {
   grid-area: ctrlbox;
   overflow: auto;
-  height: 40px;
 }
 
 .logbox {
@@ -116,4 +114,12 @@
 
 .empty-container {
   grid-area: empty-container;
+}
+
+input, label{
+  display: inline-block;
+}
+
+label{
+  font-weight: bold;
 }

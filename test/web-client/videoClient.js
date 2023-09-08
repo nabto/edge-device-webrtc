@@ -23,6 +23,7 @@ var myPeerConnection = null;    // RTCPeerConnection
 var transceiver = null;         // RTCRtpTransceiver
 var webcamStream = null;        // MediaStream from webcam
 let metadata = undefined;
+let connected = false;
 
 var iceServers = [{ urls: "stun:stun.nabto.net" }]; // Servers to use for Turn/stun
 
@@ -84,8 +85,19 @@ function addAudio() {
   addAudioTrack();
 }
 
+function tokenUpdated() {
+  if (document.getElementById("oauthtoken").value.length > 0 && connected) {
+    document.getElementById("oauth").disabled = false;
+  } else {
+    document.getElementById("oauth").disabled = true;
+  }
+
+}
+
 function oAuth() {
-  nabtoConnection.coapInvoke("POST", "/webrtc/oauth", undefined, undefined, (response) => {
+  let token = document.getElementById("oauthtoken").value;
+//  "eyJhbGciOiJSUzI1NiIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImtleXN0b3JlLUNIQU5HRS1NRSJ9.eyJqdGkiOiJoOFp1b1B5b3RqMWZnNnpmT2tzYlciLCJpYXQiOjE2OTQxNjYyMzQsImV4cCI6MTY5NDE2OTgzNCwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDozMDAwIiwiYXVkIjoibmFidG86Ly9kZXZpY2U_cHJvZHVjdElkPXByLTAmZGV2aWNlSWQ9ZGUtMCJ9.HErS2xDBPvADPKi_W6Apr9x0Iw88qZMMYJjshkC3K7Uq-zxhD7bX09hMKK6hoFA7msv4A6UDoujn55wQp-i4n1TnqJ2zSxAu1BtSMtK55MaL5dmKi8cU9QP7PZGHDZKngVo4ntybwkw2a0S2vQofy2-I91ZbMjRBQHH4R_xCrSOITy-4BuTn5SoMZex88RLW--67yBxwaNfiIc0tzfRDmE72CQVC_1nIX9qdvAx0gcS2rhKG3DmGho2foX5wA8hIViGQIy5PNwwqLp_qBBRS7CeOs4a1R-ElsljmUWJwqlbvR4Ps0mPyD0-sk542rRbY3mtPAo8kapGMKgifG1CP3Q";
+  nabtoConnection.coapInvoke("POST", "/webrtc/oauth", 0, token, (response) => {
     let resp = JSON.parse(response);
     if (resp.statusCode != 201) {
       boxLog("Failed perform Oauth login: " + resp.statusCode);
@@ -204,6 +216,7 @@ function connect() {
 
     // When the WebRTC connection is established and the data channel is opened we want to be notified.
     coapChannel.addEventListener("open", (event) => {
+      connectedState(true);
       boxLog("Datachannel Opened");
       // We add the data channel to the nabtoConnection so it can use it for coap requests
       nabtoConnection.setCoapDataChannel(coapChannel);
@@ -470,6 +483,7 @@ async function handleTurnResponse(msg) {
 
 function closeVideoCall() {
   boxLog("Closing the call");
+  connectedState(false);
 
   // Close the RTCPeerConnection
 
@@ -554,6 +568,7 @@ function reset() {
   transceiver = null;         // RTCRtpTransceiver
   webcamStream = null;        // MediaStream from webcam
   metadata = undefined;
+  connectedState(false);
 
 }
 
@@ -566,3 +581,13 @@ async function handleNegotiationNeededEvent() {
 
 }
 
+function connectedState(isConn) {
+  connected = isConn;
+  tokenUpdated();
+  document.getElementById("reqvid").disabled = !isConn;
+  document.getElementById("addaudio").disabled = !isConn;
+  document.getElementById("passauth").disabled = !isConn;
+  document.getElementById("getimage").disabled = !isConn;
+  document.getElementById("login").disabled = isConn;
+
+}

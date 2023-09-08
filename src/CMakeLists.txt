@@ -1,3 +1,4 @@
+
 set(src
     main.cpp
     nabto-device/nabto_device.cpp
@@ -21,6 +22,7 @@ target_link_libraries(edge_device_webrtc
     nm_iam
     datachannel-static
     CURL::libcurl
+    jwt-cpp::jwt-cpp
 )
 
 install(TARGETS edge_device_webrtc

@@ -25,23 +25,40 @@
 </head>
 <body>
   <div class="container">
-    <div class="infobox">
-      <h1>Nabto WebRTC browser demo</h1>
-      <p>Enter a product ID, device ID, and SCT:
+    <form class="infobox">
+      <section>
+        <h1>Nabto WebRTC browser demo</h1>
+        <p>Enter Device Info: </p>
+      </section>
+      <section>
+        <label for="product">Product ID: </label>
         <input id="product" type="text" maxlength="12" required inputmode="verbatim" value="pr-4nmagfvj">
+
+        <label for="device">Device ID: </label>
         <input id="device" type="text" maxlength="12" required inputmode="verbatim" value="de-sw9unmnn">
+
+        <label for="sct">SCT: </label>
         <input id="sct" type="text" maxlength="12" required inputmode="verbatim" value="demosct">
-      </p>
-    </div>
+
+        <label for="iamuser">IAM username: </label>
+        <input id="iamusr" type="text" maxlength="64" inputmode="verbatim" value="admin">
+
+        <label for="iampwd">IAM password: </label>
+        <input id="iampwd" type="text" maxlength="64" inputmode="verbatim" value="demoAdminPwd">
+
+        <label for="oauthtoken">Oauth Token: </label>
+        <input id="oauthtoken" type="text" maxlength="1024" inputmode="verbatim" value="" onchange="tokenUpdated()">
+      </section>
+    </form>
     <div class="controlbox">
       <label for="singleoffer">Offer to receive:</label>
       <input id="singleoffer" type="checkbox" required>
-      <input type="button" name="login" value="Connect" onclick="connect()">
-      <input type="button" name="reqVid" value="Request Video" onclick="requestVideo()">
-      <input type="button" name="addaudio" value="Add downstream Audio" onclick="addAudio()">
-      <input type="button" name="passAuth" value="Password Authenticate" onclick="passAuth()">
-      <input type="button" name="oAuth" value="Oauth login" onclick="oAuth()">
-      <input type="button" name="getimage" value="Get Image" onclick="getImage()">
+      <input id="login" type="button" name="login" value="Connect" onclick="connect()">
+      <input id="reqvid" type="button" name="reqVid" value="Request Video" onclick="requestVideo()" disabled>
+      <input id="addaudio" type="button" name="addaudio" value="Add downstream Audio" onclick="addAudio()" disabled>
+      <input id="passauth" type="button" name="passAuth" value="Password Authenticate" onclick="passAuth()" disabled>
+      <input id="oauth" type="button" name="oAuth" value="Oauth login" onclick="oAuth()" disabled>
+      <input id="getimage" type="button" name="getimage" value="Get Image" onclick="getImage()" disabled>
     </div>
     <ul class="logbox"><b>LOG:</b></ul>
     <div class="camerabox">
