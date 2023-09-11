@@ -379,10 +379,7 @@ void NabtoDeviceImpl::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
 
     auto self = shared_from_this();
 
-    // TODO: use real device info
-    std::string p = "pr-0";
-    std::string d = "de-0";
-    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, p, d);
+    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_);
 
     oauth->validateToken(token, [self, coap](bool valid, std::string username) {
         if (valid) {

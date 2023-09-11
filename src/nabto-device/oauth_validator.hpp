@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nabto_device.hpp"
+#include <util.hpp>
 
 #include <nlohmann/json.hpp>
 #include <curl/curl.h>
@@ -21,151 +22,97 @@ public:
     NabtoOauthValidator(std::string& url, std::string& issuer, std::string& productId, std::string& deviceId)
         : url_(url), issuer_(issuer), productId_(productId), deviceId_(deviceId)
     {
-        // TODO: consider if this should be reused to validate multiple tokens. If so, jwks should probably be retreived once in the beginning and cached (with refresh feature if it has expired).
-        CURLcode res;
-        res = curl_global_init(CURL_GLOBAL_ALL);
-        if (res != CURLE_OK) {
-            std::cout << "Failed to initialize Curl global" << std::endl;
-            return;
-        }
-        curl_ = curl_easy_init();
-        if (!curl_) {
-            std::cout << "Failed to initialize Curl easy" << std::endl;
-            return;
-        }
+
     }
 
     ~NabtoOauthValidator()
     {
-        curl_easy_cleanup(curl_);
-        curl_global_cleanup();
     }
 
-    void validateToken(const std::string& token, std::function<void (bool valid, std::string username)> cb)
+    bool validateToken(const std::string& token, std::function<void (bool valid, std::string username)> cb)
     {
-        // TODO: no Zalgo
-        if (!setupCurl()) {
-            cb(false, "");
-            // TODO: fail
-            return;
+
+        auto self = shared_from_this();
+        curl_ = CurlAsync::create();
+        if (!curl_) {
+            std::cout << "Failed to create CurlAsync object" << std::endl;
+            return false;
         }
-        if (!getJwks()) {
-            cb(false, "");
-            // TODO: fail
-            return;
-        }
-
-        auto decoded_jwt = jwt::decode(token);
-        auto jwks = jwt::parse_jwks(jwks_);
-        auto jwk = jwks.get_jwk(decoded_jwt.get_key_id());
-
-        std::cout << "    decoded JWT: " << decoded_jwt.get_payload() << std::endl;
-
-        std::string rsaKey;
-        if (!keyToRsa(jwk, rsaKey)) {
-            std::cout << "keyToRsa failed" << std::endl;
-            cb(false, "");
-            // TODO: fail
-            return;
+        if (!setupJwks()) {
+            std::cout << "Failed to setup JWKS request" << std::endl;
+            return false;
         }
 
-        std::stringstream aud;
-        aud << "nabto://device?productId=" << productId_ << "&deviceId=" << deviceId_;
+        curl_->asyncInvoke([self, token, cb](CURLcode res) {
 
-        auto verifier =
-            jwt::verify()
-            .allow_algorithm(jwt::algorithm::rs256(rsaKey, "", "", ""))
-            .with_issuer(issuer_)
-            .with_audience(aud.str())
-            .leeway(60UL); // value in seconds, add some to compensate timeout
-        auto decoded = jwt::decode(token);
-        try {
-            verifier.verify(decoded);
-        } catch (jwt::error::token_verification_exception& ex) {
-            // TODO: fail
-            cb(false, "");
-            std::cout << "Verification failed: " << ex.what() << std::endl;
-            return;
-        }
+            auto decoded_jwt = jwt::decode(token);
+            auto jwks = jwt::parse_jwks(self->jwks_);
+            auto jwk = jwks.get_jwk(decoded_jwt.get_key_id());
 
-        std::cout << "Token valid!" << std::endl;
-        // TODO: succeed
-        // TODO: username from claim
-        cb(true, "admin");
-        return;
+            std::cout << "    decoded JWT: " << decoded_jwt.get_payload() << std::endl;
+
+            std::string rsaKey;
+            if (!self->keyToRsa(jwk, rsaKey)) {
+                std::cout << "keyToRsa failed" << std::endl;
+                cb(false, "");
+                // TODO: fail
+                return;
+            }
+
+            std::stringstream aud;
+            aud << "nabto://device?productId=" << self->productId_ << "&deviceId=" << self->deviceId_;
+
+            auto verifier =
+                jwt::verify()
+                .allow_algorithm(jwt::algorithm::rs256(rsaKey, "", "", ""))
+                .with_issuer(self->issuer_)
+                .with_audience(aud.str())
+                .leeway(60UL); // value in seconds, add some to compensate timeout
+            auto decoded = jwt::decode(token);
+            try {
+                verifier.verify(decoded);
+            } catch (jwt::error::token_verification_exception& ex) {
+                // TODO: fail
+                cb(false, "");
+                std::cout << "Verification failed: " << ex.what() << std::endl;
+                return;
+            }
+
+            std::cout << "Token valid!" << std::endl;
+            // TODO: succeed
+            // TODO: username from claim
+            cb(true, "admin");
+        });
+
+        return true;
 
     }
 
 private:
 
-    bool setupCurl() {
-        CURLcode res;
-        res = curl_easy_setopt(curl_, CURLOPT_VERBOSE, 0L);
-        if (res != CURLE_OK) {
-            std::cout << "Failed to set curl logging option" << std::endl;
-            return false;
-        }
-        res = curl_easy_setopt(curl_, CURLOPT_NOPROGRESS, 1L);
-        if (res != CURLE_OK) {
-            std::cout << "Failed to set Curl progress option" << std::endl;
-            return false;
-        }
-        res = curl_easy_setopt(curl_, CURLOPT_HEADERDATA, stdout);
-        if (res != CURLE_OK) {
-            std::cout << "Failed to set Curl header data option" << std::endl;
-            return false;
-        }
-        return true;
-    }
-
-    bool getJwks()
+    bool setupJwks()
     {
-        // TODO: dont use blocking curl in coap request callback. Switch to curl_multi_perform()
         CURLcode res = CURLE_OK;
+        CURL* c = curl_->getCurl();
 
-        res = curl_easy_setopt(curl_, CURLOPT_URL, url_.c_str());
+        res = curl_easy_setopt(c, CURLOPT_URL, url_.c_str());
         if (res != CURLE_OK) {
             std::cout << "Failed to set Curl URL option" << std::endl;
             return false;
         }
 
-        res = curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, writeFunc);
+        res = curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, writeFunc);
         if (res != CURLE_OK) {
             std::cout << "Failed to set Curl write function option" << std::endl;
             return false;
         }
 
-        res = curl_easy_setopt(curl_, CURLOPT_WRITEDATA, (void*)&jwks_);
+        res = curl_easy_setopt(c, CURLOPT_WRITEDATA, (void*)&jwks_);
         if (res != CURLE_OK) {
             std::cout << "Failed to set Curl write function option" << std::endl;
             return false;
         }
-
-
-        res = curl_easy_perform(curl_);
-        if (res != CURLE_OK) {
-            std::cout << "Failed to perform JWKS request" << std::endl;
-            return false;
-        }
-
-/*
-Got JWKS response:
-{
-    "keys":[
-        {
-            "kty":"RSA",
-            "use":"sig",
-            "kid":"keystore-CHANGE-ME",
-            "alg":"RS256",
-            "e":"AQAB",
-            "n":"xwQ72P9z9OYshiQ-ntDYaPnnfwG6u9JAdLMZ5o0dmjlcyrvwQRdoFIKPnO65Q8mh6F_LDSxjxa2Yzo_wdjhbPZLjfUJXgCzm54cClXzT5twzo7lzoAfaJlkTsoZc2HFWqmcri0BuzmTFLZx2Q7wYBm0pXHmQKF0V-C1O6NWfd4mfBhbM-I1tHYSpAMgarSm22WDMDx-WWI7TEzy2QhaBVaENW9BKaKkJklocAZCxk18WhR0fckIGiWiSM5FcU1PY2jfGsTmX505Ub7P5Dz75Ygqrutd5tFrcqyPAtPTFDk8X1InxkkUwpP3nFU5o50DGhwQolGYKPGtQ-ZtmbOfcWQ"
-        }
-    ]
-}
-*/
-        std::cout << "Got JWKS response: " << jwks_ << std::endl;
         return true;
-
     }
 
     // TODO: update to non-deprecated OpenSSL functions
@@ -214,6 +161,8 @@ Got JWKS response:
 
         BNPtr n(BN_bin2bn(reinterpret_cast<const uint8_t*>(decodedN.c_str()), decodedN.size(), NULL));
         BNPtr e(BN_bin2bn(reinterpret_cast<const uint8_t*>(decodedE.c_str()), decodedE.size(), NULL));
+
+        // TODO: this somehow causes memory leaks. It will likely be fixed when updating to non-deprecated usage
         RSAPtr rsa(RSA_new());
 
         RSA_set0_key(rsa.get(), n.release(), e.release(), NULL);
@@ -258,7 +207,7 @@ Got JWKS response:
     std::string productId_;
     std::string deviceId_;
 
-    CURL* curl_;
+    CurlAsyncPtr curl_ = nullptr;
 
     std::string jwks_;
 };
