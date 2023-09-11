@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 #include <curl/curl.h>
 #include <jwt-cpp/jwt.h>
+#include <openssl/param_build.h>
 
 #include <memory>
 
@@ -115,35 +116,13 @@ private:
         return true;
     }
 
-    // TODO: update to non-deprecated OpenSSL functions
-    struct RSAFree {
-        void operator()(RSA* rsa) {
-            RSA_free(rsa);
-        }
-    };
-
-    struct BNFree {
-        void operator()(BIGNUM* bn) {
-            BN_free(bn);
-        }
-    };
-
     struct BIOFree {
         void operator()(BIO* bio) {
             BIO_free(bio);
         }
     };
 
-    struct EVP_PKEYFree {
-        void operator()(EVP_PKEY* pkey) {
-            EVP_PKEY_free(pkey);
-        }
-    };
-
-    typedef std::unique_ptr<RSA, RSAFree> RSAPtr;
-    typedef std::unique_ptr<BIGNUM, BNFree> BNPtr;
     typedef std::unique_ptr<BIO, BIOFree> BIOPtr;
-    typedef std::unique_ptr<EVP_PKEY, EVP_PKEYFree> EVP_PKEYPtr;
 
     template<typename json_traits>
     bool keyToRsa(const jwt::jwk<json_traits>& jwk, std::string& key)
@@ -159,22 +138,43 @@ private:
         auto decodedN = jwt::base::decode<jwt::alphabet::base64url>(jwt::base::pad<jwt::alphabet::base64url>(nClaim));
         auto decodedE = jwt::base::decode<jwt::alphabet::base64url>(jwt::base::pad<jwt::alphabet::base64url>(eClaim));
 
-        BNPtr n(BN_bin2bn(reinterpret_cast<const uint8_t*>(decodedN.c_str()), decodedN.size(), NULL));
-        BNPtr e(BN_bin2bn(reinterpret_cast<const uint8_t*>(decodedE.c_str()), decodedE.size(), NULL));
+        BIGNUM* n = BN_bin2bn(reinterpret_cast<const uint8_t*>(decodedN.c_str()), decodedN.size(), NULL);
+        BIGNUM* e = BN_bin2bn(reinterpret_cast<const uint8_t*>(decodedE.c_str()), decodedE.size(), NULL);
 
-        // TODO: this somehow causes memory leaks. It will likely be fixed when updating to non-deprecated usage
-        RSAPtr rsa(RSA_new());
+        EVP_PKEY_CTX* ctx;
+        EVP_PKEY* pkey = NULL;
+        OSSL_PARAM_BLD* param_bld;
+        OSSL_PARAM* params = NULL;
 
-        RSA_set0_key(rsa.get(), n.release(), e.release(), NULL);
+        param_bld = OSSL_PARAM_BLD_new();
+        OSSL_PARAM_BLD_push_BN(param_bld, "n", n);
+        OSSL_PARAM_BLD_push_BN(param_bld, "e", e);
+        params = OSSL_PARAM_BLD_to_param(param_bld);
+        ctx = EVP_PKEY_CTX_new_from_name(NULL, "RSA", NULL);
+        EVP_PKEY_fromdata_init(ctx);
+        EVP_PKEY_fromdata(ctx, &pkey, EVP_PKEY_KEYPAIR, params);
 
-        EVP_PKEYPtr pkey(EVP_PKEY_new());
+        // // TODO: this somehow causes memory leaks. It will likely be fixed when updating to non-deprecated usage
+        // RSAPtr rsa(RSA_new());
 
-        int status = EVP_PKEY_set1_RSA(pkey.get(), rsa.release());
+        // RSA_set0_key(rsa.get(), n.release(), e.release(), NULL);
+
+        // EVP_PKEYPtr pkey(EVP_PKEY_new());
+
+        // int status = EVP_PKEY_set1_RSA(pkey.get(), rsa.release());
+
         // TODO test status
         BIOPtr bio(BIO_new(BIO_s_mem()));
 
 
-        PEM_write_bio_PUBKEY(bio.get(), pkey.get());
+        PEM_write_bio_PUBKEY(bio.get(), pkey);
+
+        BN_free(n);
+        BN_free(e);
+        EVP_PKEY_free(pkey);
+        EVP_PKEY_CTX_free(ctx);
+        OSSL_PARAM_free(params);
+        OSSL_PARAM_BLD_free(param_bld);
 
         char* data;
         long dataLength = BIO_get_mem_data(bio.get(), &data);
