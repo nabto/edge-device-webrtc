@@ -30,7 +30,7 @@ public:
     {
     }
 
-    bool validateToken(const std::string& token, std::function<void (bool valid, std::string username)> cb)
+    bool validateToken(const std::string& token, std::function<void (bool valid, std::string subject)> cb)
     {
 
         auto self = shared_from_this();
@@ -78,11 +78,20 @@ public:
                 std::cout << "Verification failed: " << ex.what() << std::endl;
                 return;
             }
+            std::string subject;
+            try {
+                // TODO: switch to claim `sub` when we have a proper oidc server
+                std::cout << "    decoded again sub claim: " << decoded.get_payload_claim("subj") << std::endl;
+                subject = decoded.get_payload_claim("subj").as_string();
+            } catch (std::exception& ex) {
+                std::cout << "    decoded claim did not contain a subject" << decoded.get_payload() << std::endl;
+                cb(false, "");
+                return;
+            }
 
             std::cout << "Token valid!" << std::endl;
             // TODO: succeed
-            // TODO: username from claim
-            cb(true, "admin");
+            cb(true, subject);
         });
 
         return true;
@@ -153,15 +162,6 @@ private:
         ctx = EVP_PKEY_CTX_new_from_name(NULL, "RSA", NULL);
         EVP_PKEY_fromdata_init(ctx);
         EVP_PKEY_fromdata(ctx, &pkey, EVP_PKEY_KEYPAIR, params);
-
-        // // TODO: this somehow causes memory leaks. It will likely be fixed when updating to non-deprecated usage
-        // RSAPtr rsa(RSA_new());
-
-        // RSA_set0_key(rsa.get(), n.release(), e.release(), NULL);
-
-        // EVP_PKEYPtr pkey(EVP_PKEY_new());
-
-        // int status = EVP_PKEY_set1_RSA(pkey.get(), rsa.release());
 
         // TODO test status
         BIOPtr bio(BIO_new(BIO_s_mem()));

@@ -23,7 +23,13 @@ const std::string defaultState = R"({
       "Username": "admin",
       "ServerConnectToken": "demosct",
       "Role": "Administrator",
-      "Password": "demoAdminPwd"
+      "Password": "demoAdminPwd",
+      "OauthSubject": "adminSubject"
+    },
+    {
+      "Username": "foobar",
+      "Role": "Unpaired",
+      "OauthSubject": "foobarSubject"
     }
   ]
 })";
@@ -381,16 +387,21 @@ void NabtoDeviceImpl::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
 
     NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_);
 
-    oauth->validateToken(token, [self, coap](bool valid, std::string username) {
+    oauth->validateToken(token, [self, coap](bool valid, std::string subject) {
         if (valid) {
             NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
-            if (nm_iam_authorize_connection(&self->iam_, ref, username.c_str()) == NM_IAM_ERROR_OK) {
+            nm_iam_state* state = nm_iam_dump_state(&self->iam_);
+            nm_iam_user* user = nm_iam_state_find_user_by_oauth_subject(state, subject.c_str());
+
+            if (user &&
+                nm_iam_authorize_connection(&self->iam_, ref, user->username) == NM_IAM_ERROR_OK) {
                 nabto_device_coap_response_set_code(coap, 201);
                 nabto_device_coap_response_ready(coap);
             } else {
                 nabto_device_coap_error_response(coap, 404, "no such user");
             }
+            nm_iam_state_free(state);
         } else {
             nabto_device_coap_error_response(coap, 401, "Invalid token");
         }

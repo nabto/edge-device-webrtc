@@ -81,7 +81,6 @@ bool SignalingStreamManager::start()
 
 void SignalingStreamManager::handleVideoRequest(NabtoDeviceCoapRequest* coap)
 {
-    // TODO: check IAM
     NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
     if (nm_iam_check_access(device_->getIam(), ref, "Webrtc:VideoStream", NULL)) {
