@@ -118,6 +118,12 @@ void CurlAsync::asyncReinvoke(std::function<void(CURLcode res)> callback)
     reinvoke_ = true;
 }
 
+CURLcode CurlAsync::reinvoke()
+{
+    return curl_easy_perform(curl_);
+}
+
+
 void CurlAsync::threadRunner(CurlAsync* self)
 {
     CURLcode res = CURLE_OK;

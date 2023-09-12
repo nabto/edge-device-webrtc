@@ -37,6 +37,9 @@ public:
     // Reinvoke the request. This must be called from the callback of a previous request. This request will reuse the std::thread created for the first request. getCurl() can be used to build a new request in the first callback before calling this.
     void asyncReinvoke(std::function<void(CURLcode res)> callback);
 
+    // Reinvoke the request. This must be called from the callback of a previous request and is a direct blocking invocation of the curl_easy_perform.
+    CURLcode reinvoke();
+
 
 private:
     static void threadRunner(CurlAsync*  self);

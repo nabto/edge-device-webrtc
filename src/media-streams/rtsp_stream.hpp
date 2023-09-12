@@ -55,6 +55,7 @@ private:
     std::string trackId_;
     std::string url_;
 
+    std::mutex mutex_;
     size_t counter_ = 0;
 
     std::vector<RtspConnection> connections_;

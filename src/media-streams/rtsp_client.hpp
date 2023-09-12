@@ -3,6 +3,7 @@
 #include "media_stream.hpp"
 #include "rtp_client.hpp"
 #include "rtcp_client.hpp"
+#include <util.hpp>
 
 #include <rtc/description.hpp>
 
@@ -28,7 +29,7 @@ public:
     RtspClient(std::string& trackId, std::string& url);
     ~RtspClient();
 
-    void start();
+    bool start(std::function<void(CURLcode res)> cb);
     void stop();
 
     MediaStreamPtr getVideoStream();
@@ -44,8 +45,7 @@ public:
     void setRtpStartPort(uint16_t port) { port_ = port;}
 
 private:
-    bool setupCurl();
-    bool setupRtsp();
+    void setupRtsp();
     bool rtspPlay();
     void teardown();
     bool performSetupReq(std::string& url, std::string& transport);
@@ -55,13 +55,18 @@ private:
 
     static size_t writeFunc(void* ptr, size_t size, size_t nmemb, void* self);
 
+    void resolveStart(CURLcode res);
+
     std::string trackId_;
     std::string url_;
     uint16_t port_ = 42222;
     bool stopped_ = false;
 
-    CURL* curl_;
+    std::function<void(CURLcode res)> startCb_;
+
+    CurlAsyncPtr curl_;
     std::string curlHeaders_;
+    std::string readBuffer_;
     std::string contentBase_;
 
     std::string sessionControlUrl_;

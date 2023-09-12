@@ -67,6 +67,7 @@ void RtpStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
         audioClient_->createTrack(pc);
     }
     std::cout << std::endl;
+    pc->setLocalDescription();
     return;
 }
 

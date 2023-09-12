@@ -32,43 +32,71 @@ void RtspStream::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc
     conn.client = RtspClient::create(trackId_, url_);
     // TODO: maybe ephemeral ports
     conn.client->setRtpStartPort(42222 + (counter_ * 4));
-    conn.client->start();
 
-    auto video = conn.client->getVideoStream();
-    if (video != nullptr && (trackId_ == trackId || trackId == trackId_ + "-video")) {
-        // exact match or video
-        video->addTrack(track, pc, trackId_ + "-video");
-    }
-    auto audio = conn.client->getAudioStream();
-    if (audio != nullptr && (trackId_ == trackId || trackId == trackId_ + "-audio")) {
-        // exact match or audio
-        audio->addTrack(track, pc, trackId_ + "-audio");
-    }
     conn.pc = pc;
     connections_.push_back(conn);
     counter_++;
+    size_t index = connections_.size() - 1;
+
+    auto self = shared_from_this();
+    conn.client->start([self, track, pc, trackId, index](CURLcode res) {
+        if (res != CURLE_OK) {
+            std::cout << "Failed to start RTSP client " << res << std::endl;
+            return;
+        }
+        auto conn = self->connections_[index];
+        auto video = conn.client->getVideoStream();
+        if (video != nullptr && (self->trackId_ == trackId || trackId == self->trackId_ + "-video")) {
+            // exact match or video
+            video->addTrack(track, pc, self->trackId_ + "-video");
+
+        }
+        auto audio = conn.client->getAudioStream();
+        if (audio != nullptr && (self->trackId_ == trackId || trackId == self->trackId_ + "-audio")) {
+            // exact match or audio
+            audio->addTrack(track, pc, self->trackId_ + "-audio");
+
+        }
+    });
 }
 
 void RtspStream::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
 {
-
     RtspConnection conn;
-    conn.client = RtspClient::create(trackId_, url_);
-    // TODO: maybe ephemeral ports
-    conn.client->setRtpStartPort(42222+(counter_*4));
-    conn.client->start();
+    size_t index = 0;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
 
-    auto video = conn.client->getVideoStream();
-    if (video != nullptr) {
-        video->createTrack(pc);
+        conn.client = RtspClient::create(trackId_, url_);
+        // TODO: maybe ephemeral ports
+        conn.client->setRtpStartPort(42222+(counter_*4));
+        conn.pc = pc;
+        connections_.push_back(conn);
+        counter_++;
+
+        index = connections_.size()-1;
     }
-    auto audio = conn.client->getAudioStream();
-    if (audio != nullptr) {
-        audio->createTrack(pc);
-    }
-    conn.pc = pc;
-    connections_.push_back(conn);
-    counter_++;
+    auto self = shared_from_this();
+    conn.client->start([self, pc, index](CURLcode res) {
+        if (res != CURLE_OK) {
+            std::cout << "Failed to start RTSP client " << res << std::endl;
+            return;
+        }
+        {
+            std::lock_guard<std::mutex> lock(self->mutex_);
+            auto conn = self->connections_[index];
+            auto video = conn.client->getVideoStream();
+            if (video != nullptr) {
+                video->createTrack(pc);
+
+            }
+            auto audio = conn.client->getAudioStream();
+            if (audio != nullptr) {
+                audio->createTrack(pc);
+            }
+            pc->setLocalDescription();
+        }
+    });
     return;
 }
 
@@ -79,6 +107,7 @@ std::string RtspStream::getTrackId()
 
 void RtspStream::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     for (std::vector<RtspConnection>::iterator it = connections_.begin(); it != connections_.end(); it++) {
         if (pcPtrComp(it->pc, pc)) {
             std::cout << "RTSP Stream Found PeerConnection" << std::endl;

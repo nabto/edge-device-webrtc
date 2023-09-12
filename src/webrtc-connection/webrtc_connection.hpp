@@ -54,7 +54,7 @@ public:
     void createTrack(nabto::MediaStreamPtr media)
     {
         media->createTrack(pc_);
-        pc_->setLocalDescription();
+        // pc_->setLocalDescription();
     }
 
     void setMetadata(nlohmann::json& metadata)
