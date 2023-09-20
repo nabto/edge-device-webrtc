@@ -4,7 +4,7 @@ WebRTC example implementation for Nabto Embedded SDK
 ## Current limitations
 
  * Nabto WebRTC uses signaling over Nabto Streaming meaning the signaling server is only needed by browsers (native Nabto Clients creates their own signaling stream directly). The example is currently ONLY tested with a browser through the signaling server (Though native clients should work fine).
- * No IAM at all. Everyone is allowed to connect and get a feed.
+ * IAM is configured with very poor security. (bad passwords etc.)
  * The demo uses the DEV basestation as TURN credentials are not deployed to prod.
  * `--rtpport` can be used to set the port number of the video video. It is then assumed the audio feed is on `port+1` and that the received audio should be sent to `port+2`;
  * H264 video codec (it is pretty simple to add codecs)
@@ -17,7 +17,7 @@ WebRTC example implementation for Nabto Embedded SDK
 
 ## RTP usage
 
-The RTP example supports sending video to the client, and sending and receiving audio from the client. This example handles these 3 feeds using gstreamer, but any RTP source/sink can be used as long as they use the proper UDP ports.
+The RTP example supports sending video to the client, and sending and receiving audio from the client. This example handles these 3 feeds using gstreamer, but any RTP source/sink can be used as long as they use the proper UDP ports and codecs.
 
 ### Create a video feed
 In some terminal with gstreamer installed create an RTP stream using:
@@ -49,15 +49,17 @@ cd build
 cmake ../
 make -j
 cp ../src/nabto-device/nabto.png .
-./src/edge_device_webrtc
+./src/edge_device_webrtc -d <DEVICE_ID> -p <PRODUCT_ID> -k <RAW_PRIVATE_KEY>
 ```
 
 ### Demo Signaling and browser client
 For demo usage, use our deployed signaling and browser client by opening `http://34.245.62.208:8000/` in your browser.
 
-set product ID, device ID, and SCT, and press `log in` to connect to the device. This will:
+set product ID, device ID, and SCT, and press `connect` to connect to the device. This will make a WebRTC connection to the device with a datachannel (labelled `coap`) only.
 
- * Make a WebRTC connection to the device with a datachannel (labelled `coap`) only.
+To get access to the video feed, you must authenticate with the device. To use Oauth authentication, contact the developer. For password authentication, set the `IAM Username` and `IAM Password` and press `Password Authenticate`. The username and password will default to the admin user created in the default IAM state of the device.
+
+After authentication, press `Request video` to show the video feed. This will
  * Use the datachannel to invoke CoAP `GET /webrtc/video/frontdoor-video`,
  * causing the device to add the video feed to the peer connection and initiating renegotiation.
  * The video feed is shown.
