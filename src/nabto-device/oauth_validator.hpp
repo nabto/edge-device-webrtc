@@ -46,26 +46,20 @@ public:
 
         curl_->asyncInvoke([self, token, cb](CURLcode res) {
 
+            std::cout << "    Try parsing jwks_: " << self->jwks_ << std::endl;
             auto decoded_jwt = jwt::decode(token);
             auto jwks = jwt::parse_jwks(self->jwks_);
             auto jwk = jwks.get_jwk(decoded_jwt.get_key_id());
 
             std::cout << "    decoded JWT: " << decoded_jwt.get_payload() << std::endl;
 
-            std::string rsaKey;
-            if (!self->keyToRsa(jwk, rsaKey)) {
-                std::cout << "keyToRsa failed" << std::endl;
-                cb(false, "");
-                // TODO: fail
-                return;
-            }
-
             std::stringstream aud;
             aud << "nabto://device?productId=" << self->productId_ << "&deviceId=" << self->deviceId_;
 
             auto verifier =
-                jwt::verify()
-                .allow_algorithm(jwt::algorithm::rs256(rsaKey, "", "", ""))
+                jwt::verify();
+
+            verifier = self->getAllowedAlg(verifier, jwk)
                 .with_issuer(self->issuer_)
                 .with_audience(aud.str())
                 .leeway(60UL); // value in seconds, add some to compensate timeout
@@ -81,8 +75,8 @@ public:
             std::string subject;
             try {
                 // TODO: switch to claim `sub` when we have a proper oidc server
-                std::cout << "    decoded again sub claim: " << decoded.get_payload_claim("subj") << std::endl;
-                subject = decoded.get_payload_claim("subj").as_string();
+                std::cout << "    decoded again sub claim: " << decoded.get_payload_claim("sub") << std::endl;
+                subject = decoded.get_payload_claim("sub").as_string();
             } catch (std::exception& ex) {
                 std::cout << "    decoded claim did not contain a subject" << decoded.get_payload() << std::endl;
                 cb(false, "");
@@ -105,6 +99,7 @@ private:
         CURLcode res = CURLE_OK;
         CURL* c = curl_->getCurl();
 
+        std::cout << "Setting URL in curl: " << url_ << std::endl;
         res = curl_easy_setopt(c, CURLOPT_URL, url_.c_str());
         if (res != CURLE_OK) {
             std::cout << "Failed to set Curl URL option" << std::endl;
@@ -123,6 +118,38 @@ private:
             return false;
         }
         return true;
+    }
+
+    template<typename json_traits>
+    jwt::verifier<jwt::default_clock, jwt::traits::kazuho_picojson>& getAllowedAlg(jwt::verifier<jwt::default_clock, jwt::traits::kazuho_picojson>& verifier, const jwt::jwk<json_traits>& jwk)
+    {
+        if (jwk.get_key_type() == "RSA") {
+            std::cout << "JWK key type was RSA" << std::endl;
+            std::string rsaKey;
+            if (!keyToRsa(jwk, rsaKey)) {
+                std::cout << "keyToRsa failed" << std::endl;
+                // cb(false, "");
+                // TODO: fail
+                return verifier;
+            }
+            return verifier.allow_algorithm(jwt::algorithm::rs256(rsaKey, "", "", ""));
+        }
+        else if (jwk.get_key_type() == "EC") {
+            std::cout << "JWK key type was EC" << std::endl;
+
+            std::string pubKey;
+            if (!keyToEcdsa(jwk, pubKey)) {
+                std::cout << "keyToEcdsa failed" << std::endl;
+                // cb(false, "");
+                // TODO: fail
+                return verifier;
+            }
+
+            std::cout << "Got pubkey: " << pubKey << std::endl;
+
+            return verifier.allow_algorithm(jwt::algorithm::es256(pubKey, "", "", ""));
+        }
+        return verifier;
     }
 
     struct BIOFree {
@@ -182,6 +209,62 @@ private:
         key = ret;
         return true;
     }
+
+    template<typename json_traits>
+    bool keyToEcdsa(const jwt::jwk<json_traits>& jwk, std::string& key)
+    {
+        if (!jwk.has_jwk_claim("x") || !jwk.has_jwk_claim("y")) {
+            return false;
+        }
+
+        auto xClaim = jwk.get_jwk_claim("x").as_string();
+        auto yClaim = jwk.get_jwk_claim("y").as_string();
+
+        auto decodedX = jwt::base::decode<jwt::alphabet::base64url>(jwt::base::pad<jwt::alphabet::base64url>(xClaim));
+        auto decodedY = jwt::base::decode<jwt::alphabet::base64url>(jwt::base::pad<jwt::alphabet::base64url>(yClaim));
+
+        uint8_t publicKeyXy[1+32+32] = {0};
+        publicKeyXy[0] = 4; // POINT_CONVERSION_UNCOMPRESSED
+        memcpy(publicKeyXy + 1, decodedX.c_str(), 32);
+        memcpy(publicKeyXy + 33, decodedY.c_str(), 32);
+
+        EVP_PKEY_CTX* ctx;
+        EVP_PKEY* pkey = NULL;
+        OSSL_PARAM_BLD* param_bld;
+        OSSL_PARAM* params = NULL;
+
+        param_bld = OSSL_PARAM_BLD_new();
+        OSSL_PARAM_BLD_push_utf8_string(param_bld, "group", "P-256", 5);
+        OSSL_PARAM_BLD_push_octet_string(param_bld, "pub", publicKeyXy, 65);
+        params = OSSL_PARAM_BLD_to_param(param_bld);
+        ctx = EVP_PKEY_CTX_new_from_name(NULL, "EC", NULL);
+        EVP_PKEY_fromdata_init(ctx);
+        auto i = EVP_PKEY_fromdata(ctx, &pkey, EVP_PKEY_KEYPAIR, params);
+        std::cout << "EVP_PKEY_fromdata returned: " << i << std::endl;
+
+        // TODO test status
+        BIOPtr bio(BIO_new(BIO_s_mem()));
+
+
+        i = PEM_write_bio_PUBKEY(bio.get(), pkey);
+        std::cout << "PEM_write_bio_PUBKEY returned: " << i << std::endl;
+
+
+        BN_free(x);
+        BN_free(y);
+        EVP_PKEY_free(pkey);
+        EVP_PKEY_CTX_free(ctx);
+        OSSL_PARAM_free(params);
+        OSSL_PARAM_BLD_free(param_bld);
+
+        char* data;
+        long dataLength = BIO_get_mem_data(bio.get(), &data);
+        std::string ret = std::string(data, dataLength);
+        key = ret;
+        return true;
+
+    }
+
 
 
     static size_t writeFunc(void* ptr, size_t size, size_t nmemb, void* s)
