@@ -249,9 +249,6 @@ private:
         i = PEM_write_bio_PUBKEY(bio.get(), pkey);
         std::cout << "PEM_write_bio_PUBKEY returned: " << i << std::endl;
 
-
-        BN_free(x);
-        BN_free(y);
         EVP_PKEY_free(pkey);
         EVP_PKEY_CTX_free(ctx);
         OSSL_PARAM_free(params);
