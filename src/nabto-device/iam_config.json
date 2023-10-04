@@ -55,6 +55,7 @@
               "IAM:CreateUser",
               "IAM:SetUserPassword",
               "IAM:SetUserDisplayName",
+              "IAM:SetUserOauthSubject",
               "IAM:SetSettings",
               "IAM:GetSettings"
             ]
@@ -69,7 +70,9 @@
             "Actions": [
               "IAM:GetUser",
               "IAM:DeleteUser",
-              "IAM:SetUserFriendlyName"
+              "IAM:SetUserFriendlyName",
+              "IAM:SetUserOauthSubject",
+              "IAM:SetUserPassword"
             ],
             "Conditions": [
               {
