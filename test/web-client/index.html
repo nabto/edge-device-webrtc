@@ -46,6 +46,9 @@
         <label for="iampwd">IAM password: </label>
         <input id="iampwd" type="text" maxlength="64" inputmode="verbatim" value="demoAdminPwd">
 
+        <label for="fp">Fingerprint: </label>
+        <input id="fp" type="text" maxlength="64" inputmode="verbatim" value="5fe0318b8e6e7b14fa30bba114ec0d98b6c5c3ba9f7aaa7babb639a03235c091">
+
         <label for="oauthtoken">Oauth Token: </label>
         <input id="oauthtoken" type="text" maxlength="1024" inputmode="verbatim" value="" onchange="tokenUpdated()">
       </section>
@@ -57,6 +60,7 @@
       <input id="reqvid" type="button" name="reqVid" value="Request Video" onclick="requestVideo()" disabled>
       <input id="addaudio" type="button" name="addaudio" value="Add downstream Audio" onclick="addAudio()" disabled>
       <input id="passauth" type="button" name="passAuth" value="Password Authenticate" onclick="passAuth()" disabled>
+      <input id="fpvalid" type="button" name="fpValid" value="Validate Fingerprint" onclick="validateFingerprint()" disabled>
       <input id="oauth" type="button" name="oAuth" value="Oauth login" onclick="oAuth()" disabled>
       <input id="getimage" type="button" name="getimage" value="Get Image" onclick="getImage()" disabled>
     </div>

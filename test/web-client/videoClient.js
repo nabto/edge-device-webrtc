@@ -109,7 +109,9 @@ function oAuth() {
 }
 
 function passAuth() {
-  nabtoConnection.passwordAuthenticate("admin", "demoAdminPwd", (success) => {
+  let uname = document.getElementById("iamuser").value;
+  let pwd = document.getElementById("iampwd").value;
+  nabtoConnection.passwordAuthenticate(uname, pwd, (success) => {
     if (success) {
       boxLog("Successfully authenticated using password");
     } else {
@@ -117,6 +119,29 @@ function passAuth() {
     }
   });
 
+}
+
+function validateFingerprint() {
+  let fp = document.getElementById("fp").value;
+  let payload = {
+    challenge: nabtoConnection.uuidv4()
+  }
+  nabtoConnection.coapInvoke("POST", "/webrtc/challenge", 50, JSON.stringify(payload), async (response) => {
+    let resp = JSON.parse(response);
+    if (resp.statusCode != 205) {
+      boxLog("Failed validate fingerprint: " + resp.statusCode);
+    } else {
+      let respPl = JSON.parse(String.fromCharCode.apply(null, resp.payload));
+      console.log("respPl: ", respPl);
+      let valid = await nabtoConnection.validateJwt(respPl.response, fp);
+      console.log("Fingerprint validity: ", valid);
+      if (valid) {
+        boxLog("Device fingerprint validated successfully");
+      } else {
+        boxLog("Device fingerprint FAILED!");
+      }
+    }
+  });
 }
 
 function requestVideo() {
@@ -587,6 +612,7 @@ function connectedState(isConn) {
   document.getElementById("reqvid").disabled = !isConn;
   document.getElementById("addaudio").disabled = !isConn;
   document.getElementById("passauth").disabled = !isConn;
+  document.getElementById("fpvalid").disabled = !isConn;
   document.getElementById("getimage").disabled = !isConn;
   document.getElementById("login").disabled = isConn;
 

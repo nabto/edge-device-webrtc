@@ -3,6 +3,7 @@
 #include "oauth_validator.hpp"
 
 #include <nabto/nabto_device_experimental.h>
+#include <nabto/nabto_device_virtual.h>
 #include <modules/iam/nm_iam_serializer.h>
 
 namespace nabto {
@@ -34,7 +35,8 @@ const std::string defaultState = R"({
   ]
 })";
 
-const char* coapOauthPath[] = {"webrtc", "oauth", NULL};
+const char* coapOauthPath[] = { "webrtc", "oauth", NULL };
+const char* coapChallengePath[] = { "webrtc", "challenge", NULL };
 
 NabtoDeviceImplPtr NabtoDeviceImpl::create(nlohmann::json& opts)
 {
@@ -176,6 +178,12 @@ bool NabtoDeviceImpl::start()
 
     coapOauthListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
         self->handleOauthRequest(coap);
+    });
+
+    coapChallengeListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapChallengePath);
+
+    coapChallengeListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
+        self->handleChallengeRequest(coap);
     });
 
     return setupFileStream();
@@ -410,6 +418,76 @@ void NabtoDeviceImpl::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
 
 }
 
+
+void NabtoDeviceImpl::handleChallengeRequest(NabtoDeviceCoapRequest* coap) {
+    uint16_t cf; // expect content format application/json: cf == 50
+    NabtoDeviceError ec;
+    if ((ec = nabto_device_coap_request_get_content_format(coap, &cf)) != NABTO_DEVICE_EC_OK || cf != 50) {
+        std::cout << "  Invalid content format: " << cf << " ec: " << nabto_device_error_get_message(ec) << std::endl;
+        nabto_device_coap_error_response(coap, 400, "invalid content format");
+        nabto_device_coap_request_free(coap);
+        return;
+    }
+
+    char* payload;
+    size_t payloadLen;
+
+    if (nabto_device_coap_request_get_payload(coap, (void**)&payload, &payloadLen) != NABTO_DEVICE_EC_OK) {
+        nabto_device_coap_error_response(coap, 400, "missing payload");
+        nabto_device_coap_request_free(coap);
+        return;
+    }
+
+    std::string payloadStr(payload, payloadLen);
+    std::string nonce;
+    try {
+        nlohmann::json challenge = nlohmann::json::parse(payloadStr);
+        nonce = challenge["challenge"].get<std::string>();
+    } catch (std::exception& e ) {
+        std::cout << "Failed to parse json payload: " << payloadStr << std::endl;
+        nabto_device_coap_error_response(coap, 400, "Invalid JSON");
+        nabto_device_coap_request_free(coap);
+        return;
+    }
+
+    std::cout << "Got challenge nonce from client: " << nonce << std::endl;
+
+    char* deviceFp = NULL;
+    char* clientFp = NULL;
+
+    NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
+
+    if (nabto_device_connection_get_client_fingerprint(device_, ref, &clientFp) != NABTO_DEVICE_EC_OK) {
+        std::cout << "Failed to get client fingerprint" << std::endl;
+        nabto_device_coap_error_response(coap, 400, "Invalid Connection");
+        nabto_device_coap_request_free(coap);
+        return;
+    }
+
+    if (nabto_device_connection_get_device_fingerprint(device_, ref, &deviceFp) != NABTO_DEVICE_EC_OK) {
+        std::cout << "Failed to get device fingerprint" << std::endl;
+        nabto_device_coap_error_response(coap, 400, "Invalid Connection");
+        nabto_device_coap_request_free(coap);
+        return;
+    }
+
+    // TODO: dont require jwksurl, issuer, product id, device id for this
+    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_);
+
+    std::string devFp(deviceFp, 64);
+    std::string cliFp(clientFp, 64);
+
+    auto token = oauth->createChallengeResponse(rawPrivateKey_, cliFp, devFp, nonce);
+
+    nlohmann::json resp = {{"response", token}};
+    std::cout << "Sending info response: " << resp.dump() << std::endl;
+    auto respPayload = resp.dump(); //nlohmann::json::to_cbor(resp);
+    nabto_device_coap_response_set_code(coap, 205);
+    nabto_device_coap_response_set_content_format(coap, NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON);
+    nabto_device_coap_response_set_payload(coap, respPayload.data(), respPayload.size());
+    nabto_device_coap_response_ready(coap);
+    nabto_device_coap_request_free(coap);
+}
 
 void NabtoDeviceImpl::iamLogger(void* data, enum nn_log_severity severity, const char* module,
     const char* file, int line,

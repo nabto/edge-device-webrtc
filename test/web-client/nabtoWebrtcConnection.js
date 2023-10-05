@@ -1,6 +1,7 @@
 
 let spake = require("./spake2");
 let cbor = require('cbor');
+let jwt = require('jsonwebtoken');
 
 class NabtoWebrtcConnection {
 
@@ -130,6 +131,55 @@ class NabtoWebrtcConnection {
     console.log("Found fingerprint: ", fp);
     return fp;
   }
+
+  async validateJwt(token, fingerprint)
+  {
+    let decoded = jwt.decode(token, {complete: true});
+    console.log("decoded JWT: ", decoded);
+    console.log("importing JWK: ", decoded.header.jwk)
+
+    let signingData = token.substr(0, token.lastIndexOf('.'));
+    console.log("SigningData: ", signingData);
+
+    let pubKey = await crypto.subtle.importKey(
+      "jwk",
+      decoded.header.jwk,
+      {
+        name: "ECDSA",
+        namedCurve: "P-256"
+      },
+      true,
+      ["verify"]);
+
+    console.log("Signature: ", decoded.signature);
+    console.log("Decoded signature: ", Buffer.from(decoded.signature, 'base64'));
+
+    let valid = await crypto.subtle.verify(
+      {
+        name: "ECDSA",
+        hash: { name: "SHA-256"}
+      },
+      pubKey,
+      Buffer.from(decoded.signature, 'base64'),
+      Buffer.from(signingData)
+    );
+    console.log("Token validity: ", valid);
+    if (!valid) {
+      return false;
+    }
+
+    let pubKeyData = await crypto.subtle.exportKey("spki",pubKey);
+    let fpBuf = await crypto.subtle.digest("SHA-256", pubKeyData);
+    let fpArr = Array.from(new Uint8Array(fpBuf));
+    const fp = fpArr
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+    console.log("FP: ", fp);
+
+    return fp == fingerprint;
+
+  }
+
 
 };
 

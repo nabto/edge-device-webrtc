@@ -56,6 +56,7 @@ private:
     static void closeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
     void handleOauthRequest(NabtoDeviceCoapRequest* req);
+    void handleChallengeRequest(NabtoDeviceCoapRequest* req);
 
     std::vector<char> fileBuffer_;
     NabtoDevice* device_;
@@ -73,6 +74,7 @@ private:
     NabtoDeviceStream* fileStream_ = NULL;
 
     NabtoDeviceCoapListenerPtr coapOauthListener_ = nullptr;
+    NabtoDeviceCoapListenerPtr coapChallengeListener_ = nullptr;
 
     NabtoDeviceImplPtr me_ = nullptr;
 
