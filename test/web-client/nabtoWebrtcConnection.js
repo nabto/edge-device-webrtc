@@ -60,6 +60,10 @@ class NabtoWebrtcConnection {
 
   }
 
+  encodeCborPayload(payload) {
+    return cbor.encode(payload);
+  }
+
   decodeCborPayload(payload)
   {
     let val = cbor.decodeAllSync(Buffer.from(payload));

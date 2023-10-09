@@ -121,6 +121,24 @@ function passAuth() {
 
 }
 
+function setPassword() {
+  let uname = document.getElementById("iamuser").value;
+  let pwd = document.getElementById("iampwd").value;
+  if (pwd == "") {
+    pwd = null;
+  }
+  let payload = nabtoConnection.encodeCborPayload(pwd);
+  console.log(payload);
+  nabtoConnection.coapInvoke("PUT", `/iam/users/${uname}/password`, 60, payload, async (response) => {
+    let resp = JSON.parse(response);
+    if (resp.statusCode != 204) {
+      boxLog("Failed set password: " + resp.statusCode);
+    } else {
+      boxLog("New password set");
+    }
+  });
+}
+
 function validateFingerprint() {
   let fp = document.getElementById("fp").value;
   let payload = {
@@ -612,6 +630,7 @@ function connectedState(isConn) {
   document.getElementById("reqvid").disabled = !isConn;
   document.getElementById("addaudio").disabled = !isConn;
   document.getElementById("passauth").disabled = !isConn;
+  document.getElementById("setpass").disabled = !isConn;
   document.getElementById("fpvalid").disabled = !isConn;
   document.getElementById("getimage").disabled = !isConn;
   document.getElementById("login").disabled = isConn;
