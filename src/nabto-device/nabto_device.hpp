@@ -40,8 +40,9 @@ public:
 
 private:
 
-    bool setupIam();
+    bool setupIam(const char* fp);
     bool createDefaultIamState();
+    bool createDefaultIamConfig();
     static void iamLogger(void* data, enum nn_log_severity severity, const char* module,
         const char* file, int line,
         const char* fmt, va_list args);
@@ -85,6 +86,9 @@ private:
 
     std::string jwksUrl_ = "http://localhost:3000/jwks";
     std::string jwksIssuer_ = "http://localhost:3000";
+
+    std::string frontendUrl_ = "https://smartcloud.tk.dev.nabto.com/";
+    bool iamReset_ = false;
 
 };
 

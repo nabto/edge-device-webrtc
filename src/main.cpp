@@ -95,6 +95,8 @@ void parse_options(int argc, char** argv, json& opts)
             ("rtpport", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
             ("j,jwksurl", "URL for jwks server for oAuth", cxxopts::value<std::string>()->default_value("http://localhost:3000/jwks"))
             ("i,jwksissuer", "Issuer of oAuth tokens", cxxopts::value<std::string>()->default_value("http://localhost:3000"))
+            ("f,frontendurl", "Frontend URL for pairing link", cxxopts::value<std::string>()->default_value("https://smartcloud.tk.dev.nabto.com/"))
+            ("iamreset", "If set, will reset the IAM state before starting")
             ("h,help", "Shows this help text");
         auto result = options.parse(argc, argv);
 
@@ -115,6 +117,13 @@ void parse_options(int argc, char** argv, json& opts)
         opts["rtpPort"] = result["rtpport"].as<uint16_t>();
         opts["jwksUrl"] = result["jwksurl"].as<std::string>();
         opts["jwksIssuer"] = result["jwksissuer"].as<std::string>();
+
+        opts["frontendUrl"] = result["frontendurl"].as<std::string>();
+        if (result.count("iamreset")) {
+            opts["iamReset"] = true;
+        } else {
+            opts["iamReset"] = false;
+        }
 
     }
     catch (const cxxopts::OptionException& e)

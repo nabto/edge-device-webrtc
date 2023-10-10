@@ -8,33 +8,6 @@
 
 namespace nabto {
 
-const std::string defaultState = R"({
-  "Version": 1,
-  "OpenPairingPassword": "demoOpenPairing",
-  "OpenPairingSct": "demosct",
-  "LocalOpenPairing": true,
-  "PasswordOpenPairing": true,
-  "PasswordInvitePairing": true,
-  "LocalInitialPairing": true,
-  "OpenPairingRole": "Administrator",
-  "InitialPairingUsername": "admin",
-  "FriendlyName": "Webrtc demo example",
-  "Users": [
-    {
-      "Username": "admin",
-      "ServerConnectToken": "demosct",
-      "Role": "Administrator",
-      "Password": "demoAdminPwd",
-      "OauthSubject": "adminSubject"
-    },
-    {
-      "Username": "foobar",
-      "Role": "Unpaired",
-      "OauthSubject": "foobarSubject"
-    }
-  ]
-})";
-
 const char* coapOauthPath[] = { "webrtc", "oauth", NULL };
 const char* coapChallengePath[] = { "webrtc", "challenge", NULL };
 
@@ -59,6 +32,7 @@ NabtoDeviceImpl::~NabtoDeviceImpl()
         nabto_device_future_free(fileStreamFut_);
     }
     coapOauthListener_.reset();
+    coapChallengeListener_.reset();
     nabto_device_free(device_);
 }
 
@@ -82,6 +56,18 @@ bool NabtoDeviceImpl::init(nlohmann::json& opts)
 
     try {
         sct_ = opts["sct"].get<std::string>();
+    } catch (std::exception& e) {
+        // ignore missing optional option
+    }
+
+    try {
+        frontendUrl_ = opts["frontendUrl"].get<std::string>();
+    } catch (std::exception& e) {
+        // ignore missing optional option
+    }
+
+    try {
+        iamReset_ = opts["iamReset"].get<bool>();
     } catch (std::exception& e) {
         // ignore missing optional option
     }
@@ -122,14 +108,6 @@ bool NabtoDeviceImpl::start()
 
     }
 
-    iamLog_.logPrint = &iamLogger;
-    iamLog_.userData = this;
-
-    if (!nm_iam_init(&iam_, device_, &iamLog_) || !setupIam()) {
-        std::cout << "Failed to initialize IAM module" << std::endl;
-        return false;
-    }
-
     uint8_t key[32];
 
     for (size_t i = 0; i < 32; i++) {
@@ -143,6 +121,14 @@ bool NabtoDeviceImpl::start()
     }
 
     if (nabto_device_get_device_fingerprint(device_, &fp) != NABTO_DEVICE_EC_OK) {
+        return false;
+    }
+
+    iamLog_.logPrint = &iamLogger;
+    iamLog_.userData = this;
+
+    if (!nm_iam_init(&iam_, device_, &iamLog_) || !setupIam(fp)) {
+        std::cout << "Failed to initialize IAM module" << std::endl;
         return false;
     }
 
@@ -189,14 +175,18 @@ bool NabtoDeviceImpl::start()
     return setupFileStream();
 }
 
-bool NabtoDeviceImpl::setupIam()
+bool NabtoDeviceImpl::setupIam(const char* fp)
 {
     try {
         auto configFile = std::ifstream(iamConfPath_);
-        if (!configFile.good()) {
+        if (iamReset_ || !configFile.good()) {
             // file does not exist
-            std::cout << "IAM configuration file does not exist at: " << iamConfPath_ << std::endl;
-            return false;
+            std::cout << "IAM was reset or config file does not exist at: " << iamConfPath_ << std::endl << "  Creating one with default values" << std::endl;
+            if (!createDefaultIamConfig()) {
+                std::cout << "Failed to create IAM config file" << std::endl;
+                return false;
+            }
+            configFile = std::ifstream(iamConfPath_);
         }
         auto iamConf = nlohmann::json::parse(configFile);
         std::string confStr = iamConf.dump();
@@ -215,9 +205,9 @@ bool NabtoDeviceImpl::setupIam()
 
     try {
         auto stateFile = std::ifstream(iamStatePath_);
-        if (!stateFile.good()) {
+        if (iamReset_ || !stateFile.good()) {
             // file does not exist
-            std::cout << "State file does not exist at: " << iamStatePath_ << std::endl << "  Creating one with default values" << std::endl;
+            std::cout << "IAM was reset or state file does not exist at: " << iamStatePath_ << std::endl << "  Creating one with default values" << std::endl;
             if (!createDefaultIamState()) {
                 std::cout << "Failed to create IAM state file" << std::endl;
                 return false;
@@ -228,11 +218,25 @@ bool NabtoDeviceImpl::setupIam()
         std::string stateStr = iamState.dump();
         struct nm_iam_state* state = nm_iam_state_new();
         nm_iam_serializer_state_load_json(state, stateStr.c_str(), NULL);
+
+        try {
+            auto initialUsername = iamState["InitialPairingUsername"].get<std::string>();
+            auto user = nm_iam_state_find_user_by_username(state, initialUsername.c_str());
+            if (user && (user->fingerprint == NULL || user->oauthSubject == NULL)) {
+                // We have an initial user and it is unpaired
+                // Creating invite link
+                std::cout << "################################################################" << std::endl << "# Initial user pairing link:    " << std::endl << "# " << frontendUrl_ << "?p=" << productId_ << "&d=" << deviceId_ << "&u=" << initialUsername << "&pwd=" << user->password << "&sct=" << user->sct << "&fp=" << fp << std::endl << "################################################################" << std::endl;
+            }
+        } catch (std::exception& ex) {
+            // Ignore
+        }
+
         if (!nm_iam_load_state(&iam_, state)) {
             std::cout << "Failed to load IAM state" << std::endl;
             nm_iam_state_free(state);
             return false;
         }
+
     }
     catch (std::exception& ex) {
         std::cout << "Failed to load IAM state" << ex.what() << std::endl;
@@ -285,18 +289,6 @@ bool NabtoDeviceImpl::setupFileStream()
     return true;
 }
 
-bool NabtoDeviceImpl::createDefaultIamState()
-{
-    try {
-        auto jsonState = nlohmann::json::parse(defaultState);
-        std::ofstream stateFile(iamStatePath_);
-        stateFile << jsonState;
-    } catch (std::exception& ex ) {
-        std::cout << "Failed to write to state file: " << iamStatePath_ << " exception: " << ex.what() << std::endl;
-        return false;
-    }
-    return true;
-}
 
 
 void NabtoDeviceImpl::fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
