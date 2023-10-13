@@ -32,10 +32,10 @@ public:
 
     // Invokes the request. This starts a new thread in which the request is invoked synchroneusly. The callback is invoked from the created thread once the request is resolved.
     // Returns false if a thread is already running
-    bool asyncInvoke(std::function<void (CURLcode res)> callback);
+    bool asyncInvoke(std::function<void(CURLcode res, uint16_t statusCode)> callback);
 
     // Reinvoke the request. This must be called from the callback of a previous request. This request will reuse the std::thread created for the first request. getCurl() can be used to build a new request in the first callback before calling this.
-    void asyncReinvoke(std::function<void(CURLcode res)> callback);
+    void asyncReinvoke(std::function<void(CURLcode res, uint16_t statusCode)> callback);
 
     // Reinvoke the request. This must be called from the callback of a previous request and is a direct blocking invocation of the curl_easy_perform.
     CURLcode reinvoke();
@@ -47,7 +47,7 @@ private:
     CURL* curl_;
     std::thread thread_;
     std::mutex mutex_;
-    std::function<void(CURLcode res)> callback_;
+    std::function<void(CURLcode res, uint16_t statusCode)> callback_;
     bool reinvoke_ = false;
     bool stopped_ = false;
     CurlAsyncPtr me_ = nullptr;

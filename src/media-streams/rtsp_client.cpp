@@ -55,7 +55,7 @@ bool RtspClient::start(std::function<void(CURLcode res)> cb)
     }
 
     auto self = shared_from_this();
-    bool ok = curl_->asyncInvoke([self](CURLcode res) {
+    bool ok = curl_->asyncInvoke([self](CURLcode res, uint16_t statusCode) {
         if (res != CURLE_OK) {
             std::cout << "Failed to perform RTSP OPTIONS request: " << res << std::endl;
             return self->resolveStart(res);
@@ -262,7 +262,7 @@ void RtspClient::teardown()
         return;
     }
     auto self = shared_from_this();
-    curl_->asyncInvoke([self](CURLcode res) {
+    curl_->asyncInvoke([self](CURLcode res, uint16_t statusCode) {
         if (res != CURLE_OK) {
             std::cout << "Failed to perform RTSP TEARDOWN request" << std::endl;
             return;

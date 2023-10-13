@@ -92,7 +92,7 @@ void CurlAsync::stop()
     std::cout << "CurlAsync stop joined" << std::endl;
 }
 
-bool CurlAsync::asyncInvoke(std::function<void(CURLcode res)> callback)
+bool CurlAsync::asyncInvoke(std::function<void(CURLcode res, uint16_t statusCode)> callback)
 {
     std::cout << "CurlAsync asyncInvoke" << std::endl;
     {
@@ -110,7 +110,7 @@ bool CurlAsync::asyncInvoke(std::function<void(CURLcode res)> callback)
     return true;
 }
 
-void CurlAsync::asyncReinvoke(std::function<void(CURLcode res)> callback)
+void CurlAsync::asyncReinvoke(std::function<void(CURLcode res, uint16_t statusCode)> callback)
 {
     std::cout << "CurlAsync asyncReinvoke" << std::endl;
     std::lock_guard<std::mutex> lock(mutex_);
@@ -128,18 +128,22 @@ void CurlAsync::threadRunner(CurlAsync* self)
 {
     CURLcode res = CURLE_OK;
     while (true) {
-        std::function<void(CURLcode res)> cb;
+        std::function<void(CURLcode res, uint16_t statusCode)> cb;
+        long statusCode = 0;
         {
             std::lock_guard<std::mutex> lock(self->mutex_);
             if (self->stopped_ || !self->reinvoke_) {
                 break;
             }
             res = curl_easy_perform(self->curl_);
+            if (res == CURLE_OK) {
+                curl_easy_getinfo(self->curl_, CURLINFO_RESPONSE_CODE, &statusCode);
+            }
             self->reinvoke_ = false;
             cb = self->callback_;
             self->callback_ = nullptr;
         }
-        cb(res);
+        cb(res, statusCode);
     }
     CurlAsyncPtr me = nullptr;
     std::lock_guard<std::mutex> lock(self->mutex_);
