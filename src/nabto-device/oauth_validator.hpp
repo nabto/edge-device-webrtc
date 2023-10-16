@@ -56,8 +56,6 @@ public:
                 return;
             }
 
-
-
             std::string subject;
 
             try {
@@ -208,7 +206,19 @@ public:
             .set_payload_claim("nonce", jwt::basic_claim<jwt::traits::nlohmann_json>(nonce))
             .sign(alg);
         ;
-        // TODO: cleanup openssl stuff properly
+
+        EC_POINT_free(ecPubPoint);
+        EC_GROUP_free(group);
+        BN_free(y);
+        BN_free(x);
+        BN_CTX_free(bnCtx);
+        EVP_PKEY_free(pkey);
+        EVP_PKEY_CTX_free(ctx);
+        OSSL_PARAM_free(params);
+        OSSL_PARAM_BLD_free(param_bld);
+        BN_free(k);
+
+
         return token;
     }
 
