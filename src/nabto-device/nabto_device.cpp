@@ -414,7 +414,7 @@ void NabtoDeviceImpl::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
 void NabtoDeviceImpl::handleChallengeRequest(NabtoDeviceCoapRequest* coap) {
     uint16_t cf; // expect content format application/json: cf == 50
     NabtoDeviceError ec;
-    if ((ec = nabto_device_coap_request_get_content_format(coap, &cf)) != NABTO_DEVICE_EC_OK || cf != 50) {
+    if ((ec = nabto_device_coap_request_get_content_format(coap, &cf)) != NABTO_DEVICE_EC_OK || cf != NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON) {
         std::cout << "  Invalid content format: " << cf << " ec: " << nabto_device_error_get_message(ec) << std::endl;
         nabto_device_coap_error_response(coap, 400, "invalid content format");
         nabto_device_coap_request_free(coap);
