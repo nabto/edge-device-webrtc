@@ -73,6 +73,17 @@ OsCaOqRjvcTGmefZlCR2k7TOwrM9//W8rQ==
     }
     return stream.write(buf);
   }
+
+  signalingParseJson(data: ArrayBuffer) {
+    const parsed = JSON.parse(String.fromCharCode.apply(null, new Uint8Array(data)));
+    return parsed;
+  }
+
+  streamDataToLen(data: ArrayBuffer) {
+    let respView = new Uint8Array(data);
+    let objLen = respView[0] + (respView[1] << 8) + (respView[2] << 16) + (respView[3] << 24);
+    return objLen;
+  }
 };
 
 // TODO: do not use my default device

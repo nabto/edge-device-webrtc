@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import { describe } from 'mocha'
 import { WebRTCNabtoClient, deviceInfo } from './fixture';
-import { RTCPeerConnection } from 'werift';
+import { RTCPeerConnection, RTCSessionDescription } from 'werift';
 
-describe("webrtc", () => {
+describe.only("webrtc", () => {
   let client: WebRTCNabtoClient;
 
   beforeEach(()=> {
@@ -70,18 +70,46 @@ describe("webrtc", () => {
     const stream = conn.createStream();
     await stream.open(info.SignalingStreamPort);
 
+    let resolver: (value: void | PromiseLike<void>) => void;
+    const p = new Promise<void>((resolve, reject) => {
+      resolver = resolve;
+    })
+
     const peer = new RTCPeerConnection();
-    peer.onicecandidate = (event) => {
-      console.log("ICE ICE BABY");
-    };
+    // peer.onicecandidate = (event) => {
+    //   console.log("ICE ICE BABY");
+    // };
 
     const coapChan = peer.createDataChannel("coap");
+
+    coapChan.onopen = () => {
+      resolver();
+    }
+
 
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
 
-    peer.close();
+    const offerMsg = {
+      type: 0,
+      data: JSON.stringify(peer.localDescription),
+      metadata: { noTrickle: true }
+    };
 
+
+    await client.signalingStreamWriteObject(stream, offerMsg);
+
+    const streamDataLen = await stream.readAll(4);
+    const streamData = await stream.readAll(client.streamDataToLen(streamDataLen));
+    const parsedStreamData = client.signalingParseJson(streamData);
+
+    let remoteDesc = JSON.parse(parsedStreamData.data);
+
+    await peer.setRemoteDescription(remoteDesc);
+
+    await p;
+
+    await peer.close();
 
     await stream.close();
     await conn.close();
