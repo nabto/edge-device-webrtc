@@ -52,6 +52,18 @@ cp ../src/nabto-device/nabto.png .
 ./src/edge_device_webrtc -d <DEVICE_ID> -p <PRODUCT_ID> -k <RAW_PRIVATE_KEY>
 ```
 
+## Running the device on OSX
+
+```
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
+# ignore the error and run the command again.
+cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
+make -j 16 install
+./install/bin/edge_device_webrtc ...
+```
+
 ### Demo Signaling and browser client
 For demo usage, use our deployed signaling and browser client by opening `http://34.245.62.208:8000/` in your browser.
 
