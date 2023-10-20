@@ -222,10 +222,20 @@ bool NabtoDeviceImpl::setupIam(const char* fp)
         try {
             auto initialUsername = iamState["InitialPairingUsername"].get<std::string>();
             auto user = nm_iam_state_find_user_by_username(state, initialUsername.c_str());
-            if (user && (user->fingerprint == NULL || user->oauthSubject == NULL)) {
+            if (user && (user->fingerprint == NULL && user->oauthSubject == NULL)) {
                 // We have an initial user and it is unpaired
                 // Creating invite link
-                std::cout << "################################################################" << std::endl << "# Initial user pairing link:    " << std::endl << "# " << frontendUrl_ << "?p=" << productId_ << "&d=" << deviceId_ << "&u=" << initialUsername << "&pwd=" << user->password << "&sct=" << user->sct << "&fp=" << fp << std::endl << "################################################################" << std::endl;
+                std::cout << "################################################################" << std::endl << "# Initial user pairing link:    " << std::endl << "# " << frontendUrl_ << "?p=" << productId_ << "&d=" << deviceId_ << "&u=" << initialUsername;
+
+                if (user->password != NULL) {
+                    std::cout << "&pwd=" << user->password;
+                }
+
+                if (user->sct != NULL) {
+                  std::cout << "&sct=" << user->sct;
+                 }
+
+                 std::cout << "&fp=" << fp << std::endl << "################################################################" << std::endl;
             }
         } catch (std::exception& ex) {
             // Ignore
