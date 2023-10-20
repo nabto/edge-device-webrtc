@@ -1,3 +1,4 @@
 /build
 /test/signalling-server/node_modules/
 /test/web-client/node_modules/
+/test/unit-test/node_modules

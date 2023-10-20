@@ -126,7 +126,7 @@ bool NabtoDeviceImpl::createDefaultIamConfig()
     {
         // Role allowing everything assigned to administrators
         struct nm_iam_role* r = nm_iam_configuration_role_new("Administrator");
-        nm_iam_configuration_role_add_policy(r, "ManageIAM");
+        nm_iam_configuration_role_add_policy(r, "ManageIam");
         nm_iam_configuration_role_add_policy(r, "Webrtc");
         nm_iam_configuration_role_add_policy(r, "Pairing");
         nm_iam_configuration_role_add_policy(r, "WebrtcSignaling");

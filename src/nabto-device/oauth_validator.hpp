@@ -45,45 +45,62 @@ public:
             return false;
         }
 
-        curl_->asyncInvoke([self, token, cb](CURLcode res) {
+        curl_->asyncInvoke([self, token, cb](CURLcode res, uint16_t statusCode) {
 
+            std::cout << "    JWKS server returned status: " << statusCode << std::endl;
             std::cout << "    Try parsing jwks_: " << self->jwks_ << std::endl;
-            auto decoded_jwt = jwt::decode(token);
-            auto jwks = jwt::parse_jwks(self->jwks_);
-            auto jwk = jwks.get_jwk(decoded_jwt.get_key_id());
 
-            std::cout << "    decoded JWT: " << decoded_jwt.get_payload() << std::endl;
-
-            std::stringstream aud;
-            aud << "nabto://device?productId=" << self->productId_ << "&deviceId=" << self->deviceId_;
-
-            auto verifier =
-                jwt::verify();
-
-            verifier = self->getAllowedAlg(verifier, jwk)
-                .with_issuer(self->issuer_)
-                .with_audience(aud.str())
-                .leeway(60UL); // value in seconds, add some to compensate timeout
-            auto decoded = jwt::decode(token);
-            try {
-                verifier.verify(decoded);
-            } catch (jwt::error::token_verification_exception& ex) {
-                // TODO: fail
+            if (res != CURLE_OK || statusCode > 299 || statusCode < 200) {
+                std::cout << "Curl failed with CURLcode: " << res << " statusCode: " << statusCode << std::endl;
                 cb(false, "");
-                std::cout << "Verification failed: " << ex.what() << std::endl;
                 return;
             }
+
             std::string subject;
+
             try {
-                // TODO: switch to claim `sub` when we have a proper oidc server
-                std::cout << "    decoded again sub claim: " << decoded.get_payload_claim("sub") << std::endl;
-                subject = decoded.get_payload_claim("sub").as_string();
-            } catch (std::exception& ex) {
-                std::cout << "    decoded claim did not contain a subject" << decoded.get_payload() << std::endl;
+                auto decoded_jwt = jwt::decode(token);
+                auto jwks = jwt::parse_jwks(self->jwks_);
+                auto jwk = jwks.get_jwk(decoded_jwt.get_key_id());
+
+                std::cout << "    decoded JWT: " << decoded_jwt.get_payload() << std::endl;
+
+                std::stringstream aud;
+                aud << "nabto://device?productId=" << self->productId_ << "&deviceId=" << self->deviceId_;
+
+                auto verifier =
+                    jwt::verify();
+
+                verifier = self->getAllowedAlg(verifier, jwk)
+                    .with_issuer(self->issuer_)
+                    .with_audience(aud.str())
+                    .leeway(60UL); // value in seconds, add some to compensate timeout
+                auto decoded = jwt::decode(token);
+                try {
+                    verifier.verify(decoded);
+                } catch (jwt::error::token_verification_exception& ex) {
+                    cb(false, "");
+                    std::cout << "Verification failed: " << ex.what() << std::endl;
+                    return;
+                }
+
+                try {
+                    std::cout << "    decoded again sub claim: " << decoded.get_payload_claim("sub") << std::endl;
+                    subject = decoded.get_payload_claim("sub").as_string();
+                } catch (std::exception& ex) {
+                    std::cout << "    decoded claim did not contain a subject" << decoded.get_payload() << std::endl;
+                    cb(false, "");
+                    return;
+                }
+            } catch (std::invalid_argument& ex) {
+                std::cout << "Invalid JWT format" << std::endl;
+                cb(false, "");
+                return;
+            } catch (std::runtime_error& ex) {
+                std::cout << "Invalid JWK/JSON format" << std::endl;
                 cb(false, "");
                 return;
             }
-
             std::cout << "Token valid!" << std::endl;
             // TODO: succeed
             cb(true, subject);
@@ -189,7 +206,19 @@ public:
             .set_payload_claim("nonce", jwt::basic_claim<jwt::traits::nlohmann_json>(nonce))
             .sign(alg);
         ;
-        // TODO: cleanup openssl stuff properly
+
+        EC_POINT_free(ecPubPoint);
+        EC_GROUP_free(group);
+        BN_free(y);
+        BN_free(x);
+        BN_CTX_free(bnCtx);
+        EVP_PKEY_free(pkey);
+        EVP_PKEY_CTX_free(ctx);
+        OSSL_PARAM_free(params);
+        OSSL_PARAM_BLD_free(param_bld);
+        BN_free(k);
+
+
         return token;
     }
 

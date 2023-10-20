@@ -1,0 +1,23 @@
+{
+    "name": "testclient",
+    "scripts": {
+        "test": "npx mocha"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.3.8",
+        "@types/mocha": "^10.0.2",
+        "@types/node": "^20.8.2",
+        "@types/ws": "^8.5.5"
+    },
+    "dependencies": {
+        "cbor": "^9.0.1",
+        "chai": "^4.3.10",
+        "edge-client-node": "github:nabto/edge-client-node",
+        "jsonwebtoken": "^9.0.2",
+        "mocha": "^10.2.0",
+        "node-datachannel": "^0.5.0-dev",
+        "ts-node": "^10.9.1",
+        "werift": "^0.18.7",
+        "ws": "^8.13.0"
+    }
+}
