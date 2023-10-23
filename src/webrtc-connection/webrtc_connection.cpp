@@ -36,6 +36,7 @@ void WebrtcConnection::stop()
     // sigStream_ = nullptr;
 }
 
+// TODO: I don't think this feature is used anywhere
 void WebrtcConnection::handleOfferRequest()
 {
         std::cout << "Got Offer request: " << std::endl;
@@ -105,7 +106,11 @@ void WebrtcConnection::handleOffer(std::string& data)
         }
 
         // std::cout << "Setting remDesc: " << remDesc << std::endl;
-        pc_->setRemoteDescription(remDesc);
+        try {
+            pc_->setRemoteDescription(remDesc);
+        } catch (std::logic_error& ex) {
+            std::cout << "Failed to set remote description with logic error: " << ex.what() << std::endl;
+        }
 
         for (auto t : tracks_) {
             if (t->direction() == rtc::Description::Direction::Inactive) {
@@ -132,6 +137,8 @@ void WebrtcConnection::handleAnswer(std::string& data)
     }
     catch (nlohmann::json::exception& ex) {
         std::cout << "handleAnswer json exception: " << ex.what() << std::endl;
+    } catch (std::logic_error& ex) {
+        std::cout << "Failed to set remote description with logic error: " << ex.what() << std::endl;
     }
 }
 
@@ -145,6 +152,8 @@ void WebrtcConnection::handleIce(std::string& data)
     }
     catch (nlohmann::json::exception& ex) {
         std::cout << "handleIce json exception: " << ex.what() << std::endl;
+    } catch (std::logic_error& ex) {
+        std::cout << "Failed to add remote ICE candidate with logic error: " << ex.what() << std::endl;
     }
 }
 
