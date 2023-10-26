@@ -279,8 +279,12 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
                 //     std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)i;
                 // }
                 // std::cout << std::dec << std::endl;
-
-                t.track->send(reinterpret_cast<const rtc::byte*>(buffer), len);
+                try {
+                    t.track->send(reinterpret_cast<const rtc::byte*>(buffer), len);
+                } catch (std::runtime_error& ex) {
+                    std::cout << "Failed to send on track: " << ex.what() << std::endl;
+                    t.pc->close();
+                }
             }
         }
 
