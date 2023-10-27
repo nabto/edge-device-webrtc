@@ -27,6 +27,7 @@ SignalingStream::~SignalingStream()
 
 void SignalingStream::start()
 {
+    // TODO: better identifier
     const char* identifier = "foobar";
     auto dev = device_->getDevice();
 
