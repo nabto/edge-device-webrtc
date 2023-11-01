@@ -89,14 +89,12 @@ void parse_options(int argc, char** argv, json& opts)
             ("d,deviceid", "Device ID to connect to", cxxopts::value<std::string>())
             ("p,productid", "Product ID to use", cxxopts::value<std::string>())
             ("t,sct", "Optional. Server connect token from device used for remote connect", cxxopts::value<std::string>()->default_value("demosct"))
-            ("loglevel", "Optional. The log level (error|info|trace)", cxxopts::value<std::string>()->default_value("info"))
+            ("log-level", "Optional. The log level (error|info|trace)", cxxopts::value<std::string>()->default_value("info"))
             ("k,privatekey", "Raw private key to use", cxxopts::value<std::string>())
             ("r,rtsp", "Use RTSP at the provided url instead of RTP (eg. rtsp://127.0.0.l:8554/video)", cxxopts::value<std::string>())
-            ("rtpport", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
-            ("j,jwksurl", "URL for jwks server for oAuth", cxxopts::value<std::string>()->default_value("http://localhost:3000/jwks"))
-            ("i,jwksissuer", "Issuer of oAuth tokens", cxxopts::value<std::string>()->default_value("http://localhost:3000"))
-            ("f,frontendurl", "Frontend URL for pairing link", cxxopts::value<std::string>()->default_value("https://smartcloud.tk.dev.nabto.com/"))
-            ("iamreset", "If set, will reset the IAM state before starting")
+            ("rtp-port", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
+            ("c,cloud-domain", "Optional. Domain for the cloud deployment. This is used to derive JWKS URL, JWKS issuer, and frontend URL", cxxopts::value<std::string>()->default_value("smartcloud.nabto.com"))
+            ("iam-reset", "If set, will reset the IAM state before starting")
             ("h,help", "Shows this help text");
         auto result = options.parse(argc, argv);
 
@@ -122,16 +120,19 @@ void parse_options(int argc, char** argv, json& opts)
         }
 
         opts["sct"] = result["sct"].as<std::string>();
-        opts["logLevel"] = result["loglevel"].as<std::string>();
+        opts["logLevel"] = result["log-level"].as<std::string>();
         if (result.count("rtsp")) {
             opts["rtspUrl"] = result["rtsp"].as<std::string>();
         }
-        opts["rtpPort"] = result["rtpport"].as<uint16_t>();
-        opts["jwksUrl"] = result["jwksurl"].as<std::string>();
-        opts["jwksIssuer"] = result["jwksissuer"].as<std::string>();
+        opts["rtpPort"] = result["rtp-port"].as<uint16_t>();
 
-        opts["frontendUrl"] = result["frontendurl"].as<std::string>();
-        if (result.count("iamreset")) {
+        std::string domain = result["cloud-domain"].as<std::string>();
+
+        opts["jwksUrl"] = "https://sts." + domain + "/sts/.well-known/jwks.json";
+        opts["jwksIssuer"] = "https://sts." + domain + "/sts";
+
+        opts["frontendUrl"] = "https://demo." + domain;
+        if (result.count("iam-reset")) {
             opts["iamReset"] = true;
         } else {
             opts["iamReset"] = false;
