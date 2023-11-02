@@ -2,40 +2,109 @@
 
 #include <modules/iam/nm_iam_serializer.h>
 
+#include <random>
+
 namespace nabto {
 
-const std::string defaultState = R"({
-  "Version": 1,
-  "OpenPairingPassword": "demoOpenPairing",
-  "OpenPairingSct": "demosct",
-  "LocalOpenPairing": true,
-  "PasswordOpenPairing": true,
-  "PasswordInvitePairing": true,
-  "LocalInitialPairing": true,
-  "OpenPairingRole": "Administrator",
-  "InitialPairingUsername": "admin",
-  "FriendlyName": "Webrtc demo example",
-  "Users": [
+std::string passwordGen(size_t len)
+{
+    // Same alphabet used by tcp_tunnel_device
+    const std::string alphabet = "abcdefghijkmnopqrstuvwxyzACEFHJKLMNPRTUVWXY3479";
+
+    std::random_device random_device;
+    std::mt19937 generator(random_device());
+    std::uniform_int_distribution<> distribution(0, alphabet.size() - 1);
+
+    std::string password;
+
+    for (std::size_t i = 0; i < len; ++i)
     {
-      "Username": "admin",
-      "ServerConnectToken": "demosct",
-      "Role": "Administrator",
-      "Password": "demoAdminPwd"
+        password += alphabet[distribution(generator)];
     }
-  ]
-})";
+
+    return password;
+}
 
 bool NabtoDeviceImpl::createDefaultIamState()
 {
+    struct nm_iam_state* state = nm_iam_state_new();
+    std::string initialUser = "admin";
+    std::string openPassword = passwordGen(12);
+    std::string openSct;
+
+    {
+        char* sct = NULL;
+        if (nabto_device_create_server_connect_token(device_, &sct) != NABTO_DEVICE_EC_OK) {
+            nm_iam_state_free(state);
+            return false;
+        }
+        openSct = std::string(sct);
+        nabto_device_string_free(sct);
+    }
+
+    if (!nm_iam_state_set_password_open_password(state, openPassword.c_str()) ||
+        !nm_iam_state_set_password_open_sct(state, openSct.c_str()) ||
+        !nm_iam_state_set_open_pairing_role(state, "Administrator") ||
+        !nm_iam_state_set_friendly_name(state, "Webrtc demo example") ||
+        !nm_iam_state_set_initial_pairing_username(state, initialUser.c_str())
+        )
+    {
+        nm_iam_state_free(state);
+        return false;
+    }
+
+    nm_iam_state_set_password_open_pairing(state, true);
+    nm_iam_state_set_local_open_pairing(state, true);
+    nm_iam_state_set_local_initial_pairing(state, true);
+    nm_iam_state_set_password_invite_pairing(state, true);
+
+    {
+        struct nm_iam_user* user = nm_iam_state_user_new(initialUser.c_str());
+        if (user == NULL) {
+            nm_iam_state_free(state);
+            return false;
+        }
+
+        {
+            char* sct = NULL;
+            if (nabto_device_create_server_connect_token(device_, &sct) != NABTO_DEVICE_EC_OK ||
+                !nm_iam_state_user_set_sct(user, sct)) {
+                nabto_device_string_free(sct);
+                nm_iam_state_user_free(user);
+                nm_iam_state_free(state);
+                return false;
+            }
+            nabto_device_string_free(sct);
+        }
+        std::string userPwd = passwordGen(12);
+
+        if (!nm_iam_state_user_set_role(user, "Administrator") ||
+            !nm_iam_state_user_set_password(user, userPwd.c_str())) {
+            nm_iam_state_user_free(user);
+            nm_iam_state_free(state);
+            return false;
+        }
+        nm_iam_state_add_user(state, user);
+    }
+
     try {
-        auto jsonState = nlohmann::json::parse(defaultState);
+        char* jsonState = NULL;
+        if (!nm_iam_serializer_state_dump_json(state, &jsonState)) {
+            nm_iam_state_free(state);
+            return false;
+        }
+        std::string stateStr(jsonState);
+        nm_iam_serializer_string_free(jsonState);
+
         std::ofstream stateFile(iamStatePath_);
-        stateFile << jsonState;
+        stateFile << stateStr;
     }
     catch (std::exception& ex) {
         std::cout << "Failed to write to state file: " << iamStatePath_ << " exception: " << ex.what() << std::endl;
+        nm_iam_state_free(state);
         return false;
     }
+    nm_iam_state_free(state);
     return true;
 }
 
@@ -146,8 +215,12 @@ bool NabtoDeviceImpl::createDefaultIamConfig()
     }
     catch (std::exception& ex) {
         std::cout << "Failed to write to IAM config file: " << iamConfPath_ << " exception: " << ex.what() << std::endl;
+        nm_iam_serializer_string_free(jsonConfig);
+        nm_iam_configuration_free(conf);
         return false;
     }
+    nm_iam_serializer_string_free(jsonConfig);
+    nm_iam_configuration_free(conf);
     return true;
 }
 

@@ -55,12 +55,6 @@ bool NabtoDeviceImpl::init(nlohmann::json& opts)
     }
 
     try {
-        sct_ = opts["sct"].get<std::string>();
-    } catch (std::exception& e) {
-        // ignore missing optional option
-    }
-
-    try {
         frontendUrl_ = opts["frontendUrl"].get<std::string>();
     } catch (std::exception& e) {
         // ignore missing optional option
@@ -89,11 +83,7 @@ bool NabtoDeviceImpl::init(nlohmann::json& opts)
     } catch (std::exception& e) {
         // ignore missing optional option
     }
-    return true;
-}
 
-bool NabtoDeviceImpl::start()
-{
     NabtoDeviceError ec;
     if (nabto_device_set_log_std_out_callback(NULL) != NABTO_DEVICE_EC_OK ||
         nabto_device_set_log_level(NULL, logLevel_.c_str()) != NABTO_DEVICE_EC_OK)
@@ -101,12 +91,27 @@ bool NabtoDeviceImpl::start()
         std::cout << "failed to set loglevel or logger" << std::endl;
         return false;
     }
-    char* fp;
+
     if ((device_ = nabto_device_new()) == NULL) {
         std::cout << "Failed to create device" << std::endl;
         return false;
 
     }
+
+    iamLog_.logPrint = &iamLogger;
+    iamLog_.userData = this;
+
+    if (!nm_iam_init(&iam_, device_, &iamLog_)) {
+        std::cout << "Failed to initialize IAM module" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool NabtoDeviceImpl::start()
+{
+    NabtoDeviceError ec;
+    char* fp;
 
     uint8_t key[32];
 
@@ -124,10 +129,7 @@ bool NabtoDeviceImpl::start()
         return false;
     }
 
-    iamLog_.logPrint = &iamLogger;
-    iamLog_.userData = this;
-
-    if (!nm_iam_init(&iam_, device_, &iamLog_) || !setupIam(fp)) {
+    if (!setupIam(fp)) {
         std::cout << "Failed to initialize IAM module" << std::endl;
         return false;
     }
@@ -137,10 +139,7 @@ bool NabtoDeviceImpl::start()
 
     if (nabto_device_set_product_id(device_, productId_.c_str()) != NABTO_DEVICE_EC_OK ||
         nabto_device_set_device_id(device_, deviceId_.c_str()) != NABTO_DEVICE_EC_OK ||
-        nabto_device_enable_mdns(device_) != NABTO_DEVICE_EC_OK ||
-        nabto_device_set_log_std_out_callback(device_) != NABTO_DEVICE_EC_OK ||
-        nabto_device_set_log_level(NULL, logLevel_.c_str()) != NABTO_DEVICE_EC_OK ||
-        nabto_device_add_server_connect_token(device_, sct_.c_str()) != NABTO_DEVICE_EC_OK)
+        nabto_device_enable_mdns(device_) != NABTO_DEVICE_EC_OK)
     {
         return false;
     }
@@ -173,6 +172,21 @@ bool NabtoDeviceImpl::start()
     });
 
     return setupFileStream();
+}
+
+bool NabtoDeviceImpl::resetIam()
+{
+    std::cout << "Resetting IAM to default configuration and state" << std::endl;
+    if (!createDefaultIamConfig()) {
+        std::cout << "Failed to create IAM config file" << std::endl;
+        return false;
+    }
+    if (!createDefaultIamState()) {
+        std::cout << "Failed to create IAM state file" << std::endl;
+        return false;
+    }
+    std::cout << "Reset successfull" << std::endl;
+    return true;
 }
 
 bool NabtoDeviceImpl::setupIam(const char* fp)

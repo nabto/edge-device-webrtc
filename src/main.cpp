@@ -13,13 +13,27 @@
 
 using nlohmann::json;
 
-void parse_options(int argc, char** argv, json& opts);
+bool parse_options(int argc, char** argv, json& opts);
 
 int main(int argc, char** argv) {
     json opts;
-    parse_options(argc, argv, opts);
+    bool shouldExit = parse_options(argc, argv, opts);
+    if (shouldExit) {
+        return 0;
+    }
 
     auto device = nabto::NabtoDeviceImpl::create(opts);
+
+    try {
+        bool iamReset = opts["iamReset"].get<bool>();
+        if (iamReset) {
+            device->resetIam();
+            device->stop();
+            return 0;
+        }
+    } catch (std::exception& e) {
+        // ignore missing optional option
+    }
 
     if(device == nullptr || !device->start()) {
         std::cout << "Failed to start device" << std::endl;
@@ -79,7 +93,7 @@ int main(int argc, char** argv) {
 
 }
 
-void parse_options(int argc, char** argv, json& opts)
+bool parse_options(int argc, char** argv, json& opts)
 {
     try
     {
@@ -88,19 +102,24 @@ void parse_options(int argc, char** argv, json& opts)
             ("s,serverurl", "Optional. Server URL for the Nabto basestation", cxxopts::value<std::string>())
             ("d,deviceid", "Device ID to connect to", cxxopts::value<std::string>())
             ("p,productid", "Product ID to use", cxxopts::value<std::string>())
-            ("t,sct", "Optional. Server connect token from device used for remote connect", cxxopts::value<std::string>()->default_value("demosct"))
             ("log-level", "Optional. The log level (error|info|trace)", cxxopts::value<std::string>()->default_value("info"))
             ("k,privatekey", "Raw private key to use", cxxopts::value<std::string>())
             ("r,rtsp", "Use RTSP at the provided url instead of RTP (eg. rtsp://127.0.0.l:8554/video)", cxxopts::value<std::string>())
             ("rtp-port", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
             ("c,cloud-domain", "Optional. Domain for the cloud deployment. This is used to derive JWKS URL, JWKS issuer, and frontend URL", cxxopts::value<std::string>()->default_value("smartcloud.nabto.com"))
-            ("iam-reset", "If set, will reset the IAM state before starting")
+            ("iam-reset", "If set, will reset the IAM state and exit")
+            ("create-key", "If set, will create and print a raw private key and its fingerprint. Then exit")
             ("h,help", "Shows this help text");
         auto result = options.parse(argc, argv);
 
         if (result.count("help")) {
             std::cout << options.help({ "", "Group" }) << std::endl;
-            exit(0);
+            return true;
+        }
+
+        if (result.count("create-key")) {
+            nabto::PrivateKeyCreator();
+            return true;
         }
 
         if (!result.count("productid") ||
@@ -109,7 +128,7 @@ void parse_options(int argc, char** argv, json& opts)
             {
                 std::cout << "Missing required argument" << std::endl;
                 std::cout << options.help({ "", "Group" }) << std::endl;
-                exit(1);
+                return true;
             }
         opts["productId"] = result["productid"].as<std::string>();
         opts["deviceId"] = result["deviceid"].as<std::string>();
@@ -119,7 +138,6 @@ void parse_options(int argc, char** argv, json& opts)
             opts["serverUrl"] = result["serverurl"].as<std::string>();
         }
 
-        opts["sct"] = result["sct"].as<std::string>();
         opts["logLevel"] = result["log-level"].as<std::string>();
         if (result.count("rtsp")) {
             opts["rtspUrl"] = result["rtsp"].as<std::string>();
@@ -142,7 +160,9 @@ void parse_options(int argc, char** argv, json& opts)
     catch (const cxxopts::OptionException& e)
     {
         std::cout << "Error parsing options: " << e.what() << std::endl;
-        exit(1);
+        return true;
     }
-
+    return false;
 }
+
+
