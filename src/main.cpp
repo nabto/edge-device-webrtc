@@ -9,13 +9,11 @@
 #include <rtc/global.hpp>
 #include <cxxopts/cxxopts.hpp>
 #include <nlohmann/json.hpp>
-#include <random>
 
 
 using nlohmann::json;
 
 bool parse_options(int argc, char** argv, json& opts);
-bool createPrivateKey();
 
 int main(int argc, char** argv) {
     json opts;
@@ -120,7 +118,7 @@ bool parse_options(int argc, char** argv, json& opts)
         }
 
         if (result.count("create-key")) {
-            createPrivateKey();
+            nabto::PrivateKeyCreator();
             return true;
         }
 
@@ -167,59 +165,4 @@ bool parse_options(int argc, char** argv, json& opts)
     return false;
 }
 
-void createKeyDone(NabtoDevice* d, char* fp, std::string msg)
-{
-    std::cout << msg << std::endl;
-    if (fp) {
-        nabto_device_string_free(fp);
-    }
-    if (d) {
-        nabto_device_stop(d);
-        nabto_device_free(d);
-    }
-}
 
-bool createPrivateKey()
-{
-    NabtoDeviceError ec;
-    std::random_device random_device;
-    std::mt19937 generator(random_device());
-    std::uniform_int_distribution<> distribution(0, 255);
-
-    char* fp;
-    uint8_t key[32];
-    for (size_t i = 0; i < 32; i++) {
-        key[i] = distribution(generator);
-    }
-
-    auto dev = nabto_device_new();
-    if (dev == NULL) {
-        createKeyDone(dev, fp, "Failed to create device context");
-        return false;
-    }
-
-    if ((ec = nabto_device_set_private_key_secp256r1(dev, key, 32)) != NABTO_DEVICE_EC_OK) {
-        std::string err = "Failed to set private key, ec=" + std::string(nabto_device_error_get_message(ec));
-        createKeyDone(dev, fp, err);
-        return false;
-    }
-
-    if ((ec = nabto_device_get_device_fingerprint(dev, &fp)) != NABTO_DEVICE_EC_OK) {
-        std::string err = "Failed to get fingerprint, ec=" + std::string(nabto_device_error_get_message(ec));
-        createKeyDone(dev, fp, err);
-        return false;
-    }
-
-    std::cout << "Created Raw private key: " << std::endl;
-    std::cout << "  ";
-    for (int i = 0; i < 32; i++) {
-        std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)key[i];
-    }
-    std::cout << std::dec << std::endl;
-
-    std::cout << "With fingerprint: " << std::endl << "  " << fp;
-
-    createKeyDone(dev, fp, "");
-
-    return true;
-}

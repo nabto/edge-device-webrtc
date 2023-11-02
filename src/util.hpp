@@ -1,10 +1,14 @@
 #pragma once
+#include <nabto/nabto_device.h>
+#include <nabto/nabto_device_experimental.h>
 
 #include <curl/curl.h>
 
 #include <signal.h>
 #include <future>
-
+#include <random>
+#include <iostream>
+#include <iomanip> // For std::setfill and std::setw
 
 namespace nabto {
 namespace terminationWaiter {
@@ -53,5 +57,69 @@ private:
     CurlAsyncPtr me_ = nullptr;
 
 };
+
+class PrivateKeyCreator {
+public:
+    PrivateKeyCreator() {
+        createPrivateKey();
+    }
+
+    ~PrivateKeyCreator() {
+        if (fp_) {
+            nabto_device_string_free(fp_);
+        }
+        if (dev_) {
+            nabto_device_stop(dev_);
+            nabto_device_free(dev_);
+        }
+    }
+
+private:
+
+    void createPrivateKey()
+    {
+        NabtoDeviceError ec;
+        std::random_device random_device;
+        std::mt19937 generator(random_device());
+        std::uniform_int_distribution<> distribution(0, 255);
+
+        uint8_t key[32];
+        for (size_t i = 0; i < 32; i++) {
+            key[i] = distribution(generator);
+        }
+
+        dev_ = nabto_device_new();
+        if (dev_ == NULL) {
+            std::cout << "Failed to create device context" << std::endl;
+            return;
+        }
+
+        if ((ec = nabto_device_set_private_key_secp256r1(dev_, key, 32)) != NABTO_DEVICE_EC_OK) {
+            std::cout << "Failed to set private key, ec=" << nabto_device_error_get_message(ec) << std::endl;
+            return;
+        }
+
+        if ((ec = nabto_device_get_device_fingerprint(dev_, &fp_)) != NABTO_DEVICE_EC_OK) {
+            std::cout << "Failed to get fingerprint, ec=" << nabto_device_error_get_message(ec) << std::endl;
+            return;
+        }
+
+        std::cout << "Created Raw private key: " << std::endl;
+        std::cout << "  ";
+        for (int i = 0; i < 32; i++) {
+            std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)key[i];
+        }
+        std::cout << std::dec << std::endl;
+
+        std::cout << "With fingerprint: " << std::endl << "  " << fp_ << std::endl;
+
+        return;
+    }
+
+
+    NabtoDevice* dev_ = NULL;
+    char* fp_ = NULL;
+};
+
 
 } // namespace nabto
