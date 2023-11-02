@@ -34,8 +34,9 @@ bool NabtoDeviceImpl::createDefaultIamState()
 
     {
         char* sct = NULL;
-        if (!nabto_device_create_server_connect_token(device_, &sct)) {
-            // TODO: fail
+        if (nabto_device_create_server_connect_token(device_, &sct) != NABTO_DEVICE_EC_OK) {
+            nm_iam_state_free(state);
+            return false;
         }
         openSct = std::string(sct);
         nabto_device_string_free(sct);
@@ -48,7 +49,8 @@ bool NabtoDeviceImpl::createDefaultIamState()
         !nm_iam_state_set_initial_pairing_username(state, initialUser.c_str())
         )
     {
-        // TODO: fail
+        nm_iam_state_free(state);
+        return false;
     }
 
     nm_iam_state_set_password_open_pairing(state, true);
@@ -59,31 +61,37 @@ bool NabtoDeviceImpl::createDefaultIamState()
     {
         struct nm_iam_user* user = nm_iam_state_user_new(initialUser.c_str());
         if (user == NULL) {
-            // TODO: fail
+            nm_iam_state_free(state);
+            return false;
         }
 
         {
             char* sct = NULL;
-            if (!nabto_device_create_server_connect_token(device_, &sct)) {
-                // TODO: fail
+            if (nabto_device_create_server_connect_token(device_, &sct) != NABTO_DEVICE_EC_OK ||
+                !nm_iam_state_user_set_sct(user, sct)) {
+                nabto_device_string_free(sct);
+                nm_iam_state_user_free(user);
+                nm_iam_state_free(state);
+                return false;
             }
-            nm_iam_state_user_set_sct(user, sct);
             nabto_device_string_free(sct);
         }
         std::string userPwd = passwordGen(12);
 
         if (!nm_iam_state_user_set_role(user, "Administrator") ||
             !nm_iam_state_user_set_password(user, userPwd.c_str())) {
-            // TODO: fail
+            nm_iam_state_user_free(user);
+            nm_iam_state_free(state);
+            return false;
         }
         nm_iam_state_add_user(state, user);
     }
 
-
     try {
         char* jsonState = NULL;
         if (!nm_iam_serializer_state_dump_json(state, &jsonState)) {
-            // TODO: fail
+            nm_iam_state_free(state);
+            return false;
         }
         std::string stateStr(jsonState);
         nm_iam_serializer_string_free(jsonState);
@@ -93,8 +101,10 @@ bool NabtoDeviceImpl::createDefaultIamState()
     }
     catch (std::exception& ex) {
         std::cout << "Failed to write to state file: " << iamStatePath_ << " exception: " << ex.what() << std::endl;
+        nm_iam_state_free(state);
         return false;
     }
+    nm_iam_state_free(state);
     return true;
 }
 
