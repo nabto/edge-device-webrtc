@@ -38,6 +38,8 @@ public:
     uint32_t getFileStreamPort();
     struct nm_iam* getIam() { return &iam_; }
 
+    bool resetIam();
+
 private:
 
     bool setupIam(const char* fp);

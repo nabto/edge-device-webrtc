@@ -215,8 +215,12 @@ bool NabtoDeviceImpl::createDefaultIamConfig()
     }
     catch (std::exception& ex) {
         std::cout << "Failed to write to IAM config file: " << iamConfPath_ << " exception: " << ex.what() << std::endl;
+        nm_iam_serializer_string_free(jsonConfig);
+        nm_iam_configuration_free(conf);
         return false;
     }
+    nm_iam_serializer_string_free(jsonConfig);
+    nm_iam_configuration_free(conf);
     return true;
 }
 

@@ -21,6 +21,17 @@ int main(int argc, char** argv) {
 
     auto device = nabto::NabtoDeviceImpl::create(opts);
 
+    try {
+        bool iamReset = opts["iamReset"].get<bool>();
+        if (iamReset) {
+            device->resetIam();
+            device->stop();
+            return 0;
+        }
+    } catch (std::exception& e) {
+        // ignore missing optional option
+    }
+
     if(device == nullptr || !device->start()) {
         std::cout << "Failed to start device" << std::endl;
         return -1;
