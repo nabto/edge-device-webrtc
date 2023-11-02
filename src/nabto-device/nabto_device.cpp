@@ -182,6 +182,7 @@ bool NabtoDeviceImpl::start()
 
 bool NabtoDeviceImpl::resetIam()
 {
+    std::cout << "Resetting IAM to default configuration and state" << std::endl;
     if (!createDefaultIamConfig()) {
         std::cout << "Failed to create IAM config file" << std::endl;
         return false;
@@ -190,6 +191,7 @@ bool NabtoDeviceImpl::resetIam()
         std::cout << "Failed to create IAM state file" << std::endl;
         return false;
     }
+    std::cout << "Reset successfull" << std::endl;
     return true;
 }
 
