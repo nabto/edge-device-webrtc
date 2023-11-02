@@ -60,8 +60,7 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
             if (matcher_->direction() != RtpCodec::SEND_ONLY) {
                 // We are also gonna receive data
                 auto self = shared_from_this();
-                int count = 0;
-                track->onMessage([self, videoTrack, &count](rtc::message_variant data) {
+                track->onMessage([self, videoTrack](rtc::message_variant data) {
                     auto msg = rtc::make_message(data);
                     if (msg->type == rtc::Message::Binary) {
                         rtc::byte* data = msg->data();
@@ -69,14 +68,6 @@ void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc:
                         uint8_t pt = rtp->payloadType();
                         if (pt != videoTrack.dstPayloadType) {
                             return;
-                        }
-                        count++;
-                        if (count % 100 == 0) {
-                            std::cout << ":";
-                        }
-                        if (count % 1600 == 0) {
-                            std::cout << std::endl;
-                            count = 0;
                         }
 
                         rtp->setSsrc(videoTrack.srcPayloadType);
