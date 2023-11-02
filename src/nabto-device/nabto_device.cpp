@@ -55,12 +55,6 @@ bool NabtoDeviceImpl::init(nlohmann::json& opts)
     }
 
     try {
-        sct_ = opts["sct"].get<std::string>();
-    } catch (std::exception& e) {
-        // ignore missing optional option
-    }
-
-    try {
         frontendUrl_ = opts["frontendUrl"].get<std::string>();
     } catch (std::exception& e) {
         // ignore missing optional option

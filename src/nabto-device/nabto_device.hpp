@@ -66,7 +66,6 @@ private:
     std::string productId_;
     std::string deviceId_;
     std::string rawPrivateKey_;
-    std::string sct_ = "demosct";
     std::string logLevel_ = "info";
     enum nn_log_severity iamLogLevel_ = NN_LOG_SEVERITY_INFO;
     std::string serverUrl_;
