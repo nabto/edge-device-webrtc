@@ -24,9 +24,16 @@ cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ../
 make -j16 install
 ```
 
-On macOS you may need to turn off `sctp_werror`:
+On macOS you may need to turn off `sctp_werror` so the full set of commands become:
 ```
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
+# the above step will fail - ignore this and run the command again
+cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
+make -j16 install
+```
 ```
 
 ## Running
