@@ -4,6 +4,14 @@ This WebRTC example implementation for Nabto Embedded SDK allows clients to esta
 
 In addition to WebRTC, this example also implements OAuth to authenticate connections in the IAM module.
 
+## Obtaining the Source
+
+This Github repo references various 3rd party components as submodules. So remember to clone recursively:
+
+```
+git clone --recursive https://github.com/nabto/edge-device-webrtc.git
+```
+
 ## Building
 The example is build using cmake from the root of this repo:
 
