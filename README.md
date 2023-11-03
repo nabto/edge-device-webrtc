@@ -38,9 +38,9 @@ Before starting the example, you need a device configured in the Nabto Cloud Con
 ```
 $ ./edge_device_webrtc --create-key
 Created Raw private key:
-  9bde377866f175a4801c1f28e97e3a4faf07cd6889562e8cc187ea00c323c739
-With fingerprint:
   badfae3acfa7ab904ac639f0c4cb0ad268d23f4e324e0708aeb567f87da0c324
+With fingerprint:
+  73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54
 ```
 
 The *Raw key* must be used when starting the example, the *Fingerprint* should be configured in the Nabto Cloud Console.
