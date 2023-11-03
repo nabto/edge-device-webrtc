@@ -13,13 +13,13 @@ git clone --recursive https://github.com/nabto/edge-device-webrtc.git
 ```
 
 ## Building
-The example is build using cmake from the root of this repo:
+The example is built using cmake from the root of this repo (note that cmake must be invoked twice as shown, this is a known issue, ticket sc-2419):
 
 ```
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ../
-# ignore the error and run the command again
+# the above step will fail - ignore this and run the command again
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ../
 make -j16 install
 ```
