@@ -4,6 +4,8 @@ This WebRTC example implementation for Nabto Embedded SDK allows clients to esta
 
 In addition to WebRTC, this example also implements OAuth to authenticate connections in the IAM module.
 
+Note that Firefox' WebRTC support is limited and is not currently supported by Nabto Edge WebRTC.
+
 ## Obtaining the Source
 
 This Github repo references various 3rd party components as submodules. So remember to clone recursively:
