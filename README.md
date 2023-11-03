@@ -103,7 +103,13 @@ First install gstreamer, for instance on macOS use homebrew:
 brew install gstreamer
 ```
 
-With gstreamer available, create an RTP stream using:
+With gstreamer available, create an RTP stream using either a dummy generated feed with clock overlay as follows:
+
+```
+gst-launch-1.0 videotestsrc ! clockoverlay ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay pt=96 mtu=1200 ! udpsink host=127.0.0.1 port=6000
+```
+
+Or use an actual video source if available:
 
 ```
 $ gst-launch-1.0 v4l2src device=/dev/video0 ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay pt=96 mtu=1200 ! udpsink host=127.0.0.1 port=6000
