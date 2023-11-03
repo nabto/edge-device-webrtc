@@ -34,7 +34,6 @@ cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
 make -j16 install
 ```
-```
 
 ## Running
 
