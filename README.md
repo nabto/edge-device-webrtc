@@ -30,6 +30,9 @@ cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
 ```
 
 ## Running
+
+To start the device you must first either have RTP feeds or an RTSP server started. If you do not already have these, see [the sections below](#gstreamer-rtp-feeds) on how to start these.
+
 Before starting the example, you need a device configured in the Nabto Cloud Console. This requires you to configure a fingerprint. To obtain this, run the example application with the `--create-key` argument:
 
 ```
@@ -44,8 +47,7 @@ The *Raw key* must be used when starting the example, the *Fingerprint* should b
 
 If you do not already have a device in the Nabto Cloud Console, follow our [general guide for embedded applications](https://docs.nabto.com/developer/platforms/embedded/applications.html#console).
 
-After configuring the device fingerprint, the example device will be able to attach to the Nabto Basestation when started. To start the device you must first either have RTP feeds or an RTSP server started. If you do not already have these, see the sections below on how to start these.
-
+After configuring the device fingerprint, the example device will be able to attach to the Nabto Basestation when started. 
 ### Running with RTP
 Assuming your RTP feeds are running on the default ports, the device is started with:
 
@@ -93,8 +95,16 @@ The RTP example supports sending video to the client, and sending and receiving 
 
 By default, the example expects an RTP video feed on UDP port 6000, an RTP audio feed on UDP port 6001, and an RTP audio sink on UDP port 6002. These ports can be changed using the `--rtp-port arg` argument. The port configured by this argument will be the port of the video feed. The Audio ports will always be the video port plus 1 and 2.
 
-### Create a video feed
-In some terminal with gstreamer installed create an RTP stream using:
+### Create an RTP demo video feed
+
+First install gstreamer, for instance on macOS use homebrew:
+
+```
+brew install gstreamer
+```
+
+With gstreamer available, create an RTP stream using:
+
 ```
 $ gst-launch-1.0 v4l2src device=/dev/video0 ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay pt=96 mtu=1200 ! udpsink host=127.0.0.1 port=6000
 ```
