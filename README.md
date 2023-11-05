@@ -14,6 +14,9 @@ This Github repo references various 3rd party components as submodules. So remem
 git clone --recursive https://github.com/nabto/edge-device-webrtc.git
 ```
 
+## Tools
+CMake and a C++ compiler is needed. Also, you need cURL and OpenSSL libraries for the target platform.
+
 ## Building
 The example is built using cmake from the root of this repo (note that cmake must be invoked twice as shown, this is a known issue, ticket sc-2419):
 
