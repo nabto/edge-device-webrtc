@@ -2,6 +2,7 @@
 set(src
     main.cpp
     util.cpp
+    event-queue/event_queue_impl.cpp
     nabto-device/nabto_device.cpp
     nabto-device/iam_util.cpp
     media-streams/rtp_client.cpp
