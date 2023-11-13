@@ -11,16 +11,16 @@ namespace nabto {
 const char* coapOauthPath[] = { "webrtc", "oauth", NULL };
 const char* coapChallengePath[] = { "webrtc", "challenge", NULL };
 
-NabtoDeviceImplPtr NabtoDeviceImpl::create(nlohmann::json& opts)
+NabtoDeviceImplPtr NabtoDeviceImpl::create(nlohmann::json& opts, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<NabtoDeviceImpl>();
+    auto ptr = std::make_shared<NabtoDeviceImpl>(queue);
     if(ptr->init(opts)){
         return ptr;
     }
     return nullptr;
 }
 
-NabtoDeviceImpl::NabtoDeviceImpl() : fileBuffer_(1024, 0)
+NabtoDeviceImpl::NabtoDeviceImpl(EventQueuePtr queue) : evQueue_(queue), fileBuffer_(1024, 0)
 {
 }
 
@@ -159,13 +159,13 @@ bool NabtoDeviceImpl::start()
     }
 
     auto self = shared_from_this();
-    coapOauthListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapOauthPath);
+    coapOauthListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapOauthPath, evQueue_);
 
     coapOauthListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
         self->handleOauthRequest(coap);
     });
 
-    coapChallengeListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapChallengePath);
+    coapChallengeListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapChallengePath, evQueue_);
 
     coapChallengeListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
         self->handleChallengeRequest(coap);
@@ -618,9 +618,9 @@ void NabtoDeviceStreamListener::newStream(NabtoDeviceFuture* future, NabtoDevice
 }
 
 
-NabtoDeviceCoapListenerPtr NabtoDeviceCoapListener::create(NabtoDeviceImplPtr device, NabtoDeviceCoapMethod method, const char** path)
+NabtoDeviceCoapListenerPtr NabtoDeviceCoapListener::create(NabtoDeviceImplPtr device, NabtoDeviceCoapMethod method, const char** path, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<NabtoDeviceCoapListener>(device);
+    auto ptr = std::make_shared<NabtoDeviceCoapListener>(device, queue);
     if (ptr->start(method, path)) {
         return ptr;
     }
@@ -628,7 +628,7 @@ NabtoDeviceCoapListenerPtr NabtoDeviceCoapListener::create(NabtoDeviceImplPtr de
 
 }
 
-NabtoDeviceCoapListener::NabtoDeviceCoapListener(NabtoDeviceImplPtr device) : device_(device)
+NabtoDeviceCoapListener::NabtoDeviceCoapListener(NabtoDeviceImplPtr device, EventQueuePtr queue) : device_(device), queue_(queue)
 {
     listener_ = nabto_device_listener_new(device_->getDevice());
     future_ = nabto_device_future_new(device_->getDevice());
@@ -670,12 +670,18 @@ void NabtoDeviceCoapListener::newCoapRequest(NabtoDeviceFuture* future, NabtoDev
     if (ec != NABTO_DEVICE_EC_OK)
     {
         std::cout << "Coap listener future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
-        self->me_ = nullptr;
-        self->coapCb_ = nullptr;
-        self->device_ = nullptr;
+        self->queue_->post([self]() {
+            self->me_ = nullptr;
+            self->coapCb_ = nullptr;
+            self->device_ = nullptr;
+        });
         return;
     }
-    self->coapCb_(self->coap_);
+    std::function<void(NabtoDeviceCoapRequest* coap)> cb = self->coapCb_;
+    NabtoDeviceCoapRequest* req = self->coap_;
+    self->queue_->post([cb, req]() {
+        cb(req);
+    });
     self->coap_ = NULL;
     self->nextCoapRequest();
 }

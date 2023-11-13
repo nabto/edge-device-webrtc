@@ -10,9 +10,21 @@
 #include <rtc/global.hpp>
 #include <cxxopts/cxxopts.hpp>
 #include <nlohmann/json.hpp>
+#include <signal.h>
 
 
 using nlohmann::json;
+
+nabto::EventQueueImplPtr eventQueue = nullptr;
+
+void signal_handler(int s)
+{
+    (void)s;
+    if (eventQueue) {
+        eventQueue->stop();
+    }
+
+}
 
 bool parse_options(int argc, char** argv, json& opts);
 
@@ -23,10 +35,9 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    auto eventQueue = nabto::EventQueueImpl::create();
-    eventQueue->start();
+    eventQueue = nabto::EventQueueImpl::create();
 
-    auto device = nabto::NabtoDeviceImpl::create(opts);
+    auto device = nabto::NabtoDeviceImpl::create(opts, eventQueue);
 
     try {
         bool iamReset = opts["iamReset"].get<bool>();
@@ -77,13 +88,15 @@ int main(int argc, char** argv) {
 
     std::cout << "medias size: " << medias.size() << std::endl;
 
-    auto sigStreamMng = nabto::SignalingStreamManager::create(device, medias);
+    auto sigStreamMng = nabto::SignalingStreamManager::create(device, medias, eventQueue);
     if (sigStreamMng == nullptr || !sigStreamMng->start()) {
         std::cout << "Failed to start signaling stream manager" << std::endl;
         return -1;
     }
 
-    nabto::terminationWaiter::waitForTermination();
+    signal(SIGINT, &signal_handler);
+
+    eventQueue->run();
 
     device->stop();
     medias.clear();

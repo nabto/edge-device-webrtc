@@ -7,16 +7,16 @@ namespace nabto {
 const char* coapInfoPath[] = { "webrtc", "info", NULL };
 const char* coapVideoPath[] = { "webrtc", "video", "{feed}", NULL };
 
-SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias)
+SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue)
 {
-    return std::make_shared<SignalingStreamManager>(device, medias);
+    return std::make_shared<SignalingStreamManager>(device, medias, queue);
 }
 
-SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias) : device_(device), medias_(medias)
+SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue) : device_(device), medias_(medias), queue_(queue)
 {
     streamListener_ = NabtoDeviceStreamListener::create(device_);
-    coapInfoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapInfoPath);
-    coapVideoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapVideoPath);
+    coapInfoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapInfoPath, queue_);
+    coapVideoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapVideoPath, queue_);
 }
 
 SignalingStreamManager::~SignalingStreamManager()

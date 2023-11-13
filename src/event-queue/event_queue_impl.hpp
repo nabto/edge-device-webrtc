@@ -11,6 +11,10 @@
 
 namespace nabto {
 
+class EventQueueImpl;
+typedef std::shared_ptr<EventQueueImpl> EventQueueImplPtr;
+
+
 class EventQueueImpl
     : public EventQueue
 {
@@ -18,22 +22,21 @@ public:
     EventQueueImpl();
     ~EventQueueImpl();
 
-    static EventQueuePtr create() {
+    static EventQueueImplPtr create() {
         return std::make_shared<EventQueueImpl>();
     }
 
-    void start();
+    void run();
     void post(QueueEvent event);
     void stop();
 
 private:
-    static void eventRunner(EventQueueImpl* self);
+    void eventRunner();
     QueueEvent pop();
 
     std::mutex mutex_;
     bool stopped_ = true;
     std::queue<QueueEvent> events_;
-    std::thread eventThread_;
     std::condition_variable cond_;
 
 };

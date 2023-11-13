@@ -13,12 +13,18 @@ EventQueueImpl::~EventQueueImpl()
 
 }
 
-void EventQueueImpl::start()
+void EventQueueImpl::run()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (stopped_) {
-        stopped_ = false;
-        eventThread_ = std::thread(eventRunner, this);
+    bool doRun = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (stopped_) {
+            stopped_ = false;
+            doRun = true;
+        }
+    }
+    if (doRun) {
+        eventRunner();
     }
 }
 
@@ -31,17 +37,10 @@ void EventQueueImpl::post(QueueEvent event)
 
 void EventQueueImpl::stop()
 {
-    bool shouldJoin = false;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (eventThread_.joinable() && !stopped_) {
-            shouldJoin = true;
-        }
         stopped_ = true;
         cond_.notify_one();
-    }
-    if (shouldJoin) {
-        eventThread_.join();
     }
 }
 
@@ -71,10 +70,10 @@ QueueEvent EventQueueImpl::pop()
 }
 
 
-void EventQueueImpl::eventRunner(EventQueueImpl* self)
+void EventQueueImpl::eventRunner()
 {
     while(true) {
-        QueueEvent ev = self->pop();
+        QueueEvent ev = pop();
         if (ev == nullptr) {
             return;
         }
