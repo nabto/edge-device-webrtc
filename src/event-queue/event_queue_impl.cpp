@@ -13,12 +13,11 @@ EventQueueImpl::~EventQueueImpl()
 
 }
 
-void EventQueueImpl::run()
+void EventQueueImpl::start()
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    // if (state_ == State::STOPPED) {
-    if (!running_) {
-        running_ = true;
+    if (stopped_) {
+        stopped_ = false;
         eventThread_ = std::thread(eventRunner, this);
     }
 }
@@ -35,10 +34,10 @@ void EventQueueImpl::stop()
     bool shouldJoin = false;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (eventThread_.joinable() && running_) {
+        if (eventThread_.joinable() && !stopped_) {
             shouldJoin = true;
         }
-        running_ = false;
+        stopped_ = true;
         cond_.notify_one();
     }
     if (shouldJoin) {
@@ -55,7 +54,7 @@ QueueEvent EventQueueImpl::pop()
         cond_.wait(lock);
     }
     // If queue was stopped, return
-    if (!running_) {
+    if (stopped_) {
         std::cout << "wait done, was stopped, returning" << std::endl;
         return nullptr;
     }

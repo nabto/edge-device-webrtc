@@ -15,13 +15,6 @@ class EventQueueImpl
     : public EventQueue
 {
 public:
-
-    enum State {
-        IDLE,
-        RUNNING,
-        STOPPED
-    };
-
     EventQueueImpl();
     ~EventQueueImpl();
 
@@ -29,7 +22,7 @@ public:
         return std::make_shared<EventQueueImpl>();
     }
 
-    void run();
+    void start();
     void post(QueueEvent event);
     void stop();
 
@@ -38,8 +31,7 @@ private:
     QueueEvent pop();
 
     std::mutex mutex_;
-    bool running_ = false;
-    enum State state_ = STOPPED;
+    bool stopped_ = true;
     std::queue<QueueEvent> events_;
     std::thread eventThread_;
     std::condition_variable cond_;

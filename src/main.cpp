@@ -1,4 +1,5 @@
 
+#include "event-queue/event_queue_impl.hpp"
 #include "signaling-stream/signaling_stream_manager.hpp"
 #include "nabto-device/nabto_device.hpp"
 #include "media-streams/rtp_stream.hpp"
@@ -21,6 +22,9 @@ int main(int argc, char** argv) {
     if (shouldExit) {
         return 0;
     }
+
+    auto eventQueue = nabto::EventQueueImpl::create();
+    eventQueue->start();
 
     auto device = nabto::NabtoDeviceImpl::create(opts);
 
@@ -90,6 +94,7 @@ int main(int argc, char** argv) {
 
     auto fut = rtc::Cleanup();
     fut.get();
+    eventQueue->stop();
 
 }
 
