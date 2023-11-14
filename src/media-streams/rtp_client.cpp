@@ -217,7 +217,9 @@ void RtpClient::stop()
             close(videoRtpSock_);
         }
     }
-    videoThread_.join();
+    if (videoThread_.joinable()) {
+        videoThread_.join();
+    }
     std::cout << "RtpClient thread joined" << std::endl;
 }
 
