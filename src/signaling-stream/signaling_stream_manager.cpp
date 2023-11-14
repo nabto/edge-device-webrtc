@@ -14,7 +14,7 @@ SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDeviceImplPtr devi
 
 SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue) : device_(device), medias_(medias), queue_(queue)
 {
-    streamListener_ = NabtoDeviceStreamListener::create(device_);
+    streamListener_ = NabtoDeviceStreamListener::create(device_, queue_);
     coapInfoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapInfoPath, queue_);
     coapVideoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapVideoPath, queue_);
 }

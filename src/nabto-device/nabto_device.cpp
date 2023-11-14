@@ -289,7 +289,7 @@ bool NabtoDeviceImpl::setupFileStream()
 {
     fileStreamFut_ = nabto_device_future_new(device_);
     auto self = shared_from_this();
-    fileStreamListener_ = NabtoDeviceStreamListener::create(self);
+    fileStreamListener_ = NabtoDeviceStreamListener::create(self, evQueue_);
 
     fileStreamListener_->setStreamCallback([self](NabtoDeviceStream* stream) {
         // TODO: split into seperate stream class so we can have multiple file streams in parallel.
@@ -558,16 +558,16 @@ void NabtoDeviceImpl::iamLogger(void* data, enum nn_log_severity severity, const
 }
 
 
-NabtoDeviceStreamListenerPtr NabtoDeviceStreamListener::create(NabtoDeviceImplPtr device)
+NabtoDeviceStreamListenerPtr NabtoDeviceStreamListener::create(NabtoDeviceImplPtr device, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<NabtoDeviceStreamListener>(device);
+    auto ptr = std::make_shared<NabtoDeviceStreamListener>(device, queue);
     if (ptr->start()) {
         return ptr;
     }
     return nullptr;
 }
 
-NabtoDeviceStreamListener::NabtoDeviceStreamListener(NabtoDeviceImplPtr device) : device_(device)
+NabtoDeviceStreamListener::NabtoDeviceStreamListener(NabtoDeviceImplPtr device, EventQueuePtr queue) : device_(device), queue_(queue)
 {
     streamListen_ = nabto_device_listener_new(device_->getDevice());
     streamFut_ = nabto_device_future_new(device_->getDevice());
@@ -606,12 +606,18 @@ void NabtoDeviceStreamListener::newStream(NabtoDeviceFuture* future, NabtoDevice
     if (ec != NABTO_DEVICE_EC_OK)
     {
         std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
-        self->me_ = nullptr;
-        self->streamCb_ = nullptr;
-        self->device_ = nullptr;
+        self->queue_->post([self]() {
+            self->me_ = nullptr;
+            self->streamCb_ = nullptr;
+            self->device_ = nullptr;
+            });
         return;
     }
-    self->streamCb_(self->stream_);
+    std::function<void(NabtoDeviceStream* coap)> cb = self->streamCb_;
+    NabtoDeviceStream* stream = self->stream_;
+    self->queue_->post([cb, stream]() {
+        cb(stream);
+        });
     self->stream_ = NULL;
     self->nextStream();
 

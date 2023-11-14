@@ -98,8 +98,8 @@ private:
 
 class NabtoDeviceStreamListener : public std::enable_shared_from_this <NabtoDeviceStreamListener> {
 public:
-    static NabtoDeviceStreamListenerPtr create(NabtoDeviceImplPtr device);
-    NabtoDeviceStreamListener(NabtoDeviceImplPtr device);
+    static NabtoDeviceStreamListenerPtr create(NabtoDeviceImplPtr device, EventQueuePtr queue);
+    NabtoDeviceStreamListener(NabtoDeviceImplPtr device, EventQueuePtr queue);
     ~NabtoDeviceStreamListener();
 
     bool start();
@@ -113,6 +113,7 @@ private:
 
 
     NabtoDeviceImplPtr device_;
+    EventQueuePtr queue_;
     uint32_t streamPort_;
     std::function<void(NabtoDeviceStream* stream)> streamCb_;
 
