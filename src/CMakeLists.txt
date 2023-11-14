@@ -1,3 +1,4 @@
+include(llvm_sanitizers.cmake)
 
 set(src
     main.cpp
