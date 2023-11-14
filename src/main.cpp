@@ -15,13 +15,13 @@
 
 using nlohmann::json;
 
-nabto::EventQueueImplPtr eventQueue = nullptr;
+nabto::EventQueueImplPtr eventQueueSig = nullptr;
 
 void signal_handler(int s)
 {
     (void)s;
-    if (eventQueue) {
-        eventQueue->stop();
+    if (eventQueueSig) {
+        eventQueueSig->stop();
     }
 
 }
@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    eventQueue = nabto::EventQueueImpl::create();
+    auto eventQueue = nabto::EventQueueImpl::create();
 
     auto device = nabto::NabtoDeviceImpl::create(opts, eventQueue);
 
@@ -93,12 +93,21 @@ int main(int argc, char** argv) {
         std::cout << "Failed to start signaling stream manager" << std::endl;
         return -1;
     }
-
+    eventQueueSig = eventQueue;
     signal(SIGINT, &signal_handler);
 
     eventQueue->run();
 
-    device->stop();
+    // eventQueueSig = nullptr;
+
+    eventQueue->post([device, eventQueue]() {
+        // Nabto device stop will not return until all futures are resolved
+        device->stop();
+        // eventQueue stop will not break the run loop until it runs out of events, so all the resolved futures will be handled.
+        eventQueue->stop();
+    });
+    eventQueue->run();
+
     medias.clear();
     if (rtsp != nullptr) {
         rtsp->stop();

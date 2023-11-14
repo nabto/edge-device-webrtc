@@ -107,7 +107,6 @@ private:
     bool reading_ = false;
 
     uint8_t* writeBuf_ = NULL;
-    std::mutex writeBuffersMutex_;
     std::queue<std::string> writeBuffers_;
 
     NabtoDeviceIceServersRequest* iceReq_;

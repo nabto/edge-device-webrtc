@@ -48,14 +48,9 @@ QueueEvent EventQueueImpl::pop()
 {
     std::unique_lock<std::mutex> lock(mutex_);
     // If no events, wait for events
-    if (events_.empty()) {
+    if (events_.empty() && !stopped_) {
         std::cout << "no events, waiting" << std::endl;
         cond_.wait(lock);
-    }
-    // If queue was stopped, return
-    if (stopped_) {
-        std::cout << "wait done, was stopped, returning" << std::endl;
-        return nullptr;
     }
     // If we have an event, store it to be executed outside the lock
     if (!events_.empty()) {
@@ -63,6 +58,9 @@ QueueEvent EventQueueImpl::pop()
         events_.pop();
         std::cout << "wait done, event popped" << std::endl;
         return ev;
+    } else if (stopped_) {// If queue was stopped, run till empty, then stop
+        std::cout << "wait done, was stopped, returning" << std::endl;
+        return nullptr;
     }
     // This should not happen!
     std::cout << "Queue event was popped but queue was empty" << std::endl;

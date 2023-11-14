@@ -131,10 +131,7 @@ void SignalingStream::createWebrtcConnection() {
 
 void SignalingStream::sendSignalligObject(std::string& data)
 {
-    {
-        std::lock_guard<std::mutex> lock(writeBuffersMutex_);
-        writeBuffers_.push(data);
-    }
+    writeBuffers_.push(data);
 
     tryWriteStream();
 }
@@ -142,19 +139,16 @@ void SignalingStream::sendSignalligObject(std::string& data)
 void SignalingStream::tryWriteStream()
 {
     std::string data;
-    {
-        std::lock_guard<std::mutex> lock(writeBuffersMutex_);
-        if (writeBuf_ != NULL) {
-            std::cout << "Write while writing" << std::endl;
-            return;
-        }
-
-        if (writeBuffers_.empty()) {
-           return;
-        }
-        data = writeBuffers_.front();
-        writeBuffers_.pop();
+    if (writeBuf_ != NULL) {
+        std::cout << "Write while writing" << std::endl;
+        return;
     }
+
+    if (writeBuffers_.empty()) {
+        return;
+    }
+    data = writeBuffers_.front();
+    writeBuffers_.pop();
 
     uint32_t size = data.size();
     writeBuf_ = (uint8_t*)calloc(1, size + 4);
@@ -170,12 +164,8 @@ void SignalingStream::streamWriteCallback(NabtoDeviceFuture* future, NabtoDevice
     (void)ec;
     SignalingStream* self = (SignalingStream*)userData;
     self->queue_->post([self]() {
-        // TODO: remove this mutex as it should be guarded by the event queue
-        {
-            std::lock_guard<std::mutex> lock(self->writeBuffersMutex_);
-            free(self->writeBuf_);
-            self->writeBuf_ = NULL;
-        }
+        free(self->writeBuf_);
+        self->writeBuf_ = NULL;
         self->tryWriteStream();
     });
 }
