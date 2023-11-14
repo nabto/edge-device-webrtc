@@ -4,14 +4,14 @@
 
 namespace nabto {
 
-SignalingStreamPtr SignalingStream::create(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias)
+SignalingStreamPtr SignalingStream::create(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue)
 {
-    return std::make_shared<SignalingStream>(device, stream, manager, medias);
+    return std::make_shared<SignalingStream>(device, stream, manager, medias, queue);
 
 }
 
-SignalingStream::SignalingStream(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias)
-    :device_(device), stream_(stream), manager_(manager), medias_(medias)
+SignalingStream::SignalingStream(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue)
+    :device_(device), stream_(stream), manager_(manager), medias_(medias), queue_(queue)
 {
     future_ = nabto_device_future_new(device->getDevice());
     writeFuture_ = nabto_device_future_new(device->getDevice());
@@ -46,45 +46,53 @@ void SignalingStream::start()
 void SignalingStream::streamAccepted(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData) {
     SignalingStream* self = (SignalingStream*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
-        self->self_ = nullptr;
-        if (self->webrtcConnection_) {
-            self->webrtcConnection_->stop();
-        }
+        self->queue_->post([self]() {
+            self->self_ = nullptr;
+            if (self->webrtcConnection_) {
+                self->webrtcConnection_->stop();
+            }
+        });
         return;
     }
-    self->accepted_ = true;
-    if (self->webrtcConnection_) {
-        // If ice servers request returned first we start reading here
-        std::cout << "Stream accepted after ICE servers. Start reading" << std::endl;
-        self->readObjLength();
-    }
+    self->queue_->post([self]() {
+        self->accepted_ = true;
+        if (self->webrtcConnection_) {
+            // If ice servers request returned first we start reading here
+            std::cout << "Stream accepted after ICE servers. Start reading" << std::endl;
+            self->readObjLength();
+        }
+    });
 }
 
 void SignalingStream::iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData) {
     SignalingStream* self = (SignalingStream*)userData;
     nabto_device_future_free(future);
     if (ec != NABTO_DEVICE_EC_OK && ec != NABTO_DEVICE_EC_NOT_ATTACHED) {
-        if (self->webrtcConnection_ != nullptr) {
-            self->webrtcConnection_->stop();
-        }
-        self->webrtcConnection_ = nullptr;
-        self->self_ = nullptr;
-        nabto_device_ice_servers_request_free(self->iceReq_);
+        self->queue_->post([self]() {
+            if (self->webrtcConnection_ != nullptr) {
+                self->webrtcConnection_->stop();
+            }
+            self->webrtcConnection_ = nullptr;
+            self->self_ = nullptr;
+            nabto_device_ice_servers_request_free(self->iceReq_);
+        });
         return;
     }
-    if (ec == NABTO_DEVICE_EC_OK) {
-        self->parseIceServers();
-        std::cout << "Got ICE servers, creating channel" << std::endl;
-    } else {
-        std::cout << "Failed to get ICE servers. Continuing without TURN" << std::endl;
-    }
-    self->createWebrtcConnection();
-    if (self->accepted_) {
-        // If accepted returned first we start reading here
-        std::cout << "Ice servers after stream accept. Start reading" << std::endl;
-        self->readObjLength();
-    }
-    nabto_device_ice_servers_request_free(self->iceReq_);
+    self->queue_->post([self, ec]() {
+        if (ec == NABTO_DEVICE_EC_OK) {
+            self->parseIceServers();
+            std::cout << "Got ICE servers, creating channel" << std::endl;
+        } else {
+            std::cout << "Failed to get ICE servers. Continuing without TURN" << std::endl;
+        }
+        self->createWebrtcConnection();
+        if (self->accepted_) {
+            // If accepted returned first we start reading here
+            std::cout << "Ice servers after stream accept. Start reading" << std::endl;
+            self->readObjLength();
+        }
+        nabto_device_ice_servers_request_free(self->iceReq_);
+    });
 }
 
 void SignalingStream::parseIceServers() {
@@ -112,7 +120,7 @@ void SignalingStream::parseIceServers() {
 
 void SignalingStream::createWebrtcConnection() {
     auto self = shared_from_this();
-    webrtcConnection_ = WebrtcConnection::create(self, device_, turnServers_, medias_);
+    webrtcConnection_ = WebrtcConnection::create(self, device_, turnServers_, medias_, queue_);
     webrtcConnection_->setEventHandler([self](WebrtcConnection::ConnectionState state) {
         if (state == WebrtcConnection::ConnectionState::CLOSED ||
             state == WebrtcConnection::ConnectionState::FAILED) {
@@ -161,12 +169,15 @@ void SignalingStream::streamWriteCallback(NabtoDeviceFuture* future, NabtoDevice
 {
     (void)ec;
     SignalingStream* self = (SignalingStream*)userData;
-    {
-        std::lock_guard<std::mutex> lock(self->writeBuffersMutex_);
-        free(self->writeBuf_);
-        self->writeBuf_ = NULL;
-    }
-    self->tryWriteStream();
+    self->queue_->post([self]() {
+        // TODO: remove this mutex as it should be guarded by the event queue
+        {
+            std::lock_guard<std::mutex> lock(self->writeBuffersMutex_);
+            free(self->writeBuf_);
+            self->writeBuf_ = NULL;
+        }
+        self->tryWriteStream();
+    });
 }
 
 
@@ -191,15 +202,21 @@ void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError 
     if (ec == NABTO_DEVICE_EC_EOF) {
         // make a nice shutdown
         printf("Read reached EOF closing nicely\n");
-        self->closeStream();
+        self->queue_->post([self]() {
+            self->closeStream();
+        });
         return;
     }
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
-        self->cleanup();
+        self->queue_->post([self]() {
+            self->cleanup();
+        });
         return;
     }
-    self->handleReadObjLen();
+    self->queue_->post([self]() {
+        self->handleReadObjLen();
+    });
 }
 
 void SignalingStream::handleReadObjLen()
@@ -228,20 +245,27 @@ void SignalingStream::readObject(uint32_t len)
 void SignalingStream::hasReadObject(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
     SignalingStream* self = (SignalingStream*)userData;
-    // nabto_device_future_free(future);
-    self->reading_ = false;
     if (ec == NABTO_DEVICE_EC_EOF) {
         // make a nice shutdown
         printf("Read reached EOF closing nicely\n");
-        self->closeStream();
+        self->queue_->post([self]() {
+            self->reading_ = false;
+            self->closeStream();
+        });
         return;
     }
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
-        self->cleanup();
+        self->queue_->post([self]() {
+            self->reading_ = false;
+            self->cleanup();
+        });
         return;
     }
-    self->handleReadObject();
+    self->queue_->post([self]() {
+        self->reading_ = false;
+        self->handleReadObject();
+    });
 
 }
 
@@ -369,13 +393,15 @@ void SignalingStream::streamClosed(NabtoDeviceFuture* future, NabtoDeviceError e
     (void)ec;
     nabto_device_future_free(future);
     SignalingStream* self = (SignalingStream*)userData;
-    self->webrtcConnection_ = nullptr;
-    if (!self->reading_ && self->writeBuf_ == NULL) {
-        std::cout << "Not reading && writeBuf is NULL" << std::endl;
-        self->cleanup();
-    } else {
-        std::cout << "reading or writing on closed. Awaiting self destuct" << std::endl;
-    }
+    self->queue_->post([self]() {
+        self->webrtcConnection_ = nullptr;
+        if (!self->reading_ && self->writeBuf_ == NULL) {
+            std::cout << "Not reading && writeBuf is NULL" << std::endl;
+            self->cleanup();
+        } else {
+            std::cout << "reading or writing on closed. Awaiting self destuct" << std::endl;
+        }
+    });
 }
 
 void SignalingStream::cleanup()

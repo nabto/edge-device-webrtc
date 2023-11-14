@@ -320,13 +320,17 @@ void NabtoDeviceImpl::fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceE
     NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "file stream accept failed" << std::endl;
-        self->fileStream_ = NULL;
-        self->me_ = nullptr;
+        self->evQueue_->post([self]() {
+            self->fileStream_ = NULL;
+            self->me_ = nullptr;
+        });
         return;
     }
     std::cout << "File stream accepted" << std::endl;
-    self->inputFile_ = std::ifstream("nabto.png", std::ifstream::binary);
-    self->doStreamFile();
+    self->evQueue_->post([self]() {
+        self->inputFile_ = std::ifstream("nabto.png", std::ifstream::binary);
+        self->doStreamFile();
+    });
 }
 
 void NabtoDeviceImpl::doStreamFile()
@@ -351,12 +355,16 @@ void NabtoDeviceImpl::writeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceEr
     NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "file stream write failed" << std::endl;
-        self->fileStream_ = NULL;
-        self->me_ = nullptr;
+        self->evQueue_->post([self]() {
+            self->fileStream_ = NULL;
+            self->me_ = nullptr;
+        });
         return;
     }
     std::cout << "nabto stream write callback" << std::endl;
-    self->doStreamFile();
+    self->evQueue_->post([self]() {
+        self->doStreamFile();
+    });
 
 }
 
@@ -365,8 +373,10 @@ void NabtoDeviceImpl::closeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceEr
     NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "file stream close failed" << std::endl;
-        self->fileStream_ = NULL;
-        self->me_ = nullptr;
+        self->evQueue_->post([self]() {
+            self->fileStream_ = NULL;
+            self->me_ = nullptr;
+        });
         return;
     }
     std::cout << "Stream closed" << std::endl;

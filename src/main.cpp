@@ -107,8 +107,6 @@ int main(int argc, char** argv) {
 
     auto fut = rtc::Cleanup();
     fut.get();
-    eventQueue->stop();
-
 }
 
 bool parse_options(int argc, char** argv, json& opts)

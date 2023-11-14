@@ -9,13 +9,13 @@
 
 namespace nabto {
 
-WebrtcConnectionPtr WebrtcConnection::create(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias)
+WebrtcConnectionPtr WebrtcConnection::create(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue)
 {
-    return std::make_shared<WebrtcConnection>(sigStream, device, turnServers, medias);
+    return std::make_shared<WebrtcConnection>(sigStream, device, turnServers, medias, queue);
 }
 
-WebrtcConnection::WebrtcConnection(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias)
-    : sigStream_(sigStream), device_(device), turnServers_(turnServers), medias_(medias)
+WebrtcConnection::WebrtcConnection(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue)
+    : sigStream_(sigStream), device_(device), turnServers_(turnServers), medias_(medias), queue_(queue)
 {
 
 }
@@ -347,7 +347,7 @@ void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> 
             nabtoConnection_ = nabto_device_virtual_connection_new(device_->getDevice());
 
         }
-        coapChannel_ = WebrtcCoapChannel::create(pc_, incoming, device_, nabtoConnection_);
+        coapChannel_ = WebrtcCoapChannel::create(pc_, incoming, device_, nabtoConnection_, queue_);
     }
     else if (incoming->label().find("stream-") == 0) {
         std::cout << "Stream channel opened: " << incoming->label() << std::endl;
@@ -360,7 +360,7 @@ void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> 
             nabtoConnection_ = nabto_device_virtual_connection_new(device_->getDevice());
 
         }
-        streamChannel_ = WebrtcFileStreamChannel::create(incoming, device_, nabtoConnection_, port);
+        streamChannel_ = WebrtcFileStreamChannel::create(incoming, device_, nabtoConnection_, port, queue_);
         } catch (std::exception &e) {
             std::cout << "error " << e.what() << std::endl;
         }

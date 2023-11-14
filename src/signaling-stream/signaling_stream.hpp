@@ -24,9 +24,9 @@ public:
         REQUEST_OFFER
     };
 
-    static SignalingStreamPtr create(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias);
+    static SignalingStreamPtr create(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue);
 
-    SignalingStream(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias);
+    SignalingStream(NabtoDeviceImplPtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue);
 
     ~SignalingStream();
 
@@ -95,6 +95,7 @@ private:
     NabtoDeviceStream* stream_;
     SignalingStreamManagerPtr manager_;
     std::vector<nabto::MediaStreamPtr> medias_;
+    EventQueuePtr queue_;
     NabtoDeviceFuture* future_;
     NabtoDeviceFuture* writeFuture_;
 
