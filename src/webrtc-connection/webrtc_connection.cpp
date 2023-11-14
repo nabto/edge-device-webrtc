@@ -177,84 +177,96 @@ void WebrtcConnection::createPeerConnection()
 
     pc_->onStateChange([self](rtc::PeerConnection::State state) {
         std::cout << "State: " << state << std::endl;
-        if (state == rtc::PeerConnection::State::Connected) {
-            self->state_ = CONNECTED;
-            if (self->eventHandler_) {
-                self->eventHandler_(self->state_);
-            }
-        } else if (state == rtc::PeerConnection::State::Connecting) {
-            self->state_ = CONNECTING;
-            if (self->eventHandler_) {
-                self->eventHandler_(self->state_);
-            }
+        self->queue_->post([self, state]() {
+            if (state == rtc::PeerConnection::State::Connected) {
+                self->state_ = CONNECTED;
+                if (self->eventHandler_) {
+                    self->eventHandler_(self->state_);
+                }
+            } else if (state == rtc::PeerConnection::State::Connecting) {
+                self->state_ = CONNECTING;
+                if (self->eventHandler_) {
+                    self->eventHandler_(self->state_);
+                }
 
-        } else if (state == rtc::PeerConnection::State::Closed) {
-            self->state_ = CLOSED;
-            if (self->eventHandler_) {
-                self->eventHandler_(self->state_);
-                self->eventHandler_ = nullptr;
+            } else if (state == rtc::PeerConnection::State::Closed) {
+                self->state_ = CLOSED;
+                if (self->eventHandler_) {
+                    self->eventHandler_(self->state_);
+                    self->eventHandler_ = nullptr;
+                }
+                for (auto m : self->medias_) {
+                    m->removeConnection(self->pc_);
+                }
+                // TODO: handle closure
+                // self->sigStream_ = nullptr;
+                self->coapChannel_ = nullptr;
+                self->pc_->close();
+                self->pc_ = nullptr;
             }
-            for (auto m : self->medias_) {
-                m->removeConnection(self->pc_);
-            }
-            // TODO: handle closure
-            // self->sigStream_ = nullptr;
-            self->coapChannel_ = nullptr;
-            self->pc_->close();
-            self->pc_ = nullptr;
-        }
+        });
     });
 
     pc_->onSignalingStateChange(
         [self](rtc::PeerConnection::SignalingState state) {
             std::cout << "Signalling State: " << state << std::endl;
-            self->handleSignalingStateChange(state);
+            self->queue_->post([self, state]() {
+                self->handleSignalingStateChange(state);
+            });
         });
 
     pc_->onLocalCandidate([self](rtc::Candidate cand) {
         std::cout << "Got local candidate: " << cand << std::endl;
-        if (self->canTrickle_) {
-            nlohmann::json candidate;
-            candidate["sdpMid"] = cand.mid();
-            candidate["candidate"] = cand.candidate();
-            auto data = candidate.dump();
+        self->queue_->post([self, cand]() {
+            if (self->canTrickle_) {
+                nlohmann::json candidate;
+                candidate["sdpMid"] = cand.mid();
+                candidate["candidate"] = cand.candidate();
+                auto data = candidate.dump();
 
-            // TODO: add metadata
-            nlohmann::json metadata;
+                // TODO: add metadata
+                nlohmann::json metadata;
 
-            self->sigStream_->signalingSendIce(data, metadata);
-        }
+                self->sigStream_->signalingSendIce(data, metadata);
+            }
+        });
     });
 
     pc_->onTrack([self](std::shared_ptr<rtc::Track> track) {
         std::cout << "Got Track event" << std::endl;
-        self->handleTrackEvent(track);
+        self->queue_->post([self, track]() {
+            self->handleTrackEvent(track);
+        });
     });
 
     pc_->onDataChannel([self](std::shared_ptr<rtc::DataChannel> incoming) {
         std::cout << "Got new datachannel: " << incoming->label() << std::endl;
-        self->handleDatachannelEvent(incoming);
+        self->queue_->post([self, incoming]() {
+            self->handleDatachannelEvent(incoming);
+        });
     });
 
     pc_->onGatheringStateChange(
         [self](rtc::PeerConnection::GatheringState state) {
             std::cout << "Gathering State: " << state << std::endl;
-            if (state == rtc::PeerConnection::GatheringState::Complete && !self->canTrickle_) {
-                auto description = self->pc_->localDescription();
-                nlohmann::json message = {
-                    {"type", description->typeString()},
-                    {"sdp", std::string(description.value())} };
-                auto data = message.dump();
-                // TODO: construct metadata if we are making the offer
-                if (description->type() == rtc::Description::Type::Offer) {
-                    std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
-                    self->sigStream_->signalingSendOffer(data, self->metadata_);
+            self->queue_->post([self, state]() {
+                if (state == rtc::PeerConnection::GatheringState::Complete && !self->canTrickle_) {
+                    auto description = self->pc_->localDescription();
+                    nlohmann::json message = {
+                        {"type", description->typeString()},
+                        {"sdp", std::string(description.value())} };
+                    auto data = message.dump();
+                    // TODO: construct metadata if we are making the offer
+                    if (description->type() == rtc::Description::Type::Offer) {
+                        std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
+                        self->sigStream_->signalingSendOffer(data, self->metadata_);
+                    }
+                    else {
+                        std::cout << "Sending answer: " << std::string(description.value()) << std::endl;
+                        self->sigStream_->signalingSendAnswer(data, self->metadata_);
+                    }
                 }
-                else {
-                    std::cout << "Sending answer: " << std::string(description.value()) << std::endl;
-                    self->sigStream_->signalingSendAnswer(data, self->metadata_);
-                }
-            }
+            });
         });
 
 }
@@ -300,6 +312,7 @@ void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
     std::cout << "Track event metadata: " << metadata_.dump() << std::endl;
     tracks_.push_back(track);
     if (track->direction() == rtc::Description::Direction::Inactive) {
+        // TODO: if these events are actually used, they should be synced to the event queue
         track->onOpen([track]() {
             std::cout << "  TRACK OPENED " << track->mid() << " " << track->direction() << std::endl;
             });
