@@ -29,7 +29,6 @@ public:
     void run();
 
     void post(QueueEvent event);
-    void stop();
     void addWork();
     void removeWork();
 
@@ -38,7 +37,6 @@ private:
     QueueEvent pop();
 
     std::mutex mutex_;
-    bool stopped_ = true;
     std::queue<QueueEvent> events_;
     std::condition_variable cond_;
 

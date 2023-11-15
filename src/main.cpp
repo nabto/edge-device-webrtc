@@ -15,15 +15,31 @@
 
 using nlohmann::json;
 
-nabto::EventQueueImplPtr eventQueueSig = nullptr;
+class SigIntContext {
+public:
+    SigIntContext(nabto::EventQueueImplPtr q, nabto::NabtoDeviceImplPtr d)
+    : queue(q), work(q), device(d) {}
+    ~SigIntContext()
+    {
+        auto d = device;
+        auto q = queue;
+        queue->post([d, q]() {
+            d->stop();
+        });
+    }
+private:
+    nabto::EventQueueImplPtr queue = nullptr;
+    nabto::EventQueueWork work;
+    nabto::NabtoDeviceImplPtr device = nullptr;
+
+};
+
+std::shared_ptr<SigIntContext> sigContext = nullptr;
 
 void signal_handler(int s)
 {
     (void)s;
-    if (eventQueueSig) {
-        eventQueueSig->stop();
-    }
-
+    sigContext = nullptr;
 }
 
 bool parse_options(int argc, char** argv, json& opts);
@@ -93,19 +109,10 @@ int main(int argc, char** argv) {
         std::cout << "Failed to start signaling stream manager" << std::endl;
         return -1;
     }
-    eventQueueSig = eventQueue;
+
+    sigContext = std::make_shared<SigIntContext>(eventQueue, device);
     signal(SIGINT, &signal_handler);
 
-    eventQueue->run();
-
-    // eventQueueSig = nullptr;
-
-    eventQueue->post([device, eventQueue]() {
-        // Nabto device stop will not return until all futures are resolved
-        device->stop();
-        // eventQueue stop will not break the run loop until it runs out of events, so all the resolved futures will be handled.
-        eventQueue->stop();
-    });
     eventQueue->run();
 
     medias.clear();

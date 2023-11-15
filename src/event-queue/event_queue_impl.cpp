@@ -15,17 +15,7 @@ EventQueueImpl::~EventQueueImpl()
 
 void EventQueueImpl::run()
 {
-    bool doRun = false;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (stopped_) {
-            stopped_ = false;
-            doRun = true;
-        }
-    }
-    if (doRun) {
-        eventRunner();
-    }
+    eventRunner();
 }
 
 void EventQueueImpl::post(QueueEvent event)
@@ -35,32 +25,26 @@ void EventQueueImpl::post(QueueEvent event)
     cond_.notify_one();
 }
 
-void EventQueueImpl::stop()
-{
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        stopped_ = true;
-        cond_.notify_one();
-    }
-}
-
 void EventQueueImpl::addWork()
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     workCount_++;
     std::cout << "work added: " << workCount_ << std::endl;
 }
 
 void EventQueueImpl::removeWork()
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     workCount_--;
     std::cout << "work removed: " << workCount_ << std::endl;
+    cond_.notify_one(); // break the wait in case this was the last work
 }
 
 QueueEvent EventQueueImpl::pop()
 {
     std::unique_lock<std::mutex> lock(mutex_);
     // If no events AND (outstanding workers OR not stopped), wait for events
-    if (events_.empty() && (workCount_ > 0 || !stopped_)) {
+    if (events_.empty() && workCount_ > 0) {
         std::cout << "no events, waiting. Work: " << workCount_ << std::endl;
         cond_.wait(lock);
     }
@@ -70,12 +54,12 @@ QueueEvent EventQueueImpl::pop()
         events_.pop();
         std::cout << "wait done, event popped" << std::endl;
         return ev;
-    } else if (stopped_ && workCount_ < 1) {// Else if queue was stopped and no workers, stop
-        std::cout << "wait done, was stopped, returning" << std::endl;
+    } else if (workCount_ < 1) {// Else if queue has no workers, stop
+        std::cout << "wait done, was no more work, returning" << std::endl;
         return nullptr;
     }
     // This should not happen!
-    std::cout << "Queue event was popped but queue was empty" << std::endl;
+    std::cout << "THIS SHOULD NOT HAPPEN! Wait done queue empty, workCount: " << workCount_ << std::endl;
     return nullptr;
 }
 

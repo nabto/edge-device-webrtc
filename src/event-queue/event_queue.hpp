@@ -16,7 +16,6 @@ public:
     ~EventQueue() {}
 
     virtual void post(QueueEvent event) = 0;
-    virtual void stop() = 0;
     virtual void addWork() = 0;
     virtual void removeWork() = 0;
 
