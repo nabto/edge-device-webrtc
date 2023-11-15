@@ -99,6 +99,7 @@ private:
     std::vector<struct TurnServer> turnServers_;
     std::vector<nabto::MediaStreamPtr> medias_;
     EventQueuePtr queue_;
+    EventQueueWork queueWork_;
     enum ConnectionState state_ = CREATED;
 
     nlohmann::json metadata_;

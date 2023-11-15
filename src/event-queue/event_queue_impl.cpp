@@ -44,12 +44,24 @@ void EventQueueImpl::stop()
     }
 }
 
+void EventQueueImpl::addWork()
+{
+    workCount_++;
+    std::cout << "work added: " << workCount_ << std::endl;
+}
+
+void EventQueueImpl::removeWork()
+{
+    workCount_--;
+    std::cout << "work removed: " << workCount_ << std::endl;
+}
+
 QueueEvent EventQueueImpl::pop()
 {
     std::unique_lock<std::mutex> lock(mutex_);
-    // If no events, wait for events
-    if (events_.empty() && !stopped_) {
-        std::cout << "no events, waiting" << std::endl;
+    // If no events AND (outstanding workers OR not stopped), wait for events
+    if (events_.empty() && (workCount_ > 0 || !stopped_)) {
+        std::cout << "no events, waiting. Work: " << workCount_ << std::endl;
         cond_.wait(lock);
     }
     // If we have an event, store it to be executed outside the lock
@@ -58,7 +70,7 @@ QueueEvent EventQueueImpl::pop()
         events_.pop();
         std::cout << "wait done, event popped" << std::endl;
         return ev;
-    } else if (stopped_) {// If queue was stopped, run till empty, then stop
+    } else if (stopped_ && workCount_ < 1) {// Else if queue was stopped and no workers, stop
         std::cout << "wait done, was stopped, returning" << std::endl;
         return nullptr;
     }
