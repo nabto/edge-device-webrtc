@@ -11,13 +11,6 @@
 #include <iomanip> // For std::setfill and std::setw
 
 namespace nabto {
-namespace terminationWaiter {
-
-void signal_handler(int s);
-
-void waitForTermination();
-
-} // namespace terminationWaiter
 
 class CurlAsync;
 typedef std::shared_ptr<CurlAsync> CurlAsyncPtr;

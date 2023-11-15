@@ -3,27 +3,6 @@
 #include <iostream>
 
 namespace nabto {
-namespace terminationWaiter {
-
-std::promise<void> promise_;
-
-void signal_handler(int s)
-{
-    (void)s;
-    promise_.set_value();
-
-}
-
-void waitForTermination() {
-    signal(SIGINT, &signal_handler);
-
-    std::future<void> f = promise_.get_future();
-    f.get();
-
-}
-} // namespace terminationWaiter
-
-
 
 CurlAsyncPtr CurlAsync::create()
 {
