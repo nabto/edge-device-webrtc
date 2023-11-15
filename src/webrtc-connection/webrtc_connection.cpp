@@ -15,7 +15,7 @@ WebrtcConnectionPtr WebrtcConnection::create(SignalingStreamPtr sigStream, Nabto
 }
 
 WebrtcConnection::WebrtcConnection(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue)
-    : sigStream_(sigStream), device_(device), turnServers_(turnServers), medias_(medias), queue_(queue)
+    : sigStream_(sigStream), device_(device), turnServers_(turnServers), medias_(medias), queue_(queue), queueWork_(queue)
 {
 
 }
