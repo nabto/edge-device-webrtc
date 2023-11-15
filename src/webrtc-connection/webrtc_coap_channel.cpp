@@ -7,8 +7,8 @@ namespace nabto {
 
 class VirtualCoapRequest : public std::enable_shared_from_this<VirtualCoapRequest> {
 public:
-    VirtualCoapRequest(NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection)
-        : device_(device), nabtoConnection_(nabtoConnection)
+    VirtualCoapRequest(NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, EventQueuePtr queue)
+        : device_(device), nabtoConnection_(nabtoConnection), queue_(queue)
     {
 
     }
@@ -103,7 +103,9 @@ private:
     {
         VirtualCoapRequest* self = (VirtualCoapRequest*)(data);
         nabto_device_future_free(fut);
-        self->handleCoapResponse(err);
+        self->queue_->post([self, err]() {
+            self->handleCoapResponse(err);
+        });
 
     }
 
@@ -133,6 +135,7 @@ private:
     }
 
     NabtoDeviceImplPtr device_;
+    EventQueuePtr queue_;
     NabtoDeviceVirtualConnection* nabtoConnection_;
     std::string coapRequestId_;
     NabtoDeviceCoapMethod method_;
@@ -151,15 +154,15 @@ private:
 
 
 
-WebrtcCoapChannelPtr WebrtcCoapChannel::create(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection)
+WebrtcCoapChannelPtr WebrtcCoapChannel::create(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<WebrtcCoapChannel>(pc, channel, device, nabtoConnection);
+    auto ptr = std::make_shared<WebrtcCoapChannel>(pc, channel, device, nabtoConnection, queue);
     ptr->init();
     return ptr;
 }
 
-WebrtcCoapChannel::WebrtcCoapChannel(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection)
-    : pc_(pc), channel_(channel), device_(device), nabtoConnection_(nabtoConnection)
+WebrtcCoapChannel::WebrtcCoapChannel(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, EventQueuePtr queue)
+    : pc_(pc), channel_(channel), device_(device), nabtoConnection_(nabtoConnection), queue_(queue)
 {
 }
 
@@ -202,7 +205,7 @@ void WebrtcCoapChannel::handleStringMessage(std::string& data)
         nlohmann::json message = nlohmann::json::parse(data);
         int type = message["type"].get<int>();
         if (type == coapMessageType::COAP_REQUEST) {
-            std::shared_ptr<VirtualCoapRequest> req = std::make_shared<VirtualCoapRequest>(device_, nabtoConnection_);
+            std::shared_ptr<VirtualCoapRequest> req = std::make_shared<VirtualCoapRequest>(device_, nabtoConnection_, queue_);
             if (!req->createRequest(message, [self, req](const nlohmann::json& response) {
                 self->sendResponse(response);
                 })) {

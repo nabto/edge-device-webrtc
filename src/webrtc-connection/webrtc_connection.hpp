@@ -39,8 +39,8 @@ public:
         FAILED
     };
 
-    static WebrtcConnectionPtr create(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias);
-    WebrtcConnection(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias);
+    static WebrtcConnectionPtr create(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue);
+    WebrtcConnection(SignalingStreamPtr sigStream, NabtoDeviceImplPtr device, std::vector<struct TurnServer>& turnServers, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue);
     ~WebrtcConnection();
 
     void handleOffer(std::string& data);
@@ -98,6 +98,8 @@ private:
     NabtoDeviceImplPtr device_;
     std::vector<struct TurnServer> turnServers_;
     std::vector<nabto::MediaStreamPtr> medias_;
+    EventQueuePtr queue_;
+    EventQueueWork queueWork_;
     enum ConnectionState state_ = CREATED;
 
     nlohmann::json metadata_;

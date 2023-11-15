@@ -23,9 +23,9 @@ public:
         COAP_RESPONSE
     };
 
-    static WebrtcCoapChannelPtr create(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection);
+    static WebrtcCoapChannelPtr create(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, EventQueuePtr queue);
 
-    WebrtcCoapChannel(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection);
+    WebrtcCoapChannel(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, EventQueuePtr queue);
 
     ~WebrtcCoapChannel() {
         std::cout << "WebrtcCoapChannel Destructor" << std::endl;
@@ -44,6 +44,7 @@ private:
     NabtoDeviceImplPtr device_;
 
     NabtoDeviceVirtualConnection* nabtoConnection_;
+    EventQueuePtr queue_;
 
 };
 

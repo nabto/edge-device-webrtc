@@ -208,16 +208,22 @@ void RtpClient::start()
 void RtpClient::stop()
 {
     std::cout << "RtpClient stopped" << std::endl;
+    bool stopped = false;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-
-        stopped_ = true;
-        if (videoRtpSock_ != 0) {
-            shutdown(videoRtpSock_, SHUT_RDWR);
-            close(videoRtpSock_);
+        if (stopped_) {
+            stopped = stopped_;
+        } else {
+            stopped_ = true;
+            if (videoRtpSock_ != 0) {
+                shutdown(videoRtpSock_, SHUT_RDWR);
+                close(videoRtpSock_);
+            }
         }
     }
-    videoThread_.join();
+    if (!stopped && videoThread_.joinable()) {
+        videoThread_.join();
+    }
     std::cout << "RtpClient thread joined" << std::endl;
 }
 

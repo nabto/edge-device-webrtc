@@ -11,16 +11,16 @@ namespace nabto {
 const char* coapOauthPath[] = { "webrtc", "oauth", NULL };
 const char* coapChallengePath[] = { "webrtc", "challenge", NULL };
 
-NabtoDeviceImplPtr NabtoDeviceImpl::create(nlohmann::json& opts)
+NabtoDeviceImplPtr NabtoDeviceImpl::create(nlohmann::json& opts, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<NabtoDeviceImpl>();
+    auto ptr = std::make_shared<NabtoDeviceImpl>(queue);
     if(ptr->init(opts)){
         return ptr;
     }
     return nullptr;
 }
 
-NabtoDeviceImpl::NabtoDeviceImpl() : fileBuffer_(1024, 0)
+NabtoDeviceImpl::NabtoDeviceImpl(EventQueuePtr queue) : evQueue_(queue), fileBuffer_(1024, 0)
 {
 }
 
@@ -159,13 +159,13 @@ bool NabtoDeviceImpl::start()
     }
 
     auto self = shared_from_this();
-    coapOauthListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapOauthPath);
+    coapOauthListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapOauthPath, evQueue_);
 
     coapOauthListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
         self->handleOauthRequest(coap);
     });
 
-    coapChallengeListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapChallengePath);
+    coapChallengeListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapChallengePath, evQueue_);
 
     coapChallengeListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
         self->handleChallengeRequest(coap);
@@ -289,7 +289,7 @@ bool NabtoDeviceImpl::setupFileStream()
 {
     fileStreamFut_ = nabto_device_future_new(device_);
     auto self = shared_from_this();
-    fileStreamListener_ = NabtoDeviceStreamListener::create(self);
+    fileStreamListener_ = NabtoDeviceStreamListener::create(self, evQueue_);
 
     fileStreamListener_->setStreamCallback([self](NabtoDeviceStream* stream) {
         // TODO: split into seperate stream class so we can have multiple file streams in parallel.
@@ -320,13 +320,17 @@ void NabtoDeviceImpl::fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceE
     NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "file stream accept failed" << std::endl;
-        self->fileStream_ = NULL;
-        self->me_ = nullptr;
+        self->evQueue_->post([self]() {
+            self->fileStream_ = NULL;
+            self->me_ = nullptr;
+        });
         return;
     }
     std::cout << "File stream accepted" << std::endl;
-    self->inputFile_ = std::ifstream("nabto.png", std::ifstream::binary);
-    self->doStreamFile();
+    self->evQueue_->post([self]() {
+        self->inputFile_ = std::ifstream("nabto.png", std::ifstream::binary);
+        self->doStreamFile();
+    });
 }
 
 void NabtoDeviceImpl::doStreamFile()
@@ -351,12 +355,16 @@ void NabtoDeviceImpl::writeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceEr
     NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "file stream write failed" << std::endl;
-        self->fileStream_ = NULL;
-        self->me_ = nullptr;
+        self->evQueue_->post([self]() {
+            self->fileStream_ = NULL;
+            self->me_ = nullptr;
+        });
         return;
     }
     std::cout << "nabto stream write callback" << std::endl;
-    self->doStreamFile();
+    self->evQueue_->post([self]() {
+        self->doStreamFile();
+    });
 
 }
 
@@ -365,8 +373,10 @@ void NabtoDeviceImpl::closeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceEr
     NabtoDeviceImpl* self = (NabtoDeviceImpl*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "file stream close failed" << std::endl;
-        self->fileStream_ = NULL;
-        self->me_ = nullptr;
+        self->evQueue_->post([self]() {
+            self->fileStream_ = NULL;
+            self->me_ = nullptr;
+        });
         return;
     }
     std::cout << "Stream closed" << std::endl;
@@ -558,16 +568,16 @@ void NabtoDeviceImpl::iamLogger(void* data, enum nn_log_severity severity, const
 }
 
 
-NabtoDeviceStreamListenerPtr NabtoDeviceStreamListener::create(NabtoDeviceImplPtr device)
+NabtoDeviceStreamListenerPtr NabtoDeviceStreamListener::create(NabtoDeviceImplPtr device, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<NabtoDeviceStreamListener>(device);
+    auto ptr = std::make_shared<NabtoDeviceStreamListener>(device, queue);
     if (ptr->start()) {
         return ptr;
     }
     return nullptr;
 }
 
-NabtoDeviceStreamListener::NabtoDeviceStreamListener(NabtoDeviceImplPtr device) : device_(device)
+NabtoDeviceStreamListener::NabtoDeviceStreamListener(NabtoDeviceImplPtr device, EventQueuePtr queue) : device_(device), queue_(queue)
 {
     streamListen_ = nabto_device_listener_new(device_->getDevice());
     streamFut_ = nabto_device_future_new(device_->getDevice());
@@ -606,21 +616,27 @@ void NabtoDeviceStreamListener::newStream(NabtoDeviceFuture* future, NabtoDevice
     if (ec != NABTO_DEVICE_EC_OK)
     {
         std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
-        self->me_ = nullptr;
-        self->streamCb_ = nullptr;
-        self->device_ = nullptr;
+        self->queue_->post([self]() {
+            self->me_ = nullptr;
+            self->streamCb_ = nullptr;
+            self->device_ = nullptr;
+            });
         return;
     }
-    self->streamCb_(self->stream_);
+    std::function<void(NabtoDeviceStream* coap)> cb = self->streamCb_;
+    NabtoDeviceStream* stream = self->stream_;
+    self->queue_->post([cb, stream]() {
+        cb(stream);
+        });
     self->stream_ = NULL;
     self->nextStream();
 
 }
 
 
-NabtoDeviceCoapListenerPtr NabtoDeviceCoapListener::create(NabtoDeviceImplPtr device, NabtoDeviceCoapMethod method, const char** path)
+NabtoDeviceCoapListenerPtr NabtoDeviceCoapListener::create(NabtoDeviceImplPtr device, NabtoDeviceCoapMethod method, const char** path, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<NabtoDeviceCoapListener>(device);
+    auto ptr = std::make_shared<NabtoDeviceCoapListener>(device, queue);
     if (ptr->start(method, path)) {
         return ptr;
     }
@@ -628,7 +644,7 @@ NabtoDeviceCoapListenerPtr NabtoDeviceCoapListener::create(NabtoDeviceImplPtr de
 
 }
 
-NabtoDeviceCoapListener::NabtoDeviceCoapListener(NabtoDeviceImplPtr device) : device_(device)
+NabtoDeviceCoapListener::NabtoDeviceCoapListener(NabtoDeviceImplPtr device, EventQueuePtr queue) : device_(device), queue_(queue)
 {
     listener_ = nabto_device_listener_new(device_->getDevice());
     future_ = nabto_device_future_new(device_->getDevice());
@@ -670,12 +686,18 @@ void NabtoDeviceCoapListener::newCoapRequest(NabtoDeviceFuture* future, NabtoDev
     if (ec != NABTO_DEVICE_EC_OK)
     {
         std::cout << "Coap listener future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
-        self->me_ = nullptr;
-        self->coapCb_ = nullptr;
-        self->device_ = nullptr;
+        self->queue_->post([self]() {
+            self->me_ = nullptr;
+            self->coapCb_ = nullptr;
+            self->device_ = nullptr;
+        });
         return;
     }
-    self->coapCb_(self->coap_);
+    std::function<void(NabtoDeviceCoapRequest* coap)> cb = self->coapCb_;
+    NabtoDeviceCoapRequest* req = self->coap_;
+    self->queue_->post([cb, req]() {
+        cb(req);
+    });
     self->coap_ = NULL;
     self->nextCoapRequest();
 }

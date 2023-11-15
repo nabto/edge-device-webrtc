@@ -7,16 +7,16 @@ namespace nabto {
 const char* coapInfoPath[] = { "webrtc", "info", NULL };
 const char* coapVideoPath[] = { "webrtc", "video", "{feed}", NULL };
 
-SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias)
+SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue)
 {
-    return std::make_shared<SignalingStreamManager>(device, medias);
+    return std::make_shared<SignalingStreamManager>(device, medias, queue);
 }
 
-SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias) : device_(device), medias_(medias)
+SignalingStreamManager::SignalingStreamManager(NabtoDeviceImplPtr device, std::vector<nabto::MediaStreamPtr>& medias, EventQueuePtr queue) : device_(device), medias_(medias), queue_(queue)
 {
-    streamListener_ = NabtoDeviceStreamListener::create(device_);
-    coapInfoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapInfoPath);
-    coapVideoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapVideoPath);
+    streamListener_ = NabtoDeviceStreamListener::create(device_, queue_);
+    coapInfoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapInfoPath, queue_);
+    coapVideoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapVideoPath, queue_);
 }
 
 SignalingStreamManager::~SignalingStreamManager()
@@ -35,7 +35,7 @@ bool SignalingStreamManager::start()
             nabto_device_connection_get_client_fingerprint(self->device_->getDevice(), ref, &fp);
             std::cout << "Creating Signaling stream for client fp: " << fp << std::endl;
             nabto_device_string_free(fp);
-            SignalingStreamPtr s = SignalingStream::create(self->device_, stream, self, self->medias_);
+            SignalingStreamPtr s = SignalingStream::create(self->device_, stream, self, self->medias_, self->queue_);
             self->streams_.push_back(s);
             s->start();
         }

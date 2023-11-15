@@ -4,15 +4,15 @@
 
 namespace nabto {
 
-WebrtcStreamChannelPtr WebrtcFileStreamChannel::create(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, uint32_t streamPort)
+WebrtcStreamChannelPtr WebrtcFileStreamChannel::create(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, uint32_t streamPort, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<WebrtcFileStreamChannel>(channel, device, nabtoConnection, streamPort);
+    auto ptr = std::make_shared<WebrtcFileStreamChannel>(channel, device, nabtoConnection, streamPort, queue);
     ptr->init();
     return ptr;
 }
 
-WebrtcFileStreamChannel::WebrtcFileStreamChannel(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, uint32_t streamPort)
-    : channel_(channel), device_(device), nabtoConnection_(nabtoConnection), streamPort_(streamPort)
+WebrtcFileStreamChannel::WebrtcFileStreamChannel(std::shared_ptr<rtc::DataChannel> channel, NabtoDeviceImplPtr device, NabtoDeviceVirtualConnection* nabtoConnection, uint32_t streamPort, EventQueuePtr queue)
+    : channel_(channel), device_(device), nabtoConnection_(nabtoConnection), streamPort_(streamPort), queue_(queue)
 {
 }
 
@@ -51,7 +51,9 @@ void WebrtcFileStreamChannel::streamOpened(NabtoDeviceFuture* fut, NabtoDeviceEr
         return;
     }
     std::cout << "Nabto stream opened" << std::endl;
-    self->startRead();
+    self->queue_->post([self]() {
+        self->startRead();
+    });
 }
 
 void WebrtcFileStreamChannel::startRead()
@@ -65,8 +67,10 @@ void WebrtcFileStreamChannel::streamReadCb(NabtoDeviceFuture* fut, NabtoDeviceEr
     WebrtcFileStreamChannel* self = (WebrtcFileStreamChannel*)data;
     if (ec == NABTO_DEVICE_EC_EOF) {
         std::cout << "Reached EOF" << std::endl;
-        self->channel_->close();
-        self->channel_ = nullptr;
+        self->queue_->post([self]() {
+            self->channel_->close();
+            self->channel_ = nullptr;
+        });
         return;
     } else if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "Stream read failed with: " << nabto_device_error_get_message(ec) << std::endl;
@@ -75,8 +79,10 @@ void WebrtcFileStreamChannel::streamReadCb(NabtoDeviceFuture* fut, NabtoDeviceEr
     }
     std::cout << "Read " << self->readLen_ << "bytes from nabto stream" << std::endl;
     // TODO: consider handling return value and react to buffered messages
-    self->channel_->send((rtc::byte*)self->readBuffer_, self->readLen_);
-    self->startRead();
+    self->queue_->post([self]() {
+        self->channel_->send((rtc::byte*)self->readBuffer_, self->readLen_);
+        self->startRead();
+    });
 }
 
 } // namespace

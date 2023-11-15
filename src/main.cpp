@@ -1,4 +1,5 @@
 
+#include "event-queue/event_queue_impl.hpp"
 #include "signaling-stream/signaling_stream_manager.hpp"
 #include "nabto-device/nabto_device.hpp"
 #include "media-streams/rtp_stream.hpp"
@@ -9,9 +10,37 @@
 #include <rtc/global.hpp>
 #include <cxxopts/cxxopts.hpp>
 #include <nlohmann/json.hpp>
+#include <signal.h>
 
 
 using nlohmann::json;
+
+class SigIntContext {
+public:
+    SigIntContext(nabto::EventQueueImplPtr q, nabto::NabtoDeviceImplPtr d)
+    : queue(q), work(q), device(d) {}
+    ~SigIntContext()
+    {
+        auto d = device;
+        auto q = queue;
+        queue->post([d, q]() {
+            d->stop();
+        });
+    }
+private:
+    nabto::EventQueueImplPtr queue = nullptr;
+    nabto::EventQueueWork work;
+    nabto::NabtoDeviceImplPtr device = nullptr;
+
+};
+
+std::shared_ptr<SigIntContext> sigContext = nullptr;
+
+void signal_handler(int s)
+{
+    (void)s;
+    sigContext = nullptr;
+}
 
 bool parse_options(int argc, char** argv, json& opts);
 
@@ -22,7 +51,9 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    auto device = nabto::NabtoDeviceImpl::create(opts);
+    auto eventQueue = nabto::EventQueueImpl::create();
+
+    auto device = nabto::NabtoDeviceImpl::create(opts, eventQueue);
 
     try {
         bool iamReset = opts["iamReset"].get<bool>();
@@ -73,15 +104,17 @@ int main(int argc, char** argv) {
 
     std::cout << "medias size: " << medias.size() << std::endl;
 
-    auto sigStreamMng = nabto::SignalingStreamManager::create(device, medias);
+    auto sigStreamMng = nabto::SignalingStreamManager::create(device, medias, eventQueue);
     if (sigStreamMng == nullptr || !sigStreamMng->start()) {
         std::cout << "Failed to start signaling stream manager" << std::endl;
         return -1;
     }
 
-    nabto::terminationWaiter::waitForTermination();
+    sigContext = std::make_shared<SigIntContext>(eventQueue, device);
+    signal(SIGINT, &signal_handler);
 
-    device->stop();
+    eventQueue->run();
+
     medias.clear();
     if (rtsp != nullptr) {
         rtsp->stop();
@@ -90,7 +123,6 @@ int main(int argc, char** argv) {
 
     auto fut = rtc::Cleanup();
     fut.get();
-
 }
 
 bool parse_options(int argc, char** argv, json& opts)

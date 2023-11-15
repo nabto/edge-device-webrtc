@@ -2,6 +2,7 @@
 
 #include <nabto/nabto_device.h>
 #include <modules/iam/nm_iam.h>
+#include <event-queue/event_queue.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -22,8 +23,8 @@ typedef std::shared_ptr<NabtoDeviceCoapListener> NabtoDeviceCoapListenerPtr;
 
 class NabtoDeviceImpl : public std::enable_shared_from_this <NabtoDeviceImpl> {
 public:
-    static NabtoDeviceImplPtr create(nlohmann::json& opts);
-    NabtoDeviceImpl();
+    static NabtoDeviceImplPtr create(nlohmann::json& opts, EventQueuePtr queue);
+    NabtoDeviceImpl(EventQueuePtr queue);
     ~NabtoDeviceImpl();
     bool init(nlohmann::json& opts);
 
@@ -61,6 +62,7 @@ private:
     void handleOauthRequest(NabtoDeviceCoapRequest* req);
     void handleChallengeRequest(NabtoDeviceCoapRequest* req);
 
+    EventQueuePtr evQueue_;
     std::vector<char> fileBuffer_;
     NabtoDevice* device_;
     std::string productId_;
@@ -96,8 +98,8 @@ private:
 
 class NabtoDeviceStreamListener : public std::enable_shared_from_this <NabtoDeviceStreamListener> {
 public:
-    static NabtoDeviceStreamListenerPtr create(NabtoDeviceImplPtr device);
-    NabtoDeviceStreamListener(NabtoDeviceImplPtr device);
+    static NabtoDeviceStreamListenerPtr create(NabtoDeviceImplPtr device, EventQueuePtr queue);
+    NabtoDeviceStreamListener(NabtoDeviceImplPtr device, EventQueuePtr queue);
     ~NabtoDeviceStreamListener();
 
     bool start();
@@ -111,6 +113,7 @@ private:
 
 
     NabtoDeviceImplPtr device_;
+    EventQueuePtr queue_;
     uint32_t streamPort_;
     std::function<void(NabtoDeviceStream* stream)> streamCb_;
 
@@ -124,8 +127,8 @@ private:
 
 class NabtoDeviceCoapListener : public std::enable_shared_from_this <NabtoDeviceCoapListener> {
 public:
-    static NabtoDeviceCoapListenerPtr create(NabtoDeviceImplPtr device, NabtoDeviceCoapMethod method, const char** path);
-    NabtoDeviceCoapListener(NabtoDeviceImplPtr device);
+    static NabtoDeviceCoapListenerPtr create(NabtoDeviceImplPtr device, NabtoDeviceCoapMethod method, const char** path, EventQueuePtr queue);
+    NabtoDeviceCoapListener(NabtoDeviceImplPtr device, EventQueuePtr queue);
     ~NabtoDeviceCoapListener();
 
     bool start(NabtoDeviceCoapMethod method, const char** path);
@@ -136,8 +139,8 @@ private:
     void nextCoapRequest();
     static void newCoapRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
-
     NabtoDeviceImplPtr device_;
+    EventQueuePtr queue_;
     std::function<void(NabtoDeviceCoapRequest* coap)> coapCb_;
 
     NabtoDeviceListener* listener_ = NULL;
