@@ -68,6 +68,9 @@ int main(int argc, char** argv) {
 
     if(device == nullptr || !device->start()) {
         std::cout << "Failed to start device" << std::endl;
+        if (device) {
+            device->stop();
+        }
         return -1;
     }
 
