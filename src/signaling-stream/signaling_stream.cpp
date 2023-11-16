@@ -105,12 +105,11 @@ void SignalingStream::parseIceServers() {
         for (size_t u = 0; u < urlCount; u++) {
             WebrtcConnection::TurnServer turn;
             memset(&turn, 0, sizeof(turn));
-            // TODO: do not use hardcoded credentials. We should use the credentials provided by the Basestation once our TURN servers are fixed.
             if (username != NULL) {
-                turn.username = "pZn9wGCOD1MMgfJ2";//std::string(username);
+                turn.username = std::string(username);
             }
             if (cred != NULL) {
-                turn.password = "0ZW1J5fvkJYbbpDA"; //std::string(cred);
+                turn.password = std::string(cred);
             }
             turn.hostname = std::string(nabto_device_ice_servers_request_get_url(iceReq_, i, u));
             turnServers_.push_back(turn);
