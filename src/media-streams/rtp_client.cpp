@@ -300,7 +300,7 @@ int H264CodecMatcher::match(rtc::Description::Media* media)
             r = media->rtpMap(pt);
         }
         catch (std::exception& ex) {
-            // std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+            std::cout << "Bad rtpMap for pt: " << pt << std::endl;
             continue;
         }
         if (r->format == "H264" && r->clockRate == 90000) {
@@ -318,7 +318,8 @@ int H264CodecMatcher::match(rtc::Description::Media* media)
                 rtp = r;
                 std::cout << "FOUND RTP BETTER codec match!!! " << pt << std::endl;
             } else if (found) {
-                media->removeRtpMap(pt);
+                std::cout << "h264 pt: " << pt << " no match, removing" << std::endl;
+               media->removeRtpMap(pt);
                 continue;
             } else {
                 std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
@@ -356,7 +357,7 @@ int H264CodecMatcher::match(rtc::Description::Media* media)
         //     rtp->removeFeedback("ccm fir");
         // }
         else {
-            // std::cout << "no match, removing" << std::endl;
+            std::cout << "pt: " << pt << " no match, removing" << std::endl;
             media->removeRtpMap(pt);
         }
     }
