@@ -108,6 +108,7 @@ private:
     uint8_t* objectBuffer_;
     bool accepted_ = false;
     bool closed_ = false;
+    bool closing_ = false;
     bool reading_ = false;
 
     uint8_t* writeBuf_ = NULL;

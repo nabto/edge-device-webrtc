@@ -364,13 +364,14 @@ void SignalingStream::sendTurnServers()
 void SignalingStream::closeStream()
 {
     if (closed_) {
-        if (!reading_ && writeBuf_ == NULL) {
-            std::cout << "Got close when closed. Not reading not writing. cleaning up" << std::endl;
+        if (!closing_ && !reading_ && writeBuf_ == NULL) {
+            std::cout << "Got close when closed. Not reading not writing not closing. cleaning up" << std::endl;
             cleanup();
         }
         return;
     }
     closed_ = true;
+    closing_ = true;
     NabtoDeviceFuture* closeFuture = nabto_device_future_new(device_->getDevice());
     nabto_device_stream_close(stream_, closeFuture);
     nabto_device_future_set_callback(closeFuture, streamClosed, this);
@@ -383,6 +384,7 @@ void SignalingStream::streamClosed(NabtoDeviceFuture* future, NabtoDeviceError e
     nabto_device_future_free(future);
     SignalingStream* self = (SignalingStream*)userData;
     self->queue_->post([self]() {
+        self->closing_ = false;
         self->webrtcConnection_ = nullptr;
         if (!self->reading_ && self->writeBuf_ == NULL) {
             std::cout << "Not reading && writeBuf is NULL" << std::endl;
