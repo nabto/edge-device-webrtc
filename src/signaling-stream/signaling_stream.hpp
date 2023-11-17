@@ -54,8 +54,12 @@ public:
     {
         // TODO: if webrtcConnection_ is nullptr, maybe we just create it?
         if (webrtcConnection_ != nullptr) {
-            webrtcConnection_->createTrack(media);
-            return true;
+            try {
+                webrtcConnection_->createTrack(media);
+                return true;
+            } catch (std::runtime_error& ex) {
+                std::cout << "AcceptTrack runtime error: " << ex.what() << std::endl;
+            }
         }
         return false;
     }

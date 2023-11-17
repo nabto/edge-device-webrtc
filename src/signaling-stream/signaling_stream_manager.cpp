@@ -114,7 +114,7 @@ void SignalingStreamManager::handleVideoRequest(NabtoDeviceCoapRequest* coap)
                 found = true;
                 if(!stream->createTrack(m)) {
                     std::cout << "Failed to create track for video feed" << std::endl;
-                    nabto_device_coap_error_response(coap, 400, "Invalid connection");
+                    nabto_device_coap_error_response(coap, 500, "Internal Server Error");
                     return;
                 }
             }

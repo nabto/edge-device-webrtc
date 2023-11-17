@@ -349,6 +349,9 @@ void WebrtcConnection::acceptTrack(std::shared_ptr<rtc::Track> track)
     }
     catch (nlohmann::json::exception& ex) {
         std::cout << "acceptTrack json exception: " << ex.what() << std::endl;
+    } catch (std::runtime_error& ex) {
+        // TODO: handle addTrack error
+        std::cout << "AcceptTrack runtime error: " << ex.what() << std::endl;
     }
     // TODO: handle not found error
 
