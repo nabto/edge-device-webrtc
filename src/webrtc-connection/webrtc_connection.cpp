@@ -234,9 +234,10 @@ void WebrtcConnection::createPeerConnection()
 
     pc_->onTrack([self](std::shared_ptr<rtc::Track> track) {
         std::cout << "Got Track event" << std::endl;
-        self->queue_->post([self, track]() {
+        // Track events are triggered by setRemoteDescription, so they are already running on the event queue.
+        // self->queue_->post([self, track]() {
             self->handleTrackEvent(track);
-        });
+        // });
     });
 
     pc_->onDataChannel([self](std::shared_ptr<rtc::DataChannel> incoming) {
