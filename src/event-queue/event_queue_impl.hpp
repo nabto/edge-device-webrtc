@@ -1,6 +1,6 @@
 #pragma once
 
-#include "event_queue.hpp"
+#include <nabto/nabto_device_webrtc.hpp>
 
 #include <memory>
 #include <functional>

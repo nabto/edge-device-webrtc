@@ -13,6 +13,9 @@ class NabtoDeviceWebrtc;
 class EventQueue;
 class MediaTrack;
 
+class NabtoDeviceWebrtcImpl;
+typedef std::shared_ptr<NabtoDeviceWebrtcImpl> NabtoDeviceWebrtcImplPtr;
+
 typedef std::shared_ptr<NabtoDeviceWebrtc> NabtoDeviceWebrtcPtr;
 typedef std::shared_ptr<EventQueue> EventQueuePtr;
 typedef std::shared_ptr<MediaTrack> MediaTrackPtr;
@@ -23,17 +26,18 @@ typedef std::function<bool(NabtoDeviceConnectionRef connRef, MediaTrackPtr track
 typedef std::function<void(NabtoDeviceConnectionRef connRef, std::string& action)> CheckAccessCallback;
 
 
-typedef std::shared_ptr<abtoDevice*> NabtoDevicePtr;
+typedef std::shared_ptr<NabtoDevice> NabtoDevicePtr;
 
+template< typename T >
 struct NabtoDeviceDeleter {
-    void operator()(NabtoDevice* device) {
+    void operator()(T* device) {
         nabto_device_free(device);
     }
 };
 
-NabtoDevicePtr makeNabtoDevice() {
-    return std::shared_ptr<NabtoDevice*>(nabto_device_new(),
-        NabtoDeviceDeleter{});
+static NabtoDevicePtr makeNabtoDevice() {
+    return std::shared_ptr<NabtoDevice>(nabto_device_new(),
+        NabtoDeviceDeleter<NabtoDevice>());
 }
 
 /**
@@ -65,6 +69,9 @@ public:
      */
     EventQueueWork(EventQueuePtr queue);
     ~EventQueueWork();
+private:
+    EventQueuePtr queue_;
+
 };
 
 
@@ -136,6 +143,8 @@ public:
     */
     void setCheckAccessCallback(CheckAccessCallback cb);
 
+private:
+    NabtoDeviceWebrtcImplPtr impl_;
 };
 
 } // namespace nabto

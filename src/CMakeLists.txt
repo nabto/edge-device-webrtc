@@ -1,7 +1,6 @@
 include(llvm_sanitizers.cmake)
 
 set(src
-    main.cpp
     util.cpp
     event-queue/event_queue_impl.cpp
     nabto-device/nabto_device.cpp
@@ -15,16 +14,32 @@ set(src
     webrtc-connection/webrtc_connection.cpp
     webrtc-connection/webrtc_coap_channel.cpp
     webrtc-connection/webrtc_stream_channel.cpp
+    api/nabto_device_webrtc.cpp
+    api/nabto_device_webrtc_impl.cpp
 )
 
-add_executable(edge_device_webrtc "${src}")
+add_library( nabto_device_webrtc SHARED "${src}")
+
+target_link_libraries(nabto_device_webrtc
+    nabto_device_static
+    datachannel-static
+    nm_iam
+    CURL::libcurl
+    jwt-cpp::jwt-cpp
+)
+
+set(ex_src
+    main.cpp
+)
+
+add_executable(edge_device_webrtc "${ex_src}")
 
 find_package(CURL REQUIRED)
 
 target_link_libraries(edge_device_webrtc
     nabto_device_static
     nm_iam
-    datachannel-static
+    nabto_device_webrtc
     CURL::libcurl
     jwt-cpp::jwt-cpp
 )

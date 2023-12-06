@@ -2,7 +2,7 @@
 
 #include <nabto/nabto_device.h>
 #include <modules/iam/nm_iam.h>
-#include <event-queue/event_queue.hpp>
+#include <nabto/nabto_device_webrtc.hpp>
 
 #include <nlohmann/json.hpp>
 

@@ -36,6 +36,7 @@ set(NO_EXAMPLES ON)
 set(USE_SYSTEM_JSON ON)
 add_subdirectory(3rdparty/libdatachannel)
 
+include_directories(include)
 include_directories(src)
 include_directories(nabto-embedded-sdk/include)
 include_directories(nabto-embedded-sdk/src)
@@ -54,3 +55,4 @@ macro(install_dependencies TARGET)
 endmacro()
 
 add_subdirectory(src)
+add_subdirectory(example)

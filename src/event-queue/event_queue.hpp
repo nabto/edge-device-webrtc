@@ -3,7 +3,7 @@
 #include <memory>
 #include <functional>
 
-namespace nabto {
+namespace nabto2 {
 
 class EventQueue;
 typedef std::shared_ptr<EventQueue> EventQueuePtr;

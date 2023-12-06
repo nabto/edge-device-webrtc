@@ -3,7 +3,7 @@
 #include <nabto-device/nabto_device.hpp>
 #include <signaling-stream/signaling_stream.hpp>
 #include <media-streams/media_stream.hpp>
-#include <event-queue/event_queue.hpp>
+#include <nabto/nabto_device_webrtc.hpp>
 
 #include <memory>
 
