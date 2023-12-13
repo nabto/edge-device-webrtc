@@ -2,8 +2,6 @@
 
 #include <nabto/nabto_device.h>
 
-#include <rtc/rtc.hpp>
-
 #include <memory>
 #include <functional>
 
@@ -15,15 +13,16 @@ class MediaTrack;
 
 class NabtoDeviceWebrtcImpl;
 typedef std::shared_ptr<NabtoDeviceWebrtcImpl> NabtoDeviceWebrtcImplPtr;
+class MediaTrackImpl;
+typedef std::shared_ptr<MediaTrackImpl> MediaTrackImplPtr;
 
 typedef std::shared_ptr<NabtoDeviceWebrtc> NabtoDeviceWebrtcPtr;
 typedef std::shared_ptr<EventQueue> EventQueuePtr;
 typedef std::shared_ptr<MediaTrack> MediaTrackPtr;
-typedef std::shared_ptr<rtc::PeerConnection> RtcPcPtr;
 
 typedef std::function<void()> QueueEvent;
 typedef std::function<bool(NabtoDeviceConnectionRef connRef, MediaTrackPtr track)> TrackEventCallback;
-typedef std::function<void(NabtoDeviceConnectionRef connRef, std::string& action)> CheckAccessCallback;
+typedef std::function<bool(NabtoDeviceConnectionRef connRef, std::string action)> CheckAccessCallback;
 
 
 typedef std::shared_ptr<NabtoDevice> NabtoDevicePtr;
@@ -82,6 +81,8 @@ public:
      */
     static MediaTrackPtr create(std::string& trackId, std::string& sdp);
 
+    MediaTrack(std::string& trackId, std::string& sdp);
+
     /**
      * Get track ID of this track
     */
@@ -107,7 +108,20 @@ public:
     */
     void setReceiveCallback(std::function<void(const uint8_t* buffer, size_t length)> cb);
 
-    void stop();
+    /**
+     * Set callback to be called when this track is closed.
+    */
+    void setCloseCallback(std::function<void()> cb);
+
+    void close();
+
+    /**
+     * Internal method
+    */
+    MediaTrackImplPtr getImpl();
+private:
+    MediaTrackImplPtr impl_;
+
 };
 
 class NabtoDeviceWebrtc {
