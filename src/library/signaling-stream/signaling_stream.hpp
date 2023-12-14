@@ -3,7 +3,6 @@
 #include "signaling_stream_ptr.hpp"
 #include <webrtc-connection/webrtc_connection.hpp>
 
-#include <nabto-device/nabto_device.hpp>
 #include <nabto/nabto_device_experimental.h>
 #include <nabto/nabto_device_virtual.h>
 

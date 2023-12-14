@@ -80,32 +80,27 @@ int main(int argc, char** argv) {
     device->setJwksConfig(url, issuer);
 
     // TODO: remake for new API
-    std::vector<nabto::MediaStreamPtr> medias;
+    std::vector<nabto::RtpClientPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
     nabto::H264CodecMatcher rtpVideoCodec;
     nabto::OpusCodecMatcher rtpAudioCodec;
-    try {
-        std::string rtspUrl = opts["rtspUrl"].get<std::string>();
-        rtsp = nabto::RtspStream::create("frontdoor", rtspUrl);
-        medias.push_back(rtsp);
+    // try {
+        // std::string rtspUrl = opts["rtspUrl"].get<std::string>();
+        // rtsp = nabto::RtspStream::create("frontdoor", rtspUrl);
+        // medias.push_back(rtsp);
 
-        // rtsp->start();
-        // auto videoRtp = rtsp->getVideoStream();
-        // if (videoRtp != nullptr) {
-        //     medias.push_back(videoRtp);
-        // }
-        // auto audioRtp = rtsp->getAudioStream();
-        // if (audioRtp != nullptr) {
-        //     medias.push_back(audioRtp);
-        // }
-    } catch (std::exception& ex) {
+    // } catch (std::exception& ex) {
         // rtspUrl was not set, default to RTP.
         uint16_t port = opts["rtpPort"].get<uint16_t>();
-        auto rtp = nabto::RtpStream::create("frontdoor");
-        rtp->setVideoConf(port, &rtpVideoCodec);
-        rtp->setAudioConf(port + 1, &rtpAudioCodec);
-        medias.push_back(rtp);
-    }
+
+        auto rtpVideo = nabto::RtpClient::create("frontdoor-video");
+        rtpVideo->setPort(port);
+        rtpVideo->setRtpCodecMatcher(&rtpVideoCodec);
+        // Remote host is only used for 2-way medias, video is only 1-way
+        // rtpVideo->setRemoteHost("127.0.0.1");
+
+        medias.push_back(rtpVideo);
+    // }
 
     std::cout << "medias size: " << medias.size() << std::endl;
 
@@ -126,6 +121,7 @@ int main(int argc, char** argv) {
             NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
             bool found = false;
+            std::vector<nabto::MediaTrackPtr> list;
 
             for (auto m : medias) {
                 auto id = m->getTrackId();
@@ -133,15 +129,23 @@ int main(int argc, char** argv) {
                     found = true;
                     auto sdp = m->sdp();
                     auto media = nabto::MediaTrack::create(id, sdp);
-                    std::vector<nabto::MediaTrackPtr> list;
-                    list.push_back(media);
+                    auto c = m->getRtpCodecMatcher();
+                    const rtc::SSRC ssrc = c->ssrc();
+                    nabto::RtpTrack track = {
+                        media,
+                        ssrc,
+                        c->payloadType(),
+                        c->payloadType()
+                    };
+                    m->addConnection(ref, track);
 
-                    if (!webrtc->connectionAddMedias(ref, list)) {
-                        std::cout << "Failed to add medias to connection" << std::endl;
-                        nabto_device_coap_error_response(coap, 500, "Internal Server Error");
-                        return;
-                    }
+                    list.push_back(media);
                 }
+            }
+            if (!webrtc->connectionAddMedias(ref, list)) {
+                std::cout << "Failed to add medias to connection" << std::endl;
+                nabto_device_coap_error_response(coap, 500, "Internal Server Error");
+                return;
             }
 
             if (found) {

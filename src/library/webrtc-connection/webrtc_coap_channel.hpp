@@ -1,9 +1,11 @@
 #pragma once
 
-#include <nabto-device/nabto_device.hpp>
+#include <nabto/nabto_device_webrtc.hpp>
 #include <nabto/nabto_device_virtual.h>
 
 #include <rtc/rtc.hpp>
+
+#include <nlohmann/json.hpp>
 
 #include <memory>
 

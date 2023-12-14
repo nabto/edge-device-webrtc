@@ -4,7 +4,6 @@
 #include "webrtc_stream_channel.hpp"
 
 #include <signaling-stream/signaling_stream_ptr.hpp>
-#include <nabto-device/nabto_device.hpp>
 
 #include <nabto/nabto_device_virtual.h>
 

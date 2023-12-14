@@ -13,17 +13,17 @@
 
 namespace nabto {
 
-class NabtoDeviceStreamListener;
-class NabtoDeviceCoapListener;
+class NabtoStreamListener;
+class NabtoCoapListener;
 
-typedef std::shared_ptr<NabtoDeviceStreamListener> NabtoDeviceStreamListenerPtr;
-typedef std::shared_ptr<NabtoDeviceCoapListener> NabtoDeviceCoapListenerPtr;
+typedef std::shared_ptr<NabtoStreamListener> NabtoStreamListenerPtr;
+typedef std::shared_ptr<NabtoCoapListener> NabtoCoapListenerPtr;
 
-class NabtoDeviceStreamListener : public std::enable_shared_from_this <NabtoDeviceStreamListener> {
+class NabtoStreamListener : public std::enable_shared_from_this <NabtoStreamListener> {
 public:
-    static NabtoDeviceStreamListenerPtr create(NabtoDevicePtr device, EventQueuePtr queue);
-    NabtoDeviceStreamListener(NabtoDevicePtr device, EventQueuePtr queue);
-    ~NabtoDeviceStreamListener();
+    static NabtoStreamListenerPtr create(NabtoDevicePtr device, EventQueuePtr queue);
+    NabtoStreamListener(NabtoDevicePtr device, EventQueuePtr queue);
+    ~NabtoStreamListener();
 
     bool start();
 
@@ -44,15 +44,15 @@ private:
     NabtoDeviceFuture* streamFut_ = NULL;
     NabtoDeviceStream* stream_ = NULL;
 
-    NabtoDeviceStreamListenerPtr me_ = nullptr;
+    NabtoStreamListenerPtr me_ = nullptr;
 
 };
 
-class NabtoDeviceCoapListener : public std::enable_shared_from_this <NabtoDeviceCoapListener> {
+class NabtoCoapListener : public std::enable_shared_from_this <NabtoCoapListener> {
 public:
-    static NabtoDeviceCoapListenerPtr create(NabtoDevicePtr device, NabtoDeviceCoapMethod method, const char** path, EventQueuePtr queue);
-    NabtoDeviceCoapListener(NabtoDevicePtr device, EventQueuePtr queue);
-    ~NabtoDeviceCoapListener();
+    static NabtoCoapListenerPtr create(NabtoDevicePtr device, NabtoDeviceCoapMethod method, const char** path, EventQueuePtr queue);
+    NabtoCoapListener(NabtoDevicePtr device, EventQueuePtr queue);
+    ~NabtoCoapListener();
 
     bool start(NabtoDeviceCoapMethod method, const char** path);
 
@@ -70,7 +70,7 @@ private:
     NabtoDeviceFuture* future_ = NULL;
     NabtoDeviceCoapRequest* coap_ = NULL;
 
-    NabtoDeviceCoapListenerPtr me_ = nullptr;
+    NabtoCoapListenerPtr me_ = nullptr;
 
 };
 

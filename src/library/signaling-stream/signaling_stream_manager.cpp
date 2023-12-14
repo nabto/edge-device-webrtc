@@ -13,8 +13,8 @@ SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDevicePtr device, 
 
 SignalingStreamManager::SignalingStreamManager(NabtoDevicePtr device, EventQueuePtr queue) : device_(device), queue_(queue)
 {
-    streamListener_ = NabtoDeviceStreamListener::create(device_, queue_);
-    coapInfoListener_ = NabtoDeviceCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapInfoPath, queue_);
+    streamListener_ = NabtoStreamListener::create(device_, queue_);
+    coapInfoListener_ = NabtoCoapListener::create(device_, NABTO_DEVICE_COAP_GET, coapInfoPath, queue_);
 }
 
 SignalingStreamManager::~SignalingStreamManager()

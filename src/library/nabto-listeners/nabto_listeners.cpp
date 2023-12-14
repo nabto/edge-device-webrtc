@@ -1,4 +1,4 @@
-#include "nabto_device.hpp"
+#include "nabto_listeners.hpp"
 
 #include <nabto/nabto_device_experimental.h>
 #include <nabto/nabto_device_virtual.h>
@@ -6,28 +6,28 @@
 
 namespace nabto {
 
-NabtoDeviceStreamListenerPtr NabtoDeviceStreamListener::create(NabtoDevicePtr device, EventQueuePtr queue)
+NabtoStreamListenerPtr NabtoStreamListener::create(NabtoDevicePtr device, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<NabtoDeviceStreamListener>(device, queue);
+    auto ptr = std::make_shared<NabtoStreamListener>(device, queue);
     if (ptr->start()) {
         return ptr;
     }
     return nullptr;
 }
 
-NabtoDeviceStreamListener::NabtoDeviceStreamListener(NabtoDevicePtr device, EventQueuePtr queue) : device_(device), queue_(queue)
+NabtoStreamListener::NabtoStreamListener(NabtoDevicePtr device, EventQueuePtr queue) : device_(device), queue_(queue)
 {
     streamListen_ = nabto_device_listener_new(device_.get());
     streamFut_ = nabto_device_future_new(device_.get());
 }
 
-NabtoDeviceStreamListener::~NabtoDeviceStreamListener()
+NabtoStreamListener::~NabtoStreamListener()
 {
     nabto_device_future_free(streamFut_);
     nabto_device_listener_free(streamListen_);
 }
 
-bool NabtoDeviceStreamListener::start()
+bool NabtoStreamListener::start()
 {
     if (streamListen_ == NULL ||
         streamFut_ == NULL ||
@@ -42,15 +42,15 @@ bool NabtoDeviceStreamListener::start()
 
 }
 
-void NabtoDeviceStreamListener::nextStream()
+void NabtoStreamListener::nextStream()
 {
     nabto_device_listener_new_stream(streamListen_, streamFut_, &stream_);
     nabto_device_future_set_callback(streamFut_, newStream, this);
 }
 
-void NabtoDeviceStreamListener::newStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+void NabtoStreamListener::newStream(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
-    NabtoDeviceStreamListener* self = (NabtoDeviceStreamListener*)userData;
+    NabtoStreamListener* self = (NabtoStreamListener*)userData;
     if (ec != NABTO_DEVICE_EC_OK)
     {
         std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
@@ -72,9 +72,9 @@ void NabtoDeviceStreamListener::newStream(NabtoDeviceFuture* future, NabtoDevice
 }
 
 
-NabtoDeviceCoapListenerPtr NabtoDeviceCoapListener::create(NabtoDevicePtr device, NabtoDeviceCoapMethod method, const char** path, EventQueuePtr queue)
+NabtoCoapListenerPtr NabtoCoapListener::create(NabtoDevicePtr device, NabtoDeviceCoapMethod method, const char** path, EventQueuePtr queue)
 {
-    auto ptr = std::make_shared<NabtoDeviceCoapListener>(device, queue);
+    auto ptr = std::make_shared<NabtoCoapListener>(device, queue);
     if (ptr->start(method, path)) {
         return ptr;
     }
@@ -82,21 +82,21 @@ NabtoDeviceCoapListenerPtr NabtoDeviceCoapListener::create(NabtoDevicePtr device
 
 }
 
-NabtoDeviceCoapListener::NabtoDeviceCoapListener(NabtoDevicePtr device, EventQueuePtr queue) : device_(device), queue_(queue)
+NabtoCoapListener::NabtoCoapListener(NabtoDevicePtr device, EventQueuePtr queue) : device_(device), queue_(queue)
 {
     listener_ = nabto_device_listener_new(device_.get());
     future_ = nabto_device_future_new(device_.get());
 
 }
 
-NabtoDeviceCoapListener::~NabtoDeviceCoapListener()
+NabtoCoapListener::~NabtoCoapListener()
 {
     nabto_device_future_free(future_);
     nabto_device_listener_free(listener_);
 
 }
 
-bool NabtoDeviceCoapListener::start(NabtoDeviceCoapMethod method, const char** path)
+bool NabtoCoapListener::start(NabtoDeviceCoapMethod method, const char** path)
 {
     if (listener_ == NULL ||
         future_ == NULL ||
@@ -111,16 +111,16 @@ bool NabtoDeviceCoapListener::start(NabtoDeviceCoapMethod method, const char** p
 
 }
 
-void NabtoDeviceCoapListener::nextCoapRequest()
+void NabtoCoapListener::nextCoapRequest()
 {
     nabto_device_listener_new_coap_request(listener_, future_, &coap_);
     nabto_device_future_set_callback(future_, newCoapRequest, this);
 
 }
 
-void NabtoDeviceCoapListener::newCoapRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
+void NabtoCoapListener::newCoapRequest(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
-    NabtoDeviceCoapListener* self = (NabtoDeviceCoapListener*)userData;
+    NabtoCoapListener* self = (NabtoCoapListener*)userData;
     if (ec != NABTO_DEVICE_EC_OK)
     {
         std::cout << "Coap listener future wait failed: " << nabto_device_error_get_message(ec) << std::endl;

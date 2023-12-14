@@ -3,7 +3,7 @@ include(llvm_sanitizers.cmake)
 include_directories(.)
 
 set(src
-    nabto-device/nabto_device.cpp
+    nabto-listeners/nabto_listeners.cpp
     signaling-stream/signaling_stream.cpp
     signaling-stream/signaling_stream_manager.cpp
     webrtc-connection/webrtc_connection.cpp

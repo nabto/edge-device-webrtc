@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nabto-device/nabto_device.hpp>
+#include <nabto-listeners/nabto_listeners.hpp>
 #include <signaling-stream/signaling_stream.hpp>
 #include <media-streams/media_stream.hpp>
 #include <nabto/nabto_device_webrtc.hpp>
@@ -34,10 +34,9 @@ private:
     TrackEventCallback trackCb_;
     CheckAccessCallback accessCb_;
 
-    NabtoDeviceCoapListenerPtr coapInfoListener_ = nullptr;
-    NabtoDeviceCoapListenerPtr coapVideoListener_ = nullptr;
+    NabtoCoapListenerPtr coapInfoListener_ = nullptr;
 
-    NabtoDeviceStreamListenerPtr streamListener_;
+    NabtoStreamListenerPtr streamListener_;
 
     std::vector<SignalingStreamWeakPtr> streams_;
     SignalingStreamManagerPtr me_ = nullptr;

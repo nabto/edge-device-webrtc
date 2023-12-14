@@ -28,159 +28,46 @@ RtpClient::~RtpClient()
     std::cout << "RtpClient destructor" << std::endl;
 }
 
-void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId)
-{
-    if (trackId != trackId_) {
-        std::cout << "RtpClient got addTrack from wrong track ID: " << trackId << " != " << trackId_ << std::endl;
-        return;
-    }
-    try {
-        auto media = track->description();
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-
-            const rtc::SSRC ssrc = matcher_->ssrc();
-            int ptWebrtc = matcher_->match(&media);
-            int ptRtp = matcher_->payloadType();
-            media.addSSRC(ssrc, std::string(trackId_));
-            auto track = pc->addTrack(media);
-            // TODO: random ssrc
-            RtpTrack videoTrack = {
-                pc,
-                track,
-                ssrc,
-                ptRtp,
-                ptWebrtc
-            };
-            std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
-            videoTracks_.push_back(videoTrack);
-            if (stopped_) {
-                start();
-            }
-            if (matcher_->direction() != RtpCodec::SEND_ONLY) {
-                // We are also gonna receive data
-                auto self = shared_from_this();
-                track->onMessage([self, videoTrack](rtc::message_variant data) {
-                    auto msg = rtc::make_message(data);
-                    if (msg->type == rtc::Message::Binary) {
-                        rtc::byte* data = msg->data();
-                        auto rtp = reinterpret_cast<rtc::RtpHeader*>(data);
-                        uint8_t pt = rtp->payloadType();
-                        if (pt != videoTrack.dstPayloadType) {
-                            return;
-                        }
-
-                        rtp->setSsrc(videoTrack.srcPayloadType);
-
-                        struct sockaddr_in addr = {};
-                        addr.sin_family = AF_INET;
-                        addr.sin_addr.s_addr = inet_addr(self->remoteHost_.c_str());
-                        addr.sin_port = htons(self->remotePort_);
-
-                        auto ret = sendto(self->videoRtpSock_, data, msg->size(), 0, (struct sockaddr*)&addr, sizeof(addr));
-                    }
-                    });
-            }
-        }
-    }
-    catch (std::exception ex) {
-        std::cout << "GOT EXCEPTION!!! " << ex.what() << std::endl;
-    }
-
-}
-
-void RtpClient::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
-
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    // TODO: random ssrc
-    const rtc::SSRC ssrc = matcher_->ssrc();
-
-    auto media = matcher_->createMedia();
-    media.addSSRC(ssrc, trackId_);
-    auto track = pc->addTrack(media);
-
-    RtpTrack videoTrack = {
-        pc,
-        track,
-        ssrc,
-        matcher_->payloadType(),
-        matcher_->payloadType()
-    };
-    std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
-    videoTracks_.push_back(videoTrack);
-    if (stopped_) {
-        start();
-    }
-    if (matcher_->direction() != RtpCodec::SEND_ONLY) {
-        // We are also gonna receive data
-        auto self = shared_from_this();
-        int count = 0;
-        track->onMessage([self, videoTrack, &count](rtc::message_variant data) {
-            auto msg = rtc::make_message(data);
-            if (msg->type == rtc::Message::Binary) {
-                rtc::byte* data = msg->data();
-                auto rtp = reinterpret_cast<rtc::RtpHeader *>(data);
-                uint8_t pt = rtp->payloadType();
-                if (pt != videoTrack.dstPayloadType) {
-                    return;
-                }
-                count++;
-                if (count % 100 == 0) {
-                    std::cout << ":";
-                }
-                if (count % 1600 == 0) {
-                    std::cout << std::endl;
-                    count = 0;
-                }
-
-                rtp->setSsrc(videoTrack.srcPayloadType);
-
-                struct sockaddr_in addr = {};
-                addr.sin_family = AF_INET;
-                addr.sin_addr.s_addr = inet_addr(self->remoteHost_.c_str());
-                addr.sin_port = htons(self->remotePort_);
-
-                auto ret = sendto(self->videoRtpSock_, data, msg->size(), 0, (struct sockaddr*)&addr, sizeof(addr));
-                // ssize_t ret = write(self->rtcpSock_, data, msg->size());
-                // std::cout << "Wrote " << ret << " bytes to socket port: " << self->remotePort_ << std::endl;
-
-
-            }
-        });
-    }
-
-    return;
-}
-
-void RtpClient::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
-{
-    std::cout << "Removing PeerConnection from RTP" << std::endl;
-    size_t videoTracksSize = 0;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-
-        for (std::vector<RtpTrack>::iterator it = videoTracks_.begin(); it != videoTracks_.end(); it++) {
-            if (pcPtrComp(it->pc, pc)) {
-                std::cout << "Found PeerConnection" << std::endl;
-                videoTracks_.erase(it);
-                break;
-            }
-        }
-        videoTracksSize = videoTracks_.size();
-    }
-    if (videoTracksSize == 0) {
-        std::cout << "PeerConnection was last one. Stopping" << std::endl;
-        stop();
-    } else {
-        std::cout << "Still " << videoTracksSize << " PeerConnections. Not stopping" << std::endl;
-    }
-}
 
 std::string RtpClient::getTrackId()
 {
     return trackId_;
+}
+
+
+void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    mediaTracks_[ref] = track;
+    if (stopped_) {
+        start();
+    }
+    // TODO: if !SEND_ONLY, add recv cb stuff
+}
+
+void RtpClient::removeConnection(NabtoDeviceConnectionRef ref)
+{
+    std::cout << "Removing Nabto Connection from RTP" << std::endl;
+    size_t mediaTracksSize = 0;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        try {
+            mediaTracks_.erase(ref);
+        }
+        catch (std::out_of_range& ex) {
+            std::cout << "Tried to remove non-existing connection" << std::endl;
+        }
+        mediaTracksSize = mediaTracks_.size();
+    }
+    if (mediaTracksSize == 0) {
+        std::cout << "Connection was last one. Stopping" << std::endl;
+        stop();
+    }
+    else {
+        std::cout << "Still " << mediaTracksSize << " Connections. Not stopping" << std::endl;
+    }
+
 }
 
 void RtpClient::start()
@@ -265,28 +152,18 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
 
         {
             std::lock_guard<std::mutex> lock(self->mutex_);
-            for (auto t : self->videoTracks_) {
-                if (!t.track || !t.track->isOpen()) {
-                    continue;
-                }
-                rtp->setSsrc(t.ssrc);
-                rtp->setPayloadType(t.dstPayloadType);
-                // std::cout << "Sending RTP: " << std::endl;
-                // for (int i = 0; i < len; i++) {
-                //     std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)i;
-                // }
-                // std::cout << std::dec << std::endl;
+            for (const auto& [key, value] : self->mediaTracks_) {
+                rtp->setSsrc(value.ssrc);
+                rtp->setPayloadType(value.dstPayloadType);
                 try {
-                    t.track->send(reinterpret_cast<const rtc::byte*>(buffer), len);
+                    value.track->send((uint8_t*)buffer, len);
                 } catch (std::runtime_error& ex) {
                     std::cout << "Failed to send on track: " << ex.what() << std::endl;
-                    t.pc->close();
+                    value.track->close();
                 }
             }
         }
-
     }
-
 }
 
 
@@ -450,5 +327,161 @@ rtc::Description::Media PcmuCodecMatcher::createMedia()
     r->removeFeedback("goog-remb");
     return media;
 }
+
+
+
+
+
+// // TODO: remove legacy methods
+// void RtpClient::addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId)
+// {
+//     if (trackId != trackId_) {
+//         std::cout << "RtpClient got addTrack from wrong track ID: " << trackId << " != " << trackId_ << std::endl;
+//         return;
+//     }
+//     try {
+//         auto media = track->description();
+//         {
+//             std::lock_guard<std::mutex> lock(mutex_);
+
+//             const rtc::SSRC ssrc = matcher_->ssrc();
+//             int ptWebrtc = matcher_->match(&media);
+//             int ptRtp = matcher_->payloadType();
+//             media.addSSRC(ssrc, std::string(trackId_));
+//             auto track = pc->addTrack(media);
+//             // TODO: random ssrc
+//             RtpTrack videoTrack = {
+//                 pc,
+//                 track,
+//                 ssrc,
+//                 ptRtp,
+//                 ptWebrtc
+//             };
+//             std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
+//             videoTracks_.push_back(videoTrack);
+//             if (stopped_) {
+//                 start();
+//             }
+//             if (matcher_->direction() != RtpCodec::SEND_ONLY) {
+//                 // We are also gonna receive data
+//                 auto self = shared_from_this();
+//                 track->onMessage([self, videoTrack](rtc::message_variant data) {
+//                     auto msg = rtc::make_message(data);
+//                     if (msg->type == rtc::Message::Binary) {
+//                         rtc::byte* data = msg->data();
+//                         auto rtp = reinterpret_cast<rtc::RtpHeader*>(data);
+//                         uint8_t pt = rtp->payloadType();
+//                         if (pt != videoTrack.dstPayloadType) {
+//                             return;
+//                         }
+
+//                         rtp->setSsrc(videoTrack.srcPayloadType);
+
+//                         struct sockaddr_in addr = {};
+//                         addr.sin_family = AF_INET;
+//                         addr.sin_addr.s_addr = inet_addr(self->remoteHost_.c_str());
+//                         addr.sin_port = htons(self->remotePort_);
+
+//                         auto ret = sendto(self->videoRtpSock_, data, msg->size(), 0, (struct sockaddr*)&addr, sizeof(addr));
+//                     }
+//                     });
+//             }
+//         }
+//     } catch (std::exception ex) {
+//         std::cout << "GOT EXCEPTION!!! " << ex.what() << std::endl;
+//     }
+
+// }
+
+// void RtpClient::createTrack(std::shared_ptr<rtc::PeerConnection> pc)
+
+// {
+//     std::lock_guard<std::mutex> lock(mutex_);
+
+//     // TODO: random ssrc
+//     const rtc::SSRC ssrc = matcher_->ssrc();
+
+//     auto media = matcher_->createMedia();
+//     media.addSSRC(ssrc, trackId_);
+//     auto track = pc->addTrack(media);
+
+//     RtpTrack videoTrack = {
+//         pc,
+//         track,
+//         ssrc,
+//         matcher_->payloadType(),
+//         matcher_->payloadType()
+//     };
+//     std::cout << "adding track with pt " << videoTrack.srcPayloadType << "->" << videoTrack.dstPayloadType << std::endl;
+//     videoTracks_.push_back(videoTrack);
+//     if (stopped_) {
+//         start();
+//     }
+//     if (matcher_->direction() != RtpCodec::SEND_ONLY) {
+//         // We are also gonna receive data
+//         auto self = shared_from_this();
+//         int count = 0;
+//         track->onMessage([self, videoTrack, &count](rtc::message_variant data) {
+//             auto msg = rtc::make_message(data);
+//             if (msg->type == rtc::Message::Binary) {
+//                 rtc::byte* data = msg->data();
+//                 auto rtp = reinterpret_cast<rtc::RtpHeader*>(data);
+//                 uint8_t pt = rtp->payloadType();
+//                 if (pt != videoTrack.dstPayloadType) {
+//                     return;
+//                 }
+//                 count++;
+//                 if (count % 100 == 0) {
+//                     std::cout << ":";
+//                 }
+//                 if (count % 1600 == 0) {
+//                     std::cout << std::endl;
+//                     count = 0;
+//                 }
+
+//                 rtp->setSsrc(videoTrack.srcPayloadType);
+
+//                 struct sockaddr_in addr = {};
+//                 addr.sin_family = AF_INET;
+//                 addr.sin_addr.s_addr = inet_addr(self->remoteHost_.c_str());
+//                 addr.sin_port = htons(self->remotePort_);
+
+//                 auto ret = sendto(self->videoRtpSock_, data, msg->size(), 0, (struct sockaddr*)&addr, sizeof(addr));
+//                 // ssize_t ret = write(self->rtcpSock_, data, msg->size());
+//                 // std::cout << "Wrote " << ret << " bytes to socket port: " << self->remotePort_ << std::endl;
+
+
+//             }
+//             });
+//     }
+
+//     return;
+// }
+
+// void RtpClient::removeConnection(std::shared_ptr<rtc::PeerConnection> pc)
+// {
+//     std::cout << "Removing PeerConnection from RTP" << std::endl;
+//     size_t videoTracksSize = 0;
+//     {
+//         std::lock_guard<std::mutex> lock(mutex_);
+
+//         for (std::vector<RtpTrack>::iterator it = videoTracks_.begin(); it != videoTracks_.end(); it++) {
+//             if (pcPtrComp(it->pc, pc)) {
+//                 std::cout << "Found PeerConnection" << std::endl;
+//                 videoTracks_.erase(it);
+//                 break;
+//             }
+//         }
+//         videoTracksSize = videoTracks_.size();
+//     }
+//     if (videoTracksSize == 0) {
+//         std::cout << "PeerConnection was last one. Stopping" << std::endl;
+//         stop();
+//     }
+//     else {
+//         std::cout << "Still " << videoTracksSize << " PeerConnections. Not stopping" << std::endl;
+//     }
+// }
+
 
 } // namespace

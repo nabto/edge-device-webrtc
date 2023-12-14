@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <nabto/nabto_device_webrtc.hpp>
 #include <rtc/rtc.hpp>
 
 #include <memory>
@@ -13,8 +14,7 @@ typedef std::shared_ptr<rtc::PeerConnection> RtcPCPtr;
 class RtpTrack
 {
 public:
-    RtcPCPtr pc;
-    RtcTrackPtr track;
+    MediaTrackPtr track;
     rtc::SSRC ssrc;
     int srcPayloadType = 0;
     int dstPayloadType = 0;

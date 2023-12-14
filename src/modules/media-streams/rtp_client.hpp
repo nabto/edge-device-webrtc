@@ -14,8 +14,6 @@ namespace nabto {
 class RtpClient;
 typedef std::shared_ptr<RtpClient> RtpClientPtr;
 
-
-
 class RtpCodec
 {
 public:
@@ -86,21 +84,28 @@ public:
     RtpClient(std::string& trackId);
     ~RtpClient();
 
-    void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId);
-
-    void createTrack(std::shared_ptr<rtc::PeerConnection> pc);
-
-    std::string getTrackId();
-
-    void removeConnection(std::shared_ptr<rtc::PeerConnection> pc);
+    void addConnection(NabtoDeviceConnectionRef ref, RtpTrack track);
+    void removeConnection(NabtoDeviceConnectionRef ref);
 
     void setPort(uint16_t port) { videoPort_ = port; remotePort_ = port + 1; }
     // Remote Host used to send data to if stream is not SENDONLY
     void setRemoteHost(std::string host) { remoteHost_ = host; }
-    void setRtpCodecMatcher(RtpCodec* matcher) {matcher_ = matcher;}
+    void setRtpCodecMatcher(RtpCodec* matcher) { matcher_ = matcher; }
+    RtpCodec* getRtpCodecMatcher() { return matcher_; }
 
-    // TODO: impl sdp();
-    std::string sdp() { return ""; }
+    std::string sdp() {
+        auto m = matcher_->createMedia();
+        return m.description();
+    }
+    std::string getTrackId();
+
+
+
+    // TODO: remove these legacy methods
+    void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId) {}
+    void createTrack(std::shared_ptr<rtc::PeerConnection> pc) {}
+    void removeConnection(std::shared_ptr<rtc::PeerConnection> pc) {}
+
 
 private:
     void start();
@@ -116,16 +121,14 @@ private:
     bool stopped_ = true;
     std::mutex mutex_;
 
+    std::map<NabtoDeviceConnectionRef, RtpTrack> mediaTracks_;
 
-    std::vector<RtpTrack> videoTracks_;
     uint16_t videoPort_ = 6000;
     uint16_t remotePort_ = 6002;
     std::string remoteHost_ = "127.0.0.1";
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
     RtpCodec* matcher_;
-    rtc::SSRC ssrc_ = 424242;
-
 };
 
 
