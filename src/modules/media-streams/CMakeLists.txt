@@ -1,9 +1,9 @@
 
 set(src
     rtp_client.cpp
-    rtp_stream.cpp
-    rtsp_client.cpp
-    rtsp_stream.cpp
+    # rtp_stream.cpp
+    # rtsp_client.cpp
+    # rtsp_stream.cpp
 )
 
 add_library( media_streams SHARED "${src}")

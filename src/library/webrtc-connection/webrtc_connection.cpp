@@ -385,6 +385,7 @@ void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
         rtc::Description::Media media(sdp);
         auto track = pc_->addTrack(media);
         t->getImpl()->setRtcTrack(track);
+        mediaTracks_.push_back(t);
     }
     std::cout << "createTracks Set local description" << std::endl;
     pc_->setLocalDescription();

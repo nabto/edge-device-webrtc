@@ -1,8 +1,9 @@
 #include "nabto_device.hpp"
 
 #include <event-queue/event_queue_impl.hpp>
+#include <util/util.hpp>
 #include <media-streams/media_stream.hpp>
-#include <media-streams/rtsp_stream.hpp>
+// #include <media-streams/rtsp_stream.hpp>
 #include <media-streams/rtp_stream.hpp>
 #include <nabto/nabto_device_webrtc.hpp>
 
@@ -81,7 +82,7 @@ int main(int argc, char** argv) {
 
     // TODO: remake for new API
     std::vector<nabto::RtpClientPtr> medias;
-    nabto::RtspStreamPtr rtsp = nullptr;
+    // nabto::RtspStreamPtr rtsp = nullptr;
     nabto::H264CodecMatcher rtpVideoCodec;
     nabto::OpusCodecMatcher rtpAudioCodec;
     // try {
@@ -132,6 +133,9 @@ int main(int argc, char** argv) {
                     found = true;
                     auto sdp = m->sdp();
                     auto media = nabto::MediaTrack::create(id, sdp);
+                    media->setCloseCallback([m, ref]() {
+                        m->removeConnection(ref);
+                    });
                     auto c = m->getRtpCodecMatcher();
                     const rtc::SSRC ssrc = c->ssrc();
                     nabto::RtpTrack track = {

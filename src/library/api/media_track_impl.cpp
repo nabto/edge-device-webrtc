@@ -55,7 +55,9 @@ void MediaTrackImpl::close()
 
 void MediaTrackImpl::connectionClosed()
 {
-
+    if (closeCb_) {
+        closeCb_();
+    }
 }
 
 
