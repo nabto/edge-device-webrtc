@@ -33,6 +33,7 @@ bool SignalingStreamManager::start()
             nabto_device_connection_get_client_fingerprint(self->device_.get(), ref, &fp);
             std::cout << "Creating Signaling stream for client fp: " << fp << std::endl;
             nabto_device_string_free(fp);
+            // TODO: callbacks should be to internal function so if the user changes them we do not have to update the callbacks in every signaling stream instance
             SignalingStreamPtr s = SignalingStream::create(self->device_, stream, self, self->queue_, self->trackCb_, self->accessCb_);
             self->streams_.push_back(s);
             s->start();
@@ -145,11 +146,10 @@ bool SignalingStreamManager::connectionAddMedias(NabtoDeviceConnectionRef ref, s
     for (auto p : streams_) {
         auto ptr = p.lock();
         if (ptr && ptr->isConnection(ref)) {
-            stream = ptr;
-            break;
+            ptr->createTracks(tracks);
+            return true;
         }
     }
-    stream->createTracks(tracks);
     return false;
 }
 

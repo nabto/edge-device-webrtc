@@ -47,12 +47,7 @@ public:
 
     void handleIce(std::string& data);
 
-    void createTracks(std::vector<MediaTrackPtr>& tracks)
-    {
-        // TODO: add track to PeerConnection
-        //media->createTrack(pc_);
-        // pc_->setLocalDescription();
-    }
+    void createTracks(std::vector<MediaTrackPtr>& tracks);
 
     void setMetadata(nlohmann::json& metadata)
     {

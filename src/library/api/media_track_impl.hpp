@@ -19,6 +19,7 @@ public:
     void close();
 
     // INTERNAL METHODS
+    void setRtcTrack(std::shared_ptr<rtc::Track> track) { rtcTrack_ = track; }
     std::shared_ptr<rtc::Track> getRtcTrack() { return rtcTrack_; }
     void connectionClosed();
 private:

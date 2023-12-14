@@ -31,6 +31,10 @@ void MediaTrackImpl::setSdp(std::string& sdp)
 
 bool MediaTrackImpl::send(const uint8_t* buffer, size_t length)
 {
+    if (rtcTrack_ && rtcTrack_->isOpen()) {
+        rtcTrack_->send(reinterpret_cast<const rtc::byte*>(buffer), length);
+        return true;
+    }
     return false;
 }
 

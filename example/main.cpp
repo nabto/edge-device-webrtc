@@ -107,6 +107,9 @@ int main(int argc, char** argv) {
     auto coapVideoListener = example::NabtoDeviceCoapListener::create(device, NABTO_DEVICE_COAP_GET, coapVideoPath, eventQueue);
 
     auto webrtc = nabto::NabtoDeviceWebrtc::create(eventQueue, device->getDevice());
+    webrtc->setCheckAccessCallback([device](NabtoDeviceConnectionRef ref, std::string action) -> bool {
+        return nm_iam_check_access(device->getIam(), ref, action.c_str(), NULL);
+    });
 
     // TODO: tracks should be split into individual audio/video tracks, and this EP should take a list of trackIds in the payload and add all tracks instead of only adding video (the old bundling style does not work with new api)
     coapVideoListener->setCoapCallback([webrtc, device, medias](NabtoDeviceCoapRequest* coap) {

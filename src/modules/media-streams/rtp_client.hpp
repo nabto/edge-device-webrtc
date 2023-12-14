@@ -95,7 +95,8 @@ public:
 
     std::string sdp() {
         auto m = matcher_->createMedia();
-        return m.description();
+        m.addSSRC(matcher_->ssrc(), trackId_);
+        return m.generateSdp();
     }
     std::string getTrackId();
 

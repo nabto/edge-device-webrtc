@@ -373,4 +373,21 @@ NabtoDeviceConnectionRef WebrtcConnection::getConnectionRef() {
     }
 }
 
+void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
+{
+    for (auto t : tracks) {
+        auto sdp = t->getSdp();
+        std::cout << "Creating track with SDP: " << sdp << std::endl;
+        if (sdp[0] == 'm' && sdp[1] == '=') {
+            sdp = sdp.substr(2);
+            std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp << std::endl;
+        }
+        rtc::Description::Media media(sdp);
+        auto track = pc_->addTrack(media);
+        t->getImpl()->setRtcTrack(track);
+    }
+    std::cout << "createTracks Set local description" << std::endl;
+    pc_->setLocalDescription();
+}
+
 } // namespace
