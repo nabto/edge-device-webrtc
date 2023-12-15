@@ -139,6 +139,7 @@ public:
     NabtoDeviceWebrtc(EventQueuePtr queue, NabtoDevicePtr device);
     ~NabtoDeviceWebrtc();
 
+    // TODO: implement
     void stop();
 
     /**
