@@ -49,7 +49,6 @@ public:
 
     bool createTracks(std::vector<MediaTrackPtr>& tracks)
     {
-        // TODO: if webrtcConnection_ is nullptr, maybe we just create it?
         if (webrtcConnection_ != nullptr) {
             try {
                 webrtcConnection_->createTracks(tracks);

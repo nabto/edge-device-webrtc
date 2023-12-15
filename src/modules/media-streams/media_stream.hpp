@@ -18,13 +18,7 @@ public:
     MediaStream() {}
     ~MediaStream() {}
 
-    virtual void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId) = 0;
-
-    virtual void createTrack(std::shared_ptr<rtc::PeerConnection> pc) = 0;
-
     virtual std::string getTrackId() = 0;
-
-    virtual void removeConnection(std::shared_ptr<rtc::PeerConnection> pc) = 0;
 
     virtual void removeConnection(NabtoDeviceConnectionRef ref) = 0;
     virtual void addConnection(NabtoDeviceConnectionRef ref, RtpTrack track) = 0;

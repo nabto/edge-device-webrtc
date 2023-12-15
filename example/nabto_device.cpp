@@ -33,7 +33,6 @@ NabtoDeviceApp::~NabtoDeviceApp()
     }
     coapOauthListener_.reset();
     coapChallengeListener_.reset();
-    nabto_device_free(device_.get());
 }
 
 bool NabtoDeviceApp::init(nlohmann::json& opts)

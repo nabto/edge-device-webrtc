@@ -26,8 +26,6 @@ public:
     void setCheckAccessCallback(CheckAccessCallback cb);
 
 private:
-    void handleVideoRequest(NabtoDeviceCoapRequest* coap);
-
     NabtoDevicePtr device_;
     EventQueuePtr queue_;
 

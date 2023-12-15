@@ -100,14 +100,6 @@ public:
     }
     std::string getTrackId();
 
-
-
-    // TODO: remove these legacy methods
-    void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId) {}
-    void createTrack(std::shared_ptr<rtc::PeerConnection> pc) {}
-    void removeConnection(std::shared_ptr<rtc::PeerConnection> pc) {}
-
-
 private:
     void start();
     void stop();
