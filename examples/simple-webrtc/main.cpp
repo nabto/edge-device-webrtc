@@ -48,6 +48,7 @@ int main(int argc, char** argv) {
     json opts;
     opts["productId"] = std::string("pr-jzoqqta9");
     opts["deviceId"] = std::string("de-uguiictr");
+    opts["sct"] = std::string("demosct");
     opts["rawPrivateKey"] = std::string("5265f6ecbe263d51fc0ceacf6e6555840435150318ad5e24329cba6563a82025");
     opts["rtpPort"] = 6000;
     opts["logLevel"] = std::string("info");
@@ -153,7 +154,8 @@ bool initDevice(nabto::NabtoDevicePtr device, json& opts)
 
     if (nabto_device_set_product_id(device.get(), opts["productId"].get<std::string>().c_str()) != NABTO_DEVICE_EC_OK ||
         nabto_device_set_device_id(device.get(), opts["deviceId"].get<std::string>().c_str()) != NABTO_DEVICE_EC_OK ||
-        nabto_device_enable_mdns(device.get()) != NABTO_DEVICE_EC_OK)
+        nabto_device_enable_mdns(device.get()) != NABTO_DEVICE_EC_OK ||
+        nabto_device_add_server_connect_token(device.get(), opts["sct"].get<std::string>().c_str()) != NABTO_DEVICE_EC_OK)
     {
         return false;
     }
