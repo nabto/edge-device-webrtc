@@ -28,5 +28,4 @@ function connect()
   });
 
   webrtcConnection.connect();
-  console.log("HELLO WORLD")
 }
