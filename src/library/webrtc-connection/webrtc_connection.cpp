@@ -384,6 +384,11 @@ void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
             std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp << std::endl;
         }
         rtc::Description::Media media(sdp);
+        nlohmann::json metaTrack = {
+            {"mid", media.mid()},
+            {"trackId", t->getTrackId()}
+            };
+        metadata_["tracks"].push_back(metaTrack);
         auto track = pc_->addTrack(media);
         t->getImpl()->setRtcTrack(track);
         mediaTracks_.push_back(t);
