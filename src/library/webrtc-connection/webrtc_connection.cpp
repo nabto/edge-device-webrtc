@@ -315,6 +315,7 @@ MediaTrackPtr WebrtcConnection::createMediaTrack(std::shared_ptr<rtc::Track> tra
                 auto trackId = mt["trackId"].get<std::string>();
                 auto sdp = track->description().generateSdp();
                 auto media = MediaTrack::create(trackId, sdp);
+                media->getImpl()->setRtcTrack(track);
                 return media;
             }
         }

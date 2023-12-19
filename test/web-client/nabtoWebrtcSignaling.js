@@ -69,7 +69,7 @@ class NabtoWebrtcSignaling {
     this.connection = new WebSocket(this.signalingHost, "json");
 
     this.connection.onerror = function (evt) {
-      console.dir(evt);
+      console.error("websocket error: ", evt);
       if (self.onerror) {
         self.onerror("Websocket connection error", evt);
       }
@@ -124,13 +124,7 @@ class NabtoWebrtcSignaling {
         type: 20,
         productId: self.productId,
         deviceId: self.deviceId,
-        username: "foobar", // TODO: remove this signaling no longer makes IAM login
-        password: "foobar", // TODO: remove this
-      }
-      if (self.sct) {
-        loginReq.sct = self.sct;
-      } else if (self.jwt) {
-        loginReq.jwt = self.jwt;
+        sct: self.sct
       }
 
       self.sendToServer(loginReq);

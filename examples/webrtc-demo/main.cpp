@@ -112,6 +112,49 @@ int main(int argc, char** argv) {
         return nm_iam_check_access(device->getIam(), ref, action.c_str(), NULL);
     });
 
+    webrtc->setTrackEventCallback([device, medias](NabtoDeviceConnectionRef connRef, nabto::MediaTrackPtr track) {
+        std::cout << "Track event for track: " << track->getTrackId() << std::endl;
+        auto feed = track->getTrackId();
+        for (auto m : medias) {
+            auto id = m->getTrackId();
+            if (id == feed) {
+                std::cout << "    Found media match!" << std::endl;
+                NabtoDeviceConnectionRef ref = connRef;
+                auto sdp = track->getSdp();
+                std::cout << "    Got offer SDP: " << sdp << std::endl;
+                if (sdp[0] == 'm' && sdp[1] == '=') {
+                    sdp = sdp.substr(2);
+                    std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp << std::endl;
+                }
+                rtc::Description::Media media(sdp);
+                auto codec = m->getRtpCodecMatcher();
+                int pt = codec->match(&media);
+                if (pt == 0) {
+                    std::cout << "    CODEC MATCHING FAILED!!! " << std::endl;
+                    // TODO: Fail
+                }
+                media.addSSRC(codec->ssrc(), id);
+                auto newSdp = media.generateSdp();
+                std::cout << "    Setting new SDP: " << newSdp << std::endl;
+                track->setSdp(newSdp);
+                track->setCloseCallback([m, ref]() {
+                    m->removeConnection(ref);
+                    });
+                const rtc::SSRC ssrc = codec->ssrc();
+                nabto::RtpTrack rtpTrack = {
+                    track,
+                    ssrc,
+                    codec->payloadType(),
+                    pt
+                };
+                m->addConnection(ref, rtpTrack);
+
+            } else {
+                std::cout << "    media " << id << " was not a match" << std::endl;
+            }
+        }
+    });
+
     // TODO: tracks should be split into individual audio/video tracks, and this EP should take a list of trackIds in the payload and add all tracks instead of only adding video (the old bundling style does not work with new api)
     coapVideoListener->setCoapCallback([webrtc, device, medias](NabtoDeviceCoapRequest* coap) {
         std::cout << "Got new coap request" << std::endl;
@@ -122,7 +165,6 @@ int main(int argc, char** argv) {
             std::cout << "Handling video coap request" << std::endl;
             const char* feedC = nabto_device_coap_request_get_parameter(coap, "feed");
             std::string feed(feedC);
-            NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
             bool found = false;
             std::vector<nabto::MediaTrackPtr> list;

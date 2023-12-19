@@ -23,10 +23,10 @@ NabtoDeviceWebrtc::~NabtoDeviceWebrtc()
 
 }
 
-void NabtoDeviceWebrtc::stop()
-{
-    impl_->stop();
-}
+// void NabtoDeviceWebrtc::stop()
+// {
+//     impl_->stop();
+// }
 
 
 bool NabtoDeviceWebrtc::connectionAddMedias(NabtoDeviceConnectionRef ref, std::vector<MediaTrackPtr>& tracks)

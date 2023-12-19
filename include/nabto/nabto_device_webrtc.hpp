@@ -21,7 +21,7 @@ typedef std::shared_ptr<EventQueue> EventQueuePtr;
 typedef std::shared_ptr<MediaTrack> MediaTrackPtr;
 
 typedef std::function<void()> QueueEvent;
-typedef std::function<bool(NabtoDeviceConnectionRef connRef, MediaTrackPtr track)> TrackEventCallback;
+typedef std::function<void(NabtoDeviceConnectionRef connRef, MediaTrackPtr track)> TrackEventCallback;
 typedef std::function<bool(NabtoDeviceConnectionRef connRef, std::string action)> CheckAccessCallback;
 
 
@@ -140,7 +140,7 @@ public:
     ~NabtoDeviceWebrtc();
 
     // TODO: implement
-    void stop();
+    // void stop();
 
     /**
      * Add MediaTracks to a Nabto Connection. These tracks will be added to the WebRTC PeerConnection which will send an WebRTC Offer to the client to negotiate (or renegotiate if a connection is already established) the WebRTC connection.

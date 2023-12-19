@@ -27,6 +27,14 @@ std::string MediaTrackImpl::getSdp()
 void MediaTrackImpl::setSdp(std::string& sdp)
 {
     sdp_ = sdp;
+    if (sdp_[0] == 'm' && sdp_[1] == '=') {
+        sdp_ = sdp_.substr(2);
+        std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp_ << std::endl;
+    }
+    if (rtcTrack_) {
+        rtc::Description::Media media(sdp_);
+        rtcTrack_->setDescription(media);
+    }
 }
 
 bool MediaTrackImpl::send(const uint8_t* buffer, size_t length)

@@ -39,6 +39,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     mediaTracks_[ref] = track;
+    std::cout << "Adding RTP connection pt " << track.srcPayloadType << "->" << track.dstPayloadType << std::endl;
     if (stopped_) {
         start();
     }
