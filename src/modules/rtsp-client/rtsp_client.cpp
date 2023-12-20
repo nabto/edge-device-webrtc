@@ -82,12 +82,12 @@ void RtspClient::stop()
     teardown();
 }
 
-MediaStreamPtr RtspClient::getVideoStream()
+RtpClientPtr RtspClient::getVideoStream()
 {
     return videoStream_;
 }
 
-MediaStreamPtr RtspClient::getAudioStream()
+RtpClientPtr RtspClient::getAudioStream()
 {
     return audioStream_;
 }

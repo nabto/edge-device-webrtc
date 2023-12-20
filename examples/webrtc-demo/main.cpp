@@ -2,9 +2,9 @@
 
 #include <event-queue/event_queue_impl.hpp>
 #include <util/util.hpp>
-#include <media-streams/media_stream.hpp>
+// #include <media-streams/media_stream.hpp>
 // #include <media-streams/rtsp_stream.hpp>
-#include <media-streams/rtp_stream.hpp>
+#include <rtp-client/rtp_client.hpp>
 #include <nabto/nabto_device_webrtc.hpp>
 
 #include <rtc/global.hpp>

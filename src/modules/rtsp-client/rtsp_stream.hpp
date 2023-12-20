@@ -1,6 +1,5 @@
 #pragma once
 
-#include "media_stream.hpp"
 #include "rtsp_client.hpp"
 
 #include <rtc/rtc.hpp>
@@ -21,8 +20,7 @@ public:
 };
 
 
-class RtspStream : public MediaStream,
-                   public std::enable_shared_from_this<RtspStream>
+class RtspStream : public std::enable_shared_from_this<RtspStream>
 {
 public:
     static RtspStreamPtr create(std::string trackId, std::string& url);

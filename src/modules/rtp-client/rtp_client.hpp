@@ -1,6 +1,5 @@
 #pragma once
 
-#include "media_stream.hpp"
 #include "rtp_track.hpp"
 
 #include <sys/socket.h>
@@ -76,8 +75,7 @@ public:
     enum Direction direction() { return SEND_ONLY; }
 };
 
-class RtpClient : public MediaStream,
-                  public std::enable_shared_from_this<RtpClient>
+class RtpClient : public std::enable_shared_from_this<RtpClient>
 {
 public:
     static RtpClientPtr create(std::string trackId);

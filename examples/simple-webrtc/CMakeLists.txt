@@ -10,7 +10,7 @@ target_link_libraries(simple_webrtc_device
     nabto_device_webrtc
     datachannel-static
     event_queue_impl
-    media_streams
+    rtp_client
 )
 
 install(TARGETS simple_webrtc_device

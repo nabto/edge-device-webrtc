@@ -1,7 +1,6 @@
 #pragma once
 
-#include "media_stream.hpp"
-#include "rtp_client.hpp"
+#include <rtp-client/rtp_client.hpp>
 #include "rtcp_client.hpp"
 #include <util/util.hpp>
 
@@ -32,8 +31,8 @@ public:
     bool start(std::function<void(CURLcode res)> cb);
     void stop();
 
-    MediaStreamPtr getVideoStream();
-    MediaStreamPtr getAudioStream();
+    RtpClientPtr getVideoStream();
+    RtpClientPtr getAudioStream();
 
     // Sets which transport ports to make RTSP server send RTP traffic to.
     // 4 ports are used in total:

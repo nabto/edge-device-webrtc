@@ -15,9 +15,9 @@ target_link_libraries(edge_device_webrtc
     datachannel-static
     CURL::libcurl
     jwt-cpp::jwt-cpp
-    util
+    webrtc_util
     event_queue_impl
-    media_streams
+    rtp_client
 )
 
 install(TARGETS edge_device_webrtc

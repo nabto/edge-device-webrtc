@@ -2,7 +2,6 @@
 
 #include <nabto-listeners/nabto_listeners.hpp>
 #include <signaling-stream/signaling_stream.hpp>
-#include <media-streams/media_stream.hpp>
 #include <nabto/nabto_device_webrtc.hpp>
 
 #include <memory>

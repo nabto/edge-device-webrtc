@@ -3,7 +3,7 @@
 #include <nabto/nabto_device_webrtc.hpp>
 
 #include <event-queue/event_queue_impl.hpp>
-#include <media-streams/rtp_client.hpp>
+#include <rtp-client/rtp_client.hpp>
 
 #include <rtc/global.hpp>
 #include <nlohmann/json.hpp>
