@@ -34,6 +34,62 @@ std::string RtpClient::getTrackId()
     return trackId_;
 }
 
+bool RtpClient::isTrack(std::string& trackId)
+{
+    if (trackId == trackId_) {
+        return true;
+    }
+    return false;
+}
+
+bool RtpClient::matchMedia(MediaTrackPtr media)
+{
+    auto sdp = media->getSdp();
+    std::cout << "    Got offer SDP: " << sdp << std::endl;
+    if (sdp[0] == 'm' && sdp[1] == '=') {
+        sdp = sdp.substr(2);
+        std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp << std::endl;
+    }
+    rtc::Description::Media desc(sdp);
+    int pt = matcher_->match(&desc);
+    if (pt == 0) {
+        std::cout << "    CODEC MATCHING FAILED!!! " << std::endl;
+        // TODO: Fail
+        return false;
+    }
+    desc.addSSRC(matcher_->ssrc(), trackId_);
+    auto newSdp = desc.generateSdp();
+    std::cout << "    Setting new SDP: " << newSdp << std::endl;
+    media->setSdp(newSdp);
+    return true;
+}
+
+
+void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
+{
+
+    auto sdp = media->getSdp();
+    if (sdp[0] == 'm' && sdp[1] == '=') {
+        sdp = sdp.substr(2);
+        std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp << std::endl;
+    }
+    rtc::Description::Media desc(sdp);
+    auto pts = desc.payloadTypes();
+
+    // exactly 1 payload type should exist, else something has failed previously, so we just pick the first one blindly.
+    int pt = pts.empty() ? 0 : pts[0];
+
+    const rtc::SSRC ssrc = matcher_->ssrc();
+    RtpTrack track = {
+        media,
+        ssrc,
+        matcher_->payloadType(),
+        pt
+    };
+    addConnection(ref, track);
+}
+
+
 
 void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
 {

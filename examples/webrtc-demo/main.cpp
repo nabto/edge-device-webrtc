@@ -116,41 +116,17 @@ int main(int argc, char** argv) {
         std::cout << "Track event for track: " << track->getTrackId() << std::endl;
         auto feed = track->getTrackId();
         for (auto m : medias) {
-            auto id = m->getTrackId();
-            if (id == feed) {
-                std::cout << "    Found media match!" << std::endl;
+            if (m->isTrack(feed)) {
+                if (!m->matchMedia(track)) {
+                    std::cout << "Codec mismatch for track: " << feed << std::endl << "   THIS FEED WILL NOT WORK" << std::endl << std::endl;
+                }
                 NabtoDeviceConnectionRef ref = connRef;
-                auto sdp = track->getSdp();
-                std::cout << "    Got offer SDP: " << sdp << std::endl;
-                if (sdp[0] == 'm' && sdp[1] == '=') {
-                    sdp = sdp.substr(2);
-                    std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp << std::endl;
-                }
-                rtc::Description::Media media(sdp);
-                auto codec = m->getRtpCodecMatcher();
-                int pt = codec->match(&media);
-                if (pt == 0) {
-                    std::cout << "    CODEC MATCHING FAILED!!! " << std::endl;
-                    // TODO: Fail
-                }
-                media.addSSRC(codec->ssrc(), id);
-                auto newSdp = media.generateSdp();
-                std::cout << "    Setting new SDP: " << newSdp << std::endl;
-                track->setSdp(newSdp);
+                m->addConnection(ref, track);
                 track->setCloseCallback([m, ref]() {
                     m->removeConnection(ref);
-                    });
-                const rtc::SSRC ssrc = codec->ssrc();
-                nabto::RtpTrack rtpTrack = {
-                    track,
-                    ssrc,
-                    codec->payloadType(),
-                    pt
-                };
-                m->addConnection(ref, rtpTrack);
-
+                });
             } else {
-                std::cout << "    media " << id << " was not a match" << std::endl;
+                std::cout << "    media " << feed << " was not a match" << std::endl;
             }
         }
     });
@@ -166,28 +142,23 @@ int main(int argc, char** argv) {
             const char* feedC = nabto_device_coap_request_get_parameter(coap, "feed");
             std::string feed(feedC);
 
+            // TODO: remove this
+            if (feed == "frontdoor") {
+                feed = "frontdoor-video";
+            }
+
             bool found = false;
             std::vector<nabto::MediaTrackPtr> list;
 
             for (auto m : medias) {
-                auto id = m->getTrackId();
-                if (id == feed || id == (feed + "-video") || id == (feed + "-audio")) {
+                if (m->isTrack(feed)) {
                     found = true;
                     auto sdp = m->sdp();
-                    auto media = nabto::MediaTrack::create(id, sdp);
+                    auto media = nabto::MediaTrack::create(feed, sdp);
                     media->setCloseCallback([m, ref]() {
                         m->removeConnection(ref);
-                    });
-                    auto c = m->getRtpCodecMatcher();
-                    const rtc::SSRC ssrc = c->ssrc();
-                    nabto::RtpTrack track = {
-                        media,
-                        ssrc,
-                        c->payloadType(),
-                        c->payloadType()
-                    };
-                    m->addConnection(ref, track);
-
+                        });
+                    m->addConnection(ref, media);
                     list.push_back(media);
                 }
             }
@@ -208,17 +179,7 @@ int main(int argc, char** argv) {
             }
         }
         else {
-            bool pwd = nabto_device_connection_is_password_authenticated(device->getDevice().get(), ref);
-            char* username;
-
-            if (pwd) {
-                nabto_device_connection_get_password_authentication_username(device->getDevice().get(), ref, &username);
-            }
-
-            std::cout << "Got CoAP video stream request but IAM rejected it" << std::endl << "  was pwd: " << pwd << std::endl << "  username: " << (pwd ? username : "") << std::endl;
-            if (pwd) {
-                nabto_device_string_free(username);
-            }
+            std::cout << "Got CoAP video stream request but IAM rejected it" << std::endl;
             nabto_device_coap_error_response(coap, 401, NULL);
         }
 

@@ -82,8 +82,13 @@ public:
     RtpClient(std::string& trackId);
     ~RtpClient();
 
+    // TODO: move to private when simple example uses the new method
     void addConnection(NabtoDeviceConnectionRef ref, RtpTrack track);
     void removeConnection(NabtoDeviceConnectionRef ref);
+
+    bool isTrack(std::string& trackId);
+    void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
+    bool matchMedia(MediaTrackPtr media);
 
     void setPort(uint16_t port) { videoPort_ = port; remotePort_ = port + 1; }
     // Remote Host used to send data to if stream is not SENDONLY
