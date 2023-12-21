@@ -44,22 +44,12 @@ bool RtpClient::isTrack(std::string& trackId)
 
 bool RtpClient::matchMedia(MediaTrackPtr media)
 {
-    auto sdp = media->getSdp();
-    std::cout << "    Got offer SDP: " << sdp << std::endl;
-    if (sdp[0] == 'm' && sdp[1] == '=') {
-        sdp = sdp.substr(2);
-    }
-    rtc::Description::Media desc(sdp);
-    int pt = matcher_->match(&desc);
+    int pt = matcher_->match(media);
     if (pt == 0) {
         std::cout << "    CODEC MATCHING FAILED!!! " << std::endl;
         // TODO: Fail
         return false;
     }
-    desc.addSSRC(matcher_->ssrc(), trackId_);
-    auto newSdp = desc.generateSdp();
-    std::cout << "    Setting new SDP: " << newSdp << std::endl;
-    media->setSdp(newSdp);
     return true;
 }
 
@@ -246,14 +236,21 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
 }
 
 
-int H264CodecMatcher::match(rtc::Description::Media* media)
+int H264CodecMatcher::match(MediaTrackPtr track)
 {
+    auto sdp = track->getSdp();
+    std::cout << "    Got offer SDP: " << sdp << std::endl;
+    if (sdp[0] == 'm' && sdp[1] == '=') {
+        sdp = sdp.substr(2);
+    }
+    rtc::Description::Media media(sdp);
+
     rtc::Description::Media::RtpMap* rtp = NULL;
     bool found = false;
-    for (auto pt : media->payloadTypes()) {
+    for (auto pt : media.payloadTypes()) {
         rtc::Description::Media::RtpMap* r = NULL;
         try {
-            r = media->rtpMap(pt);
+            r = media.rtpMap(pt);
         }
         catch (std::exception& ex) {
             std::cout << "Bad rtpMap for pt: " << pt << std::endl;
@@ -270,12 +267,12 @@ int H264CodecMatcher::match(rtc::Description::Media* media)
                 r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
             ) {
                 // Found better match use this
-                media->removeRtpMap(rtp->payloadType);
+                media.removeRtpMap(rtp->payloadType);
                 rtp = r;
                 std::cout << "FOUND RTP BETTER codec match!!! " << pt << std::endl;
             } else if (found) {
                 std::cout << "h264 pt: " << pt << " no match, removing" << std::endl;
-               media->removeRtpMap(pt);
+               media.removeRtpMap(pt);
                 continue;
             } else {
                 std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
@@ -292,32 +289,20 @@ int H264CodecMatcher::match(rtc::Description::Media* media)
             rtp->removeFeedback("transport-cc");
             rtp->removeFeedback("ccm fir");
         }
-        // std::string profLvlId = "42e01f";
-        // std::string lvlAsymAllowed = "1";
-        // std::string pktMode = "1";
-        // if (r != NULL && r->fmtps.size() > 0 &&
-        //     r->fmtps[0].find("profile-level-id=" + profLvlId) != std::string::npos &&
-        //     r->fmtps[0].find("level-asymmetry-allowed=" + lvlAsymAllowed) != std::string::npos &&
-        //     r->fmtps[0].find("packetization-mode=" + pktMode) != std::string::npos
-        //     ) {
-        //     std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
-        //     rtp = r;
-        //     std::cout << "Format: " << rtp->format << " clockRate: " << rtp->clockRate << " encParams: " << rtp->encParams << std::endl;
-        //     std::cout << "rtcp fbs:" << std::endl;
-        //     for (auto s : rtp->rtcpFbs) {
-        //         std::cout << "   " << s << std::endl;
-        //     }
-        //     rtp->removeFeedback("nack");
-        //     rtp->removeFeedback("goog-remb");
-        //     rtp->removeFeedback("transport-cc");
-        //     rtp->removeFeedback("ccm fir");
-        // }
         else {
             std::cout << "pt: " << pt << " no match, removing" << std::endl;
-            media->removeRtpMap(pt);
+            media.removeRtpMap(pt);
         }
     }
-    return rtp == NULL ? 0 : rtp->payloadType;
+    if (rtp == NULL) {
+        return 0;
+    }
+    auto trackId = track->getTrackId();
+    media.addSSRC(ssrc(), trackId);
+    auto newSdp = media.generateSdp();
+    std::cout << "    Setting new SDP: " << newSdp << std::endl;
+    track->setSdp(newSdp);
+    return rtp->payloadType;
 }
 
 rtc::Description::Media H264CodecMatcher::createMedia()
@@ -331,13 +316,20 @@ rtc::Description::Media H264CodecMatcher::createMedia()
     return media;
 }
 
-int OpusCodecMatcher::match(rtc::Description::Media* media)
+int OpusCodecMatcher::match(MediaTrackPtr track)
 {
+    auto sdp = track->getSdp();
+    std::cout << "    Got offer SDP: " << sdp << std::endl;
+    if (sdp[0] == 'm' && sdp[1] == '=') {
+        sdp = sdp.substr(2);
+    }
+    rtc::Description::Media media(sdp);
+
     rtc::Description::Media::RtpMap* rtp = NULL;
-    for (auto pt : media->payloadTypes()) {
+    for (auto pt : media.payloadTypes()) {
         rtc::Description::Media::RtpMap* r = NULL;
         try {
-            r = media->rtpMap(pt);
+            r = media.rtpMap(pt);
         }
         catch (std::exception& ex) {
             std::cout << "Bad rtpMap for pt: " << pt << std::endl;
@@ -353,10 +345,18 @@ int OpusCodecMatcher::match(rtc::Description::Media* media)
         }
         else {
             // std::cout << "no match, removing" << std::endl;
-            media->removeRtpMap(pt);
+            media.removeRtpMap(pt);
         }
     }
-    return rtp == NULL ? 0 : rtp->payloadType;
+    if (rtp == NULL) {
+        return 0;
+    }
+    auto trackId = track->getTrackId();
+    media.addSSRC(ssrc(), trackId);
+    auto newSdp = media.generateSdp();
+    std::cout << "    Setting new SDP: " << newSdp << std::endl;
+    track->setSdp(newSdp);
+    return rtp->payloadType;
 }
 
 rtc::Description::Media OpusCodecMatcher::createMedia()
@@ -369,13 +369,20 @@ rtc::Description::Media OpusCodecMatcher::createMedia()
     return media;
 }
 
-int PcmuCodecMatcher::match(rtc::Description::Media* media)
+int PcmuCodecMatcher::match(MediaTrackPtr track)
 {
+    auto sdp = track->getSdp();
+    std::cout << "    Got offer SDP: " << sdp << std::endl;
+    if (sdp[0] == 'm' && sdp[1] == '=') {
+        sdp = sdp.substr(2);
+    }
+    rtc::Description::Media media(sdp);
+
     rtc::Description::Media::RtpMap* rtp = NULL;
-    for (auto pt : media->payloadTypes()) {
+    for (auto pt : media.payloadTypes()) {
         rtc::Description::Media::RtpMap* r = NULL;
         try {
-            r = media->rtpMap(pt);
+            r = media.rtpMap(pt);
         }
         catch (std::exception& ex) {
             std::cout << "Bad rtpMap for pt: " << pt << std::endl;
@@ -391,10 +398,18 @@ int PcmuCodecMatcher::match(rtc::Description::Media* media)
         }
         else {
             // std::cout << "no match, removing" << std::endl;
-            media->removeRtpMap(pt);
+            media.removeRtpMap(pt);
         }
     }
-    return rtp == NULL ? 0 : rtp->payloadType;
+    if (rtp == NULL) {
+        return 0;
+    }
+    auto trackId = track->getTrackId();
+    media.addSSRC(ssrc(), trackId);
+    auto newSdp = media.generateSdp();
+    std::cout << "    Setting new SDP: " << newSdp << std::endl;
+    track->setSdp(newSdp);
+    return rtp->payloadType;
 }
 
 rtc::Description::Media PcmuCodecMatcher::createMedia()
