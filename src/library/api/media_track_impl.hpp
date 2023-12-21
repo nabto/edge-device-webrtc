@@ -4,7 +4,7 @@
 
 namespace nabto {
 
-class MediaTrackImpl {
+class MediaTrackImpl : public std::enable_shared_from_this<MediaTrackImpl> {
 public:
     MediaTrackImpl(std::string& trackId, std::string& sdp);
     ~MediaTrackImpl();
@@ -14,21 +14,19 @@ public:
     std::string getSdp();
     void setSdp(std::string& sdp);
     bool send(const uint8_t* buffer, size_t length);
-    void setReceiveCallback(std::function<void(const uint8_t* buffer, size_t length)> cb);
+    void setReceiveCallback(MediaRecvCallback cb);
     void setCloseCallback(std::function<void()> cb);
     void close();
 
     // INTERNAL METHODS
-    void setRtcTrack(std::shared_ptr<rtc::Track> track) {
-        rtcTrack_ = track;
-        sdp_ = track->description().generateSdp();
-    }
+    void setRtcTrack(std::shared_ptr<rtc::Track> track);
     std::shared_ptr<rtc::Track> getRtcTrack() { return rtcTrack_; }
     void connectionClosed();
+    void handleTrackMessage(rtc::message_ptr msg);
 private:
     std::string trackId_;
     std::string sdp_;
-    std::function<void(const uint8_t* buffer, size_t length)> recvCb_ = nullptr;
+    MediaRecvCallback recvCb_ = nullptr;
     std::function<void()> closeCb_ = nullptr;
 
     std::shared_ptr<rtc::Track> rtcTrack_ = nullptr;

@@ -43,7 +43,7 @@ public:
     virtual int ssrc() = 0;
 
     // Direction of the created media
-    virtual enum Direction direction() { return SEND_ONLY;}
+    virtual enum Direction direction() { return SEND_ONLY; }
 };
 
 class H264CodecMatcher : public RtpCodec

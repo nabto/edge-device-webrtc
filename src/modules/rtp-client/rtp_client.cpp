@@ -48,7 +48,6 @@ bool RtpClient::matchMedia(MediaTrackPtr media)
     std::cout << "    Got offer SDP: " << sdp << std::endl;
     if (sdp[0] == 'm' && sdp[1] == '=') {
         sdp = sdp.substr(2);
-        std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp << std::endl;
     }
     rtc::Description::Media desc(sdp);
     int pt = matcher_->match(&desc);
@@ -71,7 +70,6 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
     auto sdp = media->getSdp();
     if (sdp[0] == 'm' && sdp[1] == '=') {
         sdp = sdp.substr(2);
-        std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp << std::endl;
     }
     rtc::Description::Media desc(sdp);
     auto pts = desc.payloadTypes();
@@ -99,7 +97,31 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
     if (stopped_) {
         start();
     }
-    // TODO: if !SEND_ONLY, add recv cb stuff
+
+    if (matcher_->direction() != RtpCodec::SEND_ONLY) {
+        // We are also gonna receive data
+        std::cout << "    adding Track receiver" << std::endl;
+       auto self = shared_from_this();
+       track.track->setReceiveCallback([self, track](uint8_t* buffer, size_t length) {
+            auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
+
+            uint8_t pt = rtp->payloadType();
+            if (pt != track.dstPayloadType) {
+                // std::cout << "INVALID PT: " << (int)pt << " != " << track.dstPayloadType << std::endl;
+                return;
+            }
+
+            // TODO: explain why we are setting the SSRC to a Payload Type!
+            rtp->setSsrc(track.srcPayloadType);
+
+            struct sockaddr_in addr = {};
+            addr.sin_family = AF_INET;
+            addr.sin_addr.s_addr = inet_addr(self->remoteHost_.c_str());
+            addr.sin_port = htons(self->remotePort_);
+
+            auto ret = sendto(self->videoRtpSock_, buffer, length, 0, (struct sockaddr*)&addr, sizeof(addr));
+        });
+    }
 }
 
 void RtpClient::removeConnection(NabtoDeviceConnectionRef ref)

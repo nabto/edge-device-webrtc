@@ -101,6 +101,13 @@ int main(int argc, char** argv) {
         // rtpVideo->setRemoteHost("127.0.0.1");
 
         medias.push_back(rtpVideo);
+
+        auto rtpAudio = nabto::RtpClient::create("frontdoor-audio");
+        rtpAudio->setPort(port+1);
+        rtpAudio->setRtpCodecMatcher(&rtpAudioCodec);
+        rtpAudio->setRemoteHost("127.0.0.1");
+
+        medias.push_back(rtpAudio);
     // }
 
     std::cout << "medias size: " << medias.size() << std::endl;

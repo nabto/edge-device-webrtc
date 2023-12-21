@@ -23,6 +23,7 @@ typedef std::shared_ptr<MediaTrack> MediaTrackPtr;
 typedef std::function<void()> QueueEvent;
 typedef std::function<void(NabtoDeviceConnectionRef connRef, MediaTrackPtr track)> TrackEventCallback;
 typedef std::function<bool(NabtoDeviceConnectionRef connRef, std::string action)> CheckAccessCallback;
+typedef std::function<void(uint8_t* buffer, size_t length)> MediaRecvCallback;
 
 
 typedef std::shared_ptr<NabtoDevice> NabtoDevicePtr;
@@ -106,7 +107,7 @@ public:
     /**
      * Set callback to be called when data is received on this track.
     */
-    void setReceiveCallback(std::function<void(const uint8_t* buffer, size_t length)> cb);
+    void setReceiveCallback(MediaRecvCallback cb);
 
     /**
      * Set callback to be called when this track is closed.

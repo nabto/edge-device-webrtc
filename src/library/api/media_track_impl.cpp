@@ -29,7 +29,6 @@ void MediaTrackImpl::setSdp(std::string& sdp)
     sdp_ = sdp;
     if (sdp_[0] == 'm' && sdp_[1] == '=') {
         sdp_ = sdp_.substr(2);
-        std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp_ << std::endl;
     }
     if (rtcTrack_) {
         rtc::Description::Media media(sdp_);
@@ -46,7 +45,7 @@ bool MediaTrackImpl::send(const uint8_t* buffer, size_t length)
     return false;
 }
 
-void MediaTrackImpl::setReceiveCallback(std::function<void(const uint8_t* buffer, size_t length)> cb)
+void MediaTrackImpl::setReceiveCallback(MediaRecvCallback cb)
 {
     recvCb_ = cb;
 }
@@ -68,6 +67,18 @@ void MediaTrackImpl::connectionClosed()
     }
 }
 
+void MediaTrackImpl::setRtcTrack(std::shared_ptr<rtc::Track> track) {
+    rtcTrack_ = track;
+    sdp_ = track->description().generateSdp();
+}
 
+void MediaTrackImpl::handleTrackMessage(rtc::message_ptr msg)
+{
+    if (recvCb_ != nullptr && msg->type == rtc::Message::Binary) {
+        rtc::byte* data = msg->data();
+        uint8_t* buf = reinterpret_cast<uint8_t*>(msg->data());
+        recvCb_(buf, msg->size());
+    }
+}
 
 } // namespace

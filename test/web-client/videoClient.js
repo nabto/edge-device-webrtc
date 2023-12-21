@@ -24,6 +24,7 @@ var transceiver = null;         // RTCRtpTransceiver
 var webcamStream = null;        // MediaStream from webcam
 let metadata = undefined;
 let connected = false;
+let localStream;
 
 var iceServers = [{ urls: "stun:stun.nabto.net" }]; // Servers to use for Turn/stun
 
@@ -209,22 +210,33 @@ function connect() {
     if (singleOffer) {
       // We also want to receive a video feed from the device
       let transceiver = myPeerConnection.addTransceiver("video", {direction: "recvonly", streams: []});
-      let audioTrans = myPeerConnection.addTransceiver("audio", {direction: "recvonly", streams: []});
+
+      const constraints = window.constraints = {
+        audio: true,
+        video: false
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      localStream = stream;
+      localStream.getTracks().forEach(track => myPeerConnection.addTrack(track, localStream));
+
+      // let audioTrans = myPeerConnection.addTransceiver("audio", {direction: "recvonly", streams: []});
       let offer = await myPeerConnection.createOffer();
       await myPeerConnection.setLocalDescription(offer);
 
+      // TODO: when adding the audio track with we do not get a transceiver obj so we just quess the mid is 1
       metadata = {
           tracks: [
             {
               mid: transceiver.mid,
               trackId: "frontdoor-video"
-            },
+            }
+            ,
             {
-              mid: audioTrans.mid,
+              mid: "1",
               trackId: "frontdoor-audio"
             }
           ],
-          noTrickle: true
+          noTrickle: false
         };
     } else {
       let offer = await myPeerConnection.createOffer();
@@ -365,7 +377,6 @@ function createPeerConnection() {
   nabtoConnection.setPeerConnection(myPeerConnection);
 }
 
-let localStream;
 
 
 async function addAudioTrack()

@@ -307,18 +307,21 @@ MediaTrackPtr WebrtcConnection::createMediaTrack(std::shared_ptr<rtc::Track> tra
     std::cout << "createMediaTrack metadata: " << metadata_.dump() << std::endl;
     try {
         auto mid = track->mid();
+        auto sdp = track->description().generateSdp();
 
         auto metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
         for (auto mt : metaTracks) {
             if (mt["mid"].get<std::string>() == mid) {
                 std::cout << "Found metaTrack: " << mt.dump() << std::endl;
                 auto trackId = mt["trackId"].get<std::string>();
-                auto sdp = track->description().generateSdp();
                 auto media = MediaTrack::create(trackId, sdp);
                 media->getImpl()->setRtcTrack(track);
                 return media;
             }
         }
+        std::string noTrack;
+        auto media = MediaTrack::create(noTrack, sdp);
+        return media;
     } catch (nlohmann::json::exception& ex) {
         std::cout << "createMediaTrack json exception: " << ex.what() << std::endl;
     } catch (std::runtime_error& ex) {
@@ -329,9 +332,16 @@ MediaTrackPtr WebrtcConnection::createMediaTrack(std::shared_ptr<rtc::Track> tra
 
 void WebrtcConnection::acceptTrack(MediaTrackPtr track)
 {
-    if(trackCb_) {
+    if (trackCb_) {
         std::cout << "accepttrack with callback" << std::endl;
         trackCb_(getConnectionRef(), track);
+        auto self = shared_from_this();
+        track->getImpl()->getRtcTrack()->onMessage([self, track](rtc::message_variant data) {
+            auto msg = rtc::make_message(data);
+            self->queue_->post([self, track, msg]() {
+                track->getImpl()->handleTrackMessage(msg);
+            });
+        });
     } else {
         std::cout << "acceptTrack WITHOUT CALLBACK" << std::endl;
     }
@@ -378,10 +388,8 @@ void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
 {
     for (auto t : tracks) {
         auto sdp = t->getSdp();
-        std::cout << "Creating track with SDP: " << sdp << std::endl;
         if (sdp[0] == 'm' && sdp[1] == '=') {
             sdp = sdp.substr(2);
-            std::cout << "SDP Started with 'm=' removing it. New SDP:" << std::endl << sdp << std::endl;
         }
         rtc::Description::Media media(sdp);
         nlohmann::json metaTrack = {

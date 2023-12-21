@@ -83,7 +83,7 @@ bool MediaTrack::send(const uint8_t* buffer, size_t length)
 }
 
 
-void MediaTrack::setReceiveCallback(std::function<void(const uint8_t* buffer, size_t length)> cb)
+void MediaTrack::setReceiveCallback(MediaRecvCallback cb)
 {
     return impl_->setReceiveCallback(cb);
 }
