@@ -164,7 +164,10 @@ function validateFingerprint() {
 }
 
 function requestVideo() {
-  nabtoConnection.coapInvoke("GET", "/webrtc/video/frontdoor", undefined, undefined, (response) => {
+  let payload = {
+    tracks: ["frontdoor-video", "frontdoor-audio"]
+  }
+  nabtoConnection.coapInvoke("POST", "/webrtc/tracks", 50, JSON.stringify(payload), (response) => {
     boxLog("Got coap response: " + response);
   });
 
