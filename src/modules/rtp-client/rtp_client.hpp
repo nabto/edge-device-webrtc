@@ -2,6 +2,7 @@
 
 #include "rtp_track.hpp"
 
+#include <media-streams/media_stream.hpp>
 #include <sys/socket.h>
 typedef int SOCKET;
 
@@ -75,7 +76,7 @@ public:
     enum Direction direction() { return SEND_ONLY; }
 };
 
-class RtpClient : public std::enable_shared_from_this<RtpClient>
+class RtpClient : public MediaStream, public std::enable_shared_from_this<RtpClient>
 {
 public:
     static RtpClientPtr create(std::string trackId);

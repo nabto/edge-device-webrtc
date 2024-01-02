@@ -18,6 +18,7 @@ target_link_libraries(edge_device_webrtc
     webrtc_util
     event_queue_impl
     rtp_client
+    rtsp_client
 )
 
 install(TARGETS edge_device_webrtc

@@ -2,6 +2,9 @@
 
 #include "rtsp_client.hpp"
 
+#include <media-streams/media_stream.hpp>
+#include <nabto/nabto_device_webrtc.hpp>
+
 #include <rtc/rtc.hpp>
 
 namespace nabto {
@@ -10,57 +13,67 @@ class RtspStream;
 
 typedef std::shared_ptr<RtspStream> RtspStreamPtr;
 
-typedef std::shared_ptr<rtc::PeerConnection> RtcPCPtr;
-
 class RtspConnection
 {
 public:
-    RtcPCPtr pc;
+    MediaTrackPtr videoTrack;
+    MediaTrackPtr audioTrack;
     RtspClientPtr client;
 };
 
 
-class RtspStream : public std::enable_shared_from_this<RtspStream>
+class RtspStream : public MediaStream, public std::enable_shared_from_this<RtspStream>
 {
 public:
-    static RtspStreamPtr create(std::string trackId, std::string& url);
-    RtspStream(std::string& trackId, std::string& url);
+    static RtspStreamPtr create(std::string trackIdBase, std::string& url);
+    RtspStream(std::string& trackIdBase, std::string& url);
     ~RtspStream();
 
     void stop() {
-        for (auto c : connections_) {
-            c.client->stop();
+        for (const auto& [key, value] : connections_) {
+            value.client->stop();
         }
         connections_.clear();
     }
 
-    void addTrack(std::shared_ptr<rtc::Track> track, std::shared_ptr<rtc::PeerConnection> pc, std::string trackId);
+    bool isTrack(std::string& trackId);
+    bool matchMedia(MediaTrackPtr media);
+    void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
+    void removeConnection(NabtoDeviceConnectionRef ref);
 
-    void createTrack(std::shared_ptr<rtc::PeerConnection> pc);
+    void setCodecMatchers(RtpCodec* videoMatcher, RtpCodec* audioMatcher)
+    {
+        videoMatcher_ = videoMatcher;
+        audioMatcher_ = audioMatcher;
+    }
 
-    std::string getTrackId();
+    void setPort(uint16_t port) { basePort_ = port; }
 
-    void removeConnection(std::shared_ptr<rtc::PeerConnection> pc);
+    // TODO: remove this
+    std::string getTrackId() {
+        return trackIdBase_;
+    }
 
-    // TODO: impl sdp();
-    std::string sdp() {return "";};
-
+    // TODO: remove this
+    std::string sdp() {
+        auto m = videoMatcher_->createMedia();
+        m.addSSRC(videoMatcher_->ssrc(), trackIdBase_ + "-video");
+        return m.generateSdp();
+    }
 
 private:
 
-    static bool pcPtrComp(const RtcPCPtr& a, const RtcPCPtr& b) {
-        if (a == b) return true;
-        if (a && b) return a.get() == b.get();
-        return false;
-    };
-
-    std::string trackId_;
+    std::string trackIdBase_;
     std::string url_;
 
     std::mutex mutex_;
     size_t counter_ = 0;
 
-    std::vector<RtspConnection> connections_;
+    RtpCodec* videoMatcher_;
+    RtpCodec* audioMatcher_;
+    uint16_t basePort_;
+
+    std::map<NabtoDeviceConnectionRef, RtspConnection> connections_;
 };
 
 } // namespace

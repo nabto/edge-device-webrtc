@@ -2,9 +2,9 @@
 
 #include <event-queue/event_queue_impl.hpp>
 #include <util/util.hpp>
-// #include <media-streams/media_stream.hpp>
-// #include <media-streams/rtsp_stream.hpp>
+#include <media-streams/media_stream.hpp>
 #include <rtp-client/rtp_client.hpp>
+#include <rtsp-client/rtsp_stream.hpp>
 #include <nabto/nabto_device_webrtc.hpp>
 
 #include <rtc/global.hpp>
@@ -82,16 +82,16 @@ int main(int argc, char** argv) {
     device->setJwksConfig(url, issuer);
 
     // TODO: remake for new API
-    std::vector<nabto::RtpClientPtr> medias;
-    // nabto::RtspStreamPtr rtsp = nullptr;
+    std::vector<nabto::MediaStreamPtr> medias;
+    nabto::RtspStreamPtr rtsp = nullptr;
     nabto::H264CodecMatcher rtpVideoCodec;
     nabto::OpusCodecMatcher rtpAudioCodec;
-    // try {
-        // std::string rtspUrl = opts["rtspUrl"].get<std::string>();
-        // rtsp = nabto::RtspStream::create("frontdoor", rtspUrl);
-        // medias.push_back(rtsp);
-
-    // } catch (std::exception& ex) {
+    try {
+        std::string rtspUrl = opts["rtspUrl"].get<std::string>();
+        rtsp = nabto::RtspStream::create("frontdoor", rtspUrl);
+        rtsp->setCodecMatchers(&rtpVideoCodec, &rtpAudioCodec);
+        medias.push_back(rtsp);
+    } catch (std::exception& ex) {
         // rtspUrl was not set, default to RTP.
         uint16_t port = opts["rtpPort"].get<uint16_t>();
 
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
         rtpAudio->setRemoteHost("127.0.0.1");
 
         medias.push_back(rtpAudio);
-    // }
+    }
 
     std::cout << "medias size: " << medias.size() << std::endl;
 
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
         return nm_iam_check_access(device->getIam(), ref, action.c_str(), NULL);
     });
 
-    webrtc->setTrackEventCallback([device, medias](NabtoDeviceConnectionRef connRef, nabto::MediaTrackPtr track) {
+    webrtc->setTrackEventCallback([device, medias, rtsp](NabtoDeviceConnectionRef connRef, nabto::MediaTrackPtr track) {
         std::cout << "Track event for track: " << track->getTrackId() << std::endl;
         auto feed = track->getTrackId();
         for (auto m : medias) {
@@ -130,8 +130,9 @@ int main(int argc, char** argv) {
                 m->addConnection(ref, track);
                 track->setCloseCallback([m, ref]() {
                     m->removeConnection(ref);
-                });
-            } else {
+                    });
+            }
+            else {
                 std::cout << "    media " << feed << " was not a match" << std::endl;
             }
         }
@@ -229,6 +230,7 @@ int main(int argc, char** argv) {
 
             bool found = false;
             std::vector<nabto::MediaTrackPtr> list;
+            // TODO: remove t1, use t<1/2> as trackId based on isTrack, and remove getTrackId() from mediaStream
             std::string t1 = "frontdoor";
             std::string t2 = "frontdoor-video";
             std::string t3 = "frontdoor-audio";
