@@ -182,8 +182,6 @@ void WebrtcConnection::createPeerConnection()
                 for (auto m : self->mediaTracks_) {
                     m->getImpl()->connectionClosed();
                 }
-                // TODO: handle closure
-                // self->sigStream_ = nullptr;
                 self->coapChannel_ = nullptr;
                 self->pc_->close();
                 self->pc_ = nullptr;
@@ -208,7 +206,6 @@ void WebrtcConnection::createPeerConnection()
                 candidate["candidate"] = cand.candidate();
                 auto data = candidate.dump();
 
-                // TODO: add metadata
                 nlohmann::json metadata;
 
                 self->sigStream_->signalingSendIce(data, metadata);
@@ -239,7 +236,6 @@ void WebrtcConnection::createPeerConnection()
                         {"type", description->typeString()},
                         {"sdp", std::string(description.value())} };
                     auto data = message.dump();
-                    // TODO: construct metadata if we are making the offer
                     if (description->type() == rtc::Description::Type::Offer) {
                         std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
                         self->sigStream_->signalingSendOffer(data, self->metadata_);
@@ -277,7 +273,6 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
             {"type", description->typeString()},
             {"sdp", std::string(description.value())} };
         auto data = message.dump();
-        // TODO: construct metadata if we are making the offer
         if (description->type() == rtc::Description::Type::Offer) {
             std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
             sigStream_->signalingSendOffer(data, metadata_);

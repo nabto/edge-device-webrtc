@@ -47,7 +47,6 @@ bool RtpClient::matchMedia(MediaTrackPtr media)
     int pt = matcher_->match(media);
     if (pt == 0) {
         std::cout << "    CODEC MATCHING FAILED!!! " << std::endl;
-        // TODO: Fail
         return false;
     }
     return true;
@@ -101,8 +100,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
                 return;
             }
 
-            // TODO: explain why we are setting the SSRC to a Payload Type!
-            rtp->setSsrc(track.srcPayloadType);
+            rtp->setPayloadType(track.srcPayloadType);
 
             struct sockaddr_in addr = {};
             addr.sin_family = AF_INET;
