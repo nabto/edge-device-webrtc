@@ -83,12 +83,9 @@ public:
     RtpClient(std::string& trackId);
     ~RtpClient();
 
-    // TODO: move to private when simple example uses the new method
-    void addConnection(NabtoDeviceConnectionRef ref, RtpTrack track);
-    void removeConnection(NabtoDeviceConnectionRef ref);
-
     bool isTrack(std::string& trackId);
     void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
+    void removeConnection(NabtoDeviceConnectionRef ref);
     bool matchMedia(MediaTrackPtr media);
 
     void setPort(uint16_t port) { videoPort_ = port; remotePort_ = port + 1; }
@@ -109,6 +106,7 @@ public:
 private:
     void start();
     void stop();
+    void addConnection(NabtoDeviceConnectionRef ref, RtpTrack track);
     static void rtpVideoRunner(RtpClient* self);
     static bool pcPtrComp(const RtcPCPtr& a, const RtcPCPtr& b) {
         if (a == b) return true;

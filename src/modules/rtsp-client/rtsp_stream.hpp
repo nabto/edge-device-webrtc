@@ -70,13 +70,6 @@ public:
 
     }
 
-    // TODO: remove this
-    std::string sdp() {
-        auto m = videoMatcher_->createMedia();
-        m.addSSRC(videoMatcher_->ssrc(), trackIdBase_ + "-video");
-        return m.generateSdp();
-    }
-
 private:
 
     std::string trackIdBase_;
