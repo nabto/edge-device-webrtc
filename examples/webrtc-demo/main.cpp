@@ -81,7 +81,6 @@ int main(int argc, char** argv) {
     auto issuer = opts["jwksIssuer"].get<std::string>();
     device->setJwksConfig(url, issuer);
 
-    // TODO: remake for new API
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
     nabto::H264CodecMatcher rtpVideoCodec;
@@ -176,8 +175,7 @@ int main(int argc, char** argv) {
                         std::cout << "checking feed: " << feed << std::endl;
                         if (m->isTrack(feed)) {
                             found = true;
-                            auto sdp = m->sdp();
-                            auto media = nabto::MediaTrack::create(feed, sdp);
+                            auto media = m->createMedia(feed);
                             media->setCloseCallback([m, ref]() {
                                 m->removeConnection(ref);
                                 });
@@ -230,25 +228,24 @@ int main(int argc, char** argv) {
 
             bool found = false;
             std::vector<nabto::MediaTrackPtr> list;
-            // TODO: remove t1, use t<1/2> as trackId based on isTrack, and remove getTrackId() from mediaStream
-            std::string t1 = "frontdoor";
-            std::string t2 = "frontdoor-video";
-            std::string t3 = "frontdoor-audio";
+            std::string t1 = "frontdoor-video";
+            std::string t2 = "frontdoor-audio";
 
             for (auto m : medias) {
-                if (m->isTrack(t1) ||
-                    m->isTrack(t2) ||
-                    m->isTrack(t3) ) {
-                    found = true;
-                    auto sdp = m->sdp();
-                    auto feed = m->getTrackId();
-                    auto media = nabto::MediaTrack::create(feed, sdp);
-                    media->setCloseCallback([m, ref]() {
-                        m->removeConnection(ref);
-                        });
-                    m->addConnection(ref, media);
-                    list.push_back(media);
+                nabto::MediaTrackPtr media = nullptr;
+                if (m->isTrack(t1)) {
+                    media = m->createMedia(t1);
+                } else if (m->isTrack(t2) ) {
+                    media = m->createMedia(t2);
+                } else {
+                    continue;
                 }
+                found = true;
+                media->setCloseCallback([m, ref]() {
+                    m->removeConnection(ref);
+                });
+                m->addConnection(ref, media);
+                list.push_back(media);
             }
             if (!webrtc->connectionAddMedias(ref, list)) {
                 std::cout << "Failed to add medias to connection" << std::endl;

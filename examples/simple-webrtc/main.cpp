@@ -12,6 +12,7 @@
 using nlohmann::json;
 
 const char* coapPath[] = { "webrtc", "get", NULL };
+std::string trackId = "frontdoor-video";
 
 class SigIntContext {
 public:
@@ -61,7 +62,7 @@ int main(int argc, char** argv) {
 
     nabto::H264CodecMatcher rtpVideoCodec;
     uint16_t port = opts["rtpPort"].get<uint16_t>();
-    auto rtpVideo = nabto::RtpClient::create("frontdoor-video");
+    auto rtpVideo = nabto::RtpClient::create(trackId);
     rtpVideo->setPort(port);
     rtpVideo->setRtpCodecMatcher(&rtpVideoCodec);
 
@@ -81,9 +82,7 @@ int main(int argc, char** argv) {
 
         std::vector<nabto::MediaTrackPtr> list;
 
-        auto trackId = rtpVideo->getTrackId();
-        auto sdp = rtpVideo->sdp();
-        auto media = nabto::MediaTrack::create(trackId, sdp);
+        auto media = rtpVideo->createMedia(trackId);
         media->setCloseCallback([rtpVideo, ref]() {
             rtpVideo->removeConnection(ref);
         });

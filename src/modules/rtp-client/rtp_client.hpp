@@ -97,11 +97,13 @@ public:
     void setRtpCodecMatcher(RtpCodec* matcher) { matcher_ = matcher; }
     RtpCodec* getRtpCodecMatcher() { return matcher_; }
 
-    std::string sdp() {
+    MediaTrackPtr createMedia(std::string& trackId) {
         auto m = matcher_->createMedia();
         m.addSSRC(matcher_->ssrc(), trackId_);
-        return m.generateSdp();
+        auto sdp = m.generateSdp();
+        return MediaTrack::create(trackId, sdp);
     }
+
     std::string getTrackId();
 
 private:

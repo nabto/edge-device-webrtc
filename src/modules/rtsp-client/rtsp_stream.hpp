@@ -49,9 +49,25 @@ public:
 
     void setPort(uint16_t port) { basePort_ = port; }
 
-    // TODO: remove this
-    std::string getTrackId() {
-        return trackIdBase_;
+    MediaTrackPtr createMedia(std::string& trackId) {
+        if (trackId == trackIdBase_ + "-audio") {
+            auto m = audioMatcher_->createMedia();
+            m.addSSRC(audioMatcher_->ssrc(), trackId);
+            auto sdp = m.generateSdp();
+            return MediaTrack::create(trackId, sdp);
+
+        }
+        else if (trackId == trackIdBase_ + "-video") {
+            auto m = videoMatcher_->createMedia();
+            m.addSSRC(videoMatcher_->ssrc(), trackId);
+            auto sdp = m.generateSdp();
+            return MediaTrack::create(trackId, sdp);
+        }
+        else {
+            std::cout << "crateMedia called with invalid track ID" << std::endl;
+            return nullptr;
+        }
+
     }
 
     // TODO: remove this

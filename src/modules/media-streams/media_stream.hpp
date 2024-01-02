@@ -25,10 +25,7 @@ public:
 
     virtual bool matchMedia(MediaTrackPtr media) = 0;
 
-    // TODO: remove when main legacy coap stops using it
-    virtual std::string getTrackId() = 0;
-    // TODO: replace this with: MediaTrackPtr createMedia(std::string& trackId)
-    virtual std::string sdp() = 0;
+    virtual MediaTrackPtr createMedia(std::string& trackId) = 0;
 };
 
 
