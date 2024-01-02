@@ -86,15 +86,7 @@ int main(int argc, char** argv) {
         media->setCloseCallback([rtpVideo, ref]() {
             rtpVideo->removeConnection(ref);
         });
-        const rtc::SSRC ssrc = rtpVideoCodec.ssrc();
-        nabto::RtpTrack track = {
-            media,
-            ssrc,
-            rtpVideoCodec.payloadType(),
-            rtpVideoCodec.payloadType()
-        };
-        rtpVideo->addConnection(ref, track);
-
+        rtpVideo->addConnection(ref, media);
         list.push_back(media);
 
         if (!webrtc->connectionAddMedias(ref, list)) {
