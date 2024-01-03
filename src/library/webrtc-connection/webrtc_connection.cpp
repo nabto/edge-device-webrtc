@@ -47,59 +47,11 @@ void WebrtcConnection::handleOffer(std::string& data)
         nlohmann::json sdp = nlohmann::json::parse(data);
         rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
 
-        if (remDesc.hasAudioOrVideo()) {
-            NabtoDeviceConnectionRef ref = (nabtoConnection_ == NULL ? sigStream_->getSignalingConnectionRef() : nabto_device_connection_get_connection_ref(nabtoConnection_));
-            // TODO: Rename IAM action to something that is both Video and Audio
-            if (!accessCb_ || !accessCb_(ref, "Webrtc:VideoStream")) {
-                std::cout << "  Offer contained video Track rejected by IAM" << std::endl;
-                int c = remDesc.mediaCount();
-                for (int i = 0; i < c; i++) {
-                    if (rtc::holds_alternative<rtc::Description::Media*>(remDesc.media(i))) {
-                        auto m = rtc::get<rtc::Description::Media*>(remDesc.media(i));
-                        if (m->type() == "video" || m->type() == "audio") {
-                            m->setDirection(rtc::Description::Direction::Inactive);
-                            std::cout << "    setting media of type " << m->type() << " to InActive" << std::endl;
-                        } else {
-                            std::cout << "    Unknown media type: " << m->type() << std::endl;
-                        }
-                    }
-
-                }
-            } else if (mediaTracks_.size() != 0){
-                // If we already have a remote description in pc_
-                //   And both the incoming and current description has the video feed
-                //   And the existing feed has direction "inactive"
-                //   And IAM has allowed the video feed
-                // Then we must activate the existing feeds
-                for (auto t : mediaTracks_) {
-                    if (t->getImpl()->getRtcTrack()->direction() == rtc::Description::Direction::Inactive) {
-                        auto desc = t->getImpl()->getRtcTrack()->description();
-                        // TODO: Set direction based on original direction instead of guessing
-                        if (desc.type() == "video") {
-                            desc.setDirection(rtc::Description::Direction::SendOnly);
-                        } else {
-                            desc.setDirection(rtc::Description::Direction::SendRecv);
-                        }
-                        t->getImpl()->getRtcTrack()->setDescription(desc);
-
-                        acceptTrack(t);
-                    }
-                }
-            }
-
-        }
-
         // std::cout << "Setting remDesc: " << remDesc << std::endl;
         try {
             pc_->setRemoteDescription(remDesc);
         } catch (std::logic_error& ex) {
             std::cout << "Failed to set remote description with logic error: " << ex.what() << std::endl;
-        }
-
-        for (auto t : mediaTracks_) {
-            if (t->getImpl()->getRtcTrack()->direction() == rtc::Description::Direction::Inactive) {
-                std::cout << "Track " << t->getImpl()->getRtcTrack()->mid() << " inactive after set remote description" << std::endl;
-            }
         }
     }
     catch (std::invalid_argument& ex) {
@@ -205,10 +157,8 @@ void WebrtcConnection::createPeerConnection()
                 candidate["sdpMid"] = cand.mid();
                 candidate["candidate"] = cand.candidate();
                 auto data = candidate.dump();
-
-                nlohmann::json metadata;
-
-                self->sigStream_->signalingSendIce(data, metadata);
+                self->updateMetaTracks();
+                self->sigStream_->signalingSendIce(data, self->metadata_);
             }
         });
     });
@@ -236,6 +186,7 @@ void WebrtcConnection::createPeerConnection()
                         {"type", description->typeString()},
                         {"sdp", std::string(description.value())} };
                     auto data = message.dump();
+                    self->updateMetaTracks();
                     if (description->type() == rtc::Description::Type::Offer) {
                         std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
                         self->sigStream_->signalingSendOffer(data, self->metadata_);
@@ -273,6 +224,8 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
             {"type", description->typeString()},
             {"sdp", std::string(description.value())} };
         auto data = message.dump();
+        updateMetaTracks();
+
         if (description->type() == rtc::Description::Type::Offer) {
             std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
             sigStream_->signalingSendOffer(data, metadata_);
@@ -288,10 +241,6 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
 void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
 {
     std::cout << "Track event metadata: " << metadata_.dump() << std::endl;
-    if (track->direction() == rtc::Description::Direction::Inactive) {
-        std::cout << "  Track was inactive, ignoring" << std::endl;
-        return;
-    }
     auto media = createMediaTrack(track);
     mediaTracks_.push_back(media);
     acceptTrack(media);
@@ -300,10 +249,9 @@ void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
 MediaTrackPtr WebrtcConnection::createMediaTrack(std::shared_ptr<rtc::Track> track)
 {
     std::cout << "createMediaTrack metadata: " << metadata_.dump() << std::endl;
+    auto mid = track->mid();
+    auto sdp = track->description().generateSdp();
     try {
-        auto mid = track->mid();
-        auto sdp = track->description().generateSdp();
-
         auto metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
         for (auto mt : metaTracks) {
             if (mt["mid"].get<std::string>() == mid) {
@@ -314,15 +262,14 @@ MediaTrackPtr WebrtcConnection::createMediaTrack(std::shared_ptr<rtc::Track> tra
                 return media;
             }
         }
-        std::string noTrack;
-        auto media = MediaTrack::create(noTrack, sdp);
-        return media;
     } catch (nlohmann::json::exception& ex) {
         std::cout << "createMediaTrack json exception: " << ex.what() << std::endl;
     } catch (std::runtime_error& ex) {
         std::cout << "createMediaTrack runtime error: " << ex.what() << std::endl;
     }
-    return nullptr;
+    std::string noTrack;
+    auto media = MediaTrack::create(noTrack, sdp);
+    return media;
 }
 
 void WebrtcConnection::acceptTrack(MediaTrackPtr track)
@@ -339,6 +286,7 @@ void WebrtcConnection::acceptTrack(MediaTrackPtr track)
         });
     } else {
         std::cout << "acceptTrack WITHOUT CALLBACK" << std::endl;
+        track->setErrorState(MediaTrack::ErrorState::UNKNOWN_ERROR);
     }
 }
 
@@ -383,6 +331,7 @@ void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
 {
     for (auto t : tracks) {
         auto sdp = t->getSdp();
+        // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
         if (sdp[0] == 'm' && sdp[1] == '=') {
             sdp = sdp.substr(2);
         }
@@ -398,6 +347,54 @@ void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
     }
     std::cout << "createTracks Set local description" << std::endl;
     pc_->setLocalDescription();
+}
+
+void WebrtcConnection::updateMetaTracks()
+{
+    for (auto m: mediaTracks_) {
+        auto error = m->getImpl()->getErrorState();
+        if (error != MediaTrack::ErrorState::OK) {
+            auto sdp = m->getSdp();
+            // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
+            if (sdp[0] == 'm' && sdp[1] == '=') {
+                sdp = sdp.substr(2);
+            }
+            rtc::Description::Media media(sdp);
+            auto mid = media.mid();
+            auto metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
+            bool found = false;
+            for (auto& mt : metaTracks) {
+                if (mt["mid"].get<std::string>() == mid) {
+                    // Found the entry, insert error
+                    mt["error"] = trackErrorToString(error);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // This track was not in metadata, so we must add it to return the error
+                nlohmann::json metaTrack = {
+                    {"mid", mid},
+                    {"trackId", m->getTrackId()},
+                    {"error", trackErrorToString(error)}
+                };
+                metaTracks.push_back(metaTrack);
+            }
+            metadata_["tracks"] = metaTracks;
+        }
+    }
+}
+
+std::string WebrtcConnection::trackErrorToString(enum MediaTrack::ErrorState state) {
+    switch (state) {
+    case MediaTrack::ErrorState::OK: return std::string("OK");
+    case MediaTrack::ErrorState::ACCESS_DENIED: return std::string("ACCESS_DENIED");
+    case MediaTrack::ErrorState::UNKNOWN_TRACK_ID: return std::string("UNKNOWN_TRACK_ID");
+    case MediaTrack::ErrorState::TRACK_ID_MISSING: return std::string("TRACK_ID_MISSING");
+    case MediaTrack::ErrorState::INVALID_CODECS: return std::string("INVALID_CODECS");
+    case MediaTrack::ErrorState::UNKNOWN_ERROR: return std::string("UNKNOWN_ERROR");
+    }
+    return "UNKNOWN_ERROR";
 }
 
 } // namespace

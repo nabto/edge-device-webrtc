@@ -88,6 +88,8 @@ private:
     MediaTrackPtr createMediaTrack(std::shared_ptr<rtc::Track> track);
 
     NabtoDeviceConnectionRef getConnectionRef();
+    void updateMetaTracks();
+    std::string trackErrorToString(enum MediaTrack::ErrorState state);
 
     SignalingStreamPtr sigStream_;
     NabtoDevicePtr device_;

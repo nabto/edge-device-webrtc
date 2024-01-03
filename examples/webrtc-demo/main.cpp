@@ -119,6 +119,10 @@ int main(int argc, char** argv) {
 
     webrtc->setTrackEventCallback([device, medias, rtsp](NabtoDeviceConnectionRef connRef, nabto::MediaTrackPtr track) {
         std::cout << "Track event for track: " << track->getTrackId() << std::endl;
+        if (!nm_iam_check_access(device->getIam(), connRef, "Webrtc:VideoStream", NULL)) {
+            track->setErrorState(nabto::MediaTrack::ErrorState::ACCESS_DENIED);
+            return;
+        }
         auto feed = track->getTrackId();
         for (auto m : medias) {
             if (m->isTrack(feed)) {

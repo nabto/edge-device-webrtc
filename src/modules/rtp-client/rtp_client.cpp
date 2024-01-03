@@ -57,6 +57,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
 {
 
     auto sdp = media->getSdp();
+    // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
     if (sdp[0] == 'm' && sdp[1] == '=') {
         sdp = sdp.substr(2);
     }
@@ -238,6 +239,7 @@ int H264CodecMatcher::match(MediaTrackPtr track)
 {
     auto sdp = track->getSdp();
     std::cout << "    Got offer SDP: " << sdp << std::endl;
+    // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
     if (sdp[0] == 'm' && sdp[1] == '=') {
         sdp = sdp.substr(2);
     }
@@ -318,6 +320,7 @@ int OpusCodecMatcher::match(MediaTrackPtr track)
 {
     auto sdp = track->getSdp();
     std::cout << "    Got offer SDP: " << sdp << std::endl;
+    // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
     if (sdp[0] == 'm' && sdp[1] == '=') {
         sdp = sdp.substr(2);
     }
@@ -371,6 +374,7 @@ int PcmuCodecMatcher::match(MediaTrackPtr track)
 {
     auto sdp = track->getSdp();
     std::cout << "    Got offer SDP: " << sdp << std::endl;
+    // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
     if (sdp[0] == 'm' && sdp[1] == '=') {
         sdp = sdp.substr(2);
     }

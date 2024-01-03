@@ -55,6 +55,10 @@ void MediaTrackImpl::setCloseCallback(std::function<void()> cb)
     closeCb_ = cb;
 }
 
+void MediaTrackImpl::setErrorState(enum MediaTrack::ErrorState state) {
+    state_ = state;
+}
+
 void MediaTrackImpl::close()
 {
 

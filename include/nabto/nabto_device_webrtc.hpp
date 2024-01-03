@@ -77,6 +77,16 @@ private:
 
 class MediaTrack {
 public:
+
+    enum ErrorState {
+        OK,
+        ACCESS_DENIED,
+        UNKNOWN_TRACK_ID,
+        TRACK_ID_MISSING,
+        INVALID_CODECS,
+        UNKNOWN_ERROR
+    };
+
     /**
      * Create a media track to use in a `connectionAddMedias()` call
      */
@@ -113,6 +123,13 @@ public:
      * Set callback to be called when this track is closed.
     */
     void setCloseCallback(std::function<void()> cb);
+
+
+    /**
+     * Set error state of the track. non-OK errors will be included in signaling message metadata returned to the client.
+    */
+    void setErrorState(enum ErrorState state);
+
 
     void close();
 
