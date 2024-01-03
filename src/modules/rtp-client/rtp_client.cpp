@@ -179,6 +179,7 @@ void RtpClient::stop()
     if (!stopped && videoThread_.joinable()) {
         videoThread_.join();
     }
+    mediaTracks_.clear();
     std::cout << "RtpClient thread joined" << std::endl;
 }
 

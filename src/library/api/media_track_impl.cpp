@@ -10,7 +10,7 @@ MediaTrackImpl::MediaTrackImpl(std::string& trackId, std::string& sdp)
 
 MediaTrackImpl::~MediaTrackImpl()
 {
-
+    std::cout << "MediaTrackImpl destructor" << std::endl;
 }
 
 
@@ -69,6 +69,8 @@ void MediaTrackImpl::connectionClosed()
     if (closeCb_) {
         closeCb_();
     }
+    recvCb_ = nullptr;
+    closeCb_ = nullptr;
 }
 
 void MediaTrackImpl::setRtcTrack(std::shared_ptr<rtc::Track> track) {

@@ -55,6 +55,10 @@ MediaTrackPtr MediaTrack::create(std::string& trackId, std::string& sdp)
 MediaTrack::MediaTrack(std::string& trackId, std::string& sdp)
 : impl_(std::make_shared<MediaTrackImpl>(trackId, sdp)) { }
 
+MediaTrack::~MediaTrack() {
+    std::cout << "MediaTrack Destructor" << std::endl;
+}
+
 MediaTrackImplPtr MediaTrack::getImpl()
 {
     return impl_;

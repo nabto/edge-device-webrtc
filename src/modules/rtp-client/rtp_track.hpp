@@ -8,9 +8,6 @@
 
 namespace nabto {
 
-typedef std::shared_ptr<rtc::Track> RtcTrackPtr;
-typedef std::shared_ptr<rtc::PeerConnection> RtcPCPtr;
-
 class RtpTrack
 {
 public:

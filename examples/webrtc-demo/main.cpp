@@ -124,10 +124,14 @@ int main(int argc, char** argv) {
             return;
         }
         auto feed = track->getTrackId();
+        bool found = false;
         for (auto m : medias) {
             if (m->isTrack(feed)) {
+                found = true;
                 if (!m->matchMedia(track)) {
-                    std::cout << "Codec mismatch for track: " << feed << std::endl << "   THIS FEED WILL NOT WORK" << std::endl << std::endl;
+                    std::cout << "Codec mismatch for track: " << feed << std::endl;
+                    track->setErrorState(nabto::MediaTrack::ErrorState::INVALID_CODECS);
+                    return;
                 }
                 NabtoDeviceConnectionRef ref = connRef;
                 m->addConnection(ref, track);
@@ -135,9 +139,9 @@ int main(int argc, char** argv) {
                     m->removeConnection(ref);
                     });
             }
-            else {
-                std::cout << "    media " << feed << " was not a match" << std::endl;
-            }
+        }
+        if (!found) {
+            track->setErrorState(nabto::MediaTrack::ErrorState::UNKNOWN_TRACK_ID);
         }
     });
 
@@ -278,13 +282,14 @@ int main(int argc, char** argv) {
 
     eventQueue->run();
 
-    // medias.clear();
-    // if (rtsp != nullptr) {
-    //     rtsp->stop();
-    // }
-    // rtsp = nullptr;
+    medias.clear();
+    if (rtsp != nullptr) {
+        rtsp->stop();
+    }
+    rtsp = nullptr;
 
     auto fut = rtc::Cleanup();
+    fut.wait();
     fut.get();
 
 }

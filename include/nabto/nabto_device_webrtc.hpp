@@ -82,7 +82,6 @@ public:
         OK,
         ACCESS_DENIED,
         UNKNOWN_TRACK_ID,
-        TRACK_ID_MISSING,
         INVALID_CODECS,
         UNKNOWN_ERROR
     };
@@ -93,7 +92,7 @@ public:
     static MediaTrackPtr create(std::string& trackId, std::string& sdp);
 
     MediaTrack(std::string& trackId, std::string& sdp);
-
+    ~MediaTrack();
     /**
      * Get track ID of this track
     */

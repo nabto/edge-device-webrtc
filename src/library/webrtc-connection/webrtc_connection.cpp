@@ -390,7 +390,6 @@ std::string WebrtcConnection::trackErrorToString(enum MediaTrack::ErrorState sta
     case MediaTrack::ErrorState::OK: return std::string("OK");
     case MediaTrack::ErrorState::ACCESS_DENIED: return std::string("ACCESS_DENIED");
     case MediaTrack::ErrorState::UNKNOWN_TRACK_ID: return std::string("UNKNOWN_TRACK_ID");
-    case MediaTrack::ErrorState::TRACK_ID_MISSING: return std::string("TRACK_ID_MISSING");
     case MediaTrack::ErrorState::INVALID_CODECS: return std::string("INVALID_CODECS");
     case MediaTrack::ErrorState::UNKNOWN_ERROR: return std::string("UNKNOWN_ERROR");
     }

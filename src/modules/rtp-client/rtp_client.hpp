@@ -108,11 +108,6 @@ private:
     void stop();
     void addConnection(NabtoDeviceConnectionRef ref, RtpTrack track);
     static void rtpVideoRunner(RtpClient* self);
-    static bool pcPtrComp(const RtcPCPtr& a, const RtcPCPtr& b) {
-        if (a == b) return true;
-        if (a && b) return a.get() == b.get();
-        return false;
-    };
 
     std::string trackId_;
     bool stopped_ = true;
