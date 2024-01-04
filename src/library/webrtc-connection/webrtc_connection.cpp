@@ -351,9 +351,11 @@ void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
 
 void WebrtcConnection::updateMetaTracks()
 {
+    bool hasError = false;
     for (auto m: mediaTracks_) {
         auto error = m->getImpl()->getErrorState();
         if (error != MediaTrack::ErrorState::OK) {
+            hasError = true;
             auto sdp = m->getSdp();
             // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
             if (sdp[0] == 'm' && sdp[1] == '=') {
@@ -383,6 +385,7 @@ void WebrtcConnection::updateMetaTracks()
             metadata_["tracks"] = metaTracks;
         }
     }
+    metadata_["status"] = hasError ? "FAILED" : "OK";
 }
 
 std::string WebrtcConnection::trackErrorToString(enum MediaTrack::ErrorState state) {

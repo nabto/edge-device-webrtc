@@ -18,6 +18,7 @@ using nlohmann::json;
 const char* coapVideoPath[] = { "webrtc", "video", "frontdoor", NULL };
 
 const char* coapTracksPath[] = { "webrtc", "tracks", NULL };
+const char* coapTracksDefaultPath[] = { "webrtc", "tracks", "default", NULL };
 
 class SigIntContext {
 public:
@@ -221,6 +222,26 @@ int main(int argc, char** argv) {
 
         });
 
+
+    auto coapTracksDefListener = example::NabtoDeviceCoapListener::create(device, NABTO_DEVICE_COAP_GET, coapTracksDefaultPath, eventQueue);
+
+    coapTracksDefListener->setCoapCallback([device](NabtoDeviceCoapRequest* coap) {
+        std::cout << "GET /webrtc/tracks/default" << std::endl;
+        NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
+
+        if (nm_iam_check_access(device->getIam(), ref, "Webrtc:VideoStream", NULL)) {
+            nlohmann::json resp = { {"videoTrackId", "frontdoor-video"},{"audioTrackId", "frontdoor-audio"} };
+            auto respPayload = resp.dump(); //nlohmann::json::to_cbor(resp);
+            nabto_device_coap_response_set_code(coap, 205);
+            nabto_device_coap_response_set_content_format(coap, NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON);
+            nabto_device_coap_response_set_payload(coap, respPayload.data(), respPayload.size());
+            nabto_device_coap_response_ready(coap);
+            nabto_device_coap_request_free(coap);
+        } else {
+            nabto_device_coap_error_response(coap, 401, NULL);
+            nabto_device_coap_request_free(coap);
+        }
+    });
 
 
     // TODO: remove this legacy coap listener
