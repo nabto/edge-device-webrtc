@@ -71,15 +71,5 @@ void EventQueueImpl::eventRunner()
 }
 
 
-EventQueueWork::EventQueueWork(EventQueuePtr queue) : queue_(queue)
-{
-    queue_->addWork();
-}
-EventQueueWork::~EventQueueWork()
-{
-    queue_->removeWork();
-}
-
-
 
 } // namespace
