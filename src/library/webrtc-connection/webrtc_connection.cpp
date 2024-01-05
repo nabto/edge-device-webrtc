@@ -329,6 +329,9 @@ NabtoDeviceConnectionRef WebrtcConnection::getConnectionRef() {
 
 void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
 {
+    if (!pc_) {
+        createPeerConnection();
+    }
     for (auto t : tracks) {
         auto sdp = t->getSdp();
         // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
