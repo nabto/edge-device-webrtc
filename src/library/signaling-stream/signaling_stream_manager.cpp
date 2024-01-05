@@ -83,8 +83,7 @@ bool SignalingStreamManager::connectionAddMedias(NabtoDeviceConnectionRef ref, s
     for (auto p : streams_) {
         auto ptr = p.lock();
         if (ptr && ptr->isConnection(ref)) {
-            ptr->createTracks(tracks);
-            return true;
+            return ptr->createTracks(tracks);
         }
     }
     return false;
