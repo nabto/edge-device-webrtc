@@ -49,11 +49,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/var
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/byte-lite/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/shared_mutex/include)
 
-macro(install_dependencies TARGET)
-    install(FILES ${CMAKE_SOURCE_DIR}/src/nabto-device/nabto.png DESTINATION .)
-    install(FILES ${CMAKE_SOURCE_DIR}/src/nabto-device/iam_config.json DESTINATION .)
-endmacro()
-
 add_subdirectory(src/library)
 add_subdirectory(src/modules/util)
 add_subdirectory(src/modules/event-queue)
@@ -61,3 +56,4 @@ add_subdirectory(src/modules/rtp-client)
 add_subdirectory(src/modules/rtsp-client)
 add_subdirectory(examples/webrtc-demo)
 add_subdirectory(examples/simple-webrtc)
+add_subdirectory(examples/tmp)

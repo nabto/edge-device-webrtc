@@ -4,7 +4,7 @@ set(src
     rtsp_stream.cpp
 )
 
-add_library( rtsp_client SHARED "${src}")
+add_library( rtsp_client "${src}")
 
 find_package(CURL REQUIRED)
 

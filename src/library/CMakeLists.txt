@@ -15,9 +15,24 @@ set(src
 )
 
 add_library( nabto_device_webrtc SHARED "${src}")
+add_library( nabto_device_webrtc_static STATIC "${src}")
 
 target_link_libraries(nabto_device_webrtc
     nabto_device_static
     datachannel-static
 )
+
+target_link_libraries(nabto_device_webrtc_static
+    nabto_device_static
+    datachannel-static
+)
+
+set_target_properties(nabto_device_webrtc PROPERTIES PUBLIC_HEADER "../../include/nabto/nabto_device_webrtc.hpp")
+
+install(TARGETS nabto_device_webrtc
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  PUBLIC_HEADER DESTINATION include/nabto
+  )
 

@@ -11,7 +11,7 @@
 
 using nlohmann::json;
 
-const char* coapPath[] = { "webrtc", "get", NULL };
+const char* coapFeedPath[] = { "webrtc", "get", NULL };
 std::string trackId = "frontdoor-video";
 
 class SigIntContext {
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 
     auto eventQueue = nabto::EventQueueImpl::create();
 
-    auto coapListener = CoapListener::create(device, NABTO_DEVICE_COAP_GET, coapPath, eventQueue);
+    auto coapListener = CoapListener::create(device, NABTO_DEVICE_COAP_GET, coapFeedPath, eventQueue);
 
     auto webrtc = nabto::NabtoDeviceWebrtc::create(eventQueue, device);
     webrtc->setCheckAccessCallback([](NabtoDeviceConnectionRef ref, std::string action) -> bool {

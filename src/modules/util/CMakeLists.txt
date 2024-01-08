@@ -4,7 +4,7 @@ set(src
     util.cpp
 )
 
-add_library(webrtc_util SHARED "${src}")
+add_library(webrtc_util "${src}")
 
 find_package(CURL REQUIRED)
 
