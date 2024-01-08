@@ -56,6 +56,9 @@ public:
             } catch (std::runtime_error& ex) {
                 std::cout << "AcceptTrack runtime error: " << ex.what() << std::endl;
             }
+        } else {
+            defferedTracks_.insert(defferedTracks_.end(), tracks.begin(), tracks.end());
+            return true;
         }
         return false;
     }
@@ -116,6 +119,8 @@ private:
     WebrtcConnectionPtr webrtcConnection_;
     SignalingStreamPtr self_;
 
+
+    std::vector<MediaTrackPtr> defferedTracks_;
 
 
 };

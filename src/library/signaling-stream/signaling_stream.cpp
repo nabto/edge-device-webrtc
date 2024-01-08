@@ -126,6 +126,10 @@ void SignalingStream::createWebrtcConnection() {
                 self->closeStream();
         }
     });
+    if (!defferedTracks_.empty()) {
+        createTracks(defferedTracks_);
+        defferedTracks_.clear();
+    }
 }
 
 void SignalingStream::sendSignalligObject(std::string& data)
