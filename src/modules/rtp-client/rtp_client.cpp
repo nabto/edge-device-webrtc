@@ -228,7 +228,6 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
                     value.track->send((uint8_t*)buffer, len);
                 } catch (std::runtime_error& ex) {
                     std::cout << "Failed to send on track: " << ex.what() << std::endl;
-                    value.track->close();
                 }
             }
         }

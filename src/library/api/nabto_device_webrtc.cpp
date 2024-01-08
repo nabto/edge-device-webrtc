@@ -103,13 +103,6 @@ void MediaTrack::setErrorState(enum MediaTrack::ErrorState state)
     return impl_->setErrorState(state);
 }
 
-
-void MediaTrack::close()
-{
-    return impl_->close();
-}
-
-
 EventQueueWork::EventQueueWork(EventQueuePtr queue) : queue_(queue)
 {
     queue_->addWork();
