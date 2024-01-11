@@ -26,7 +26,7 @@ COPY CMakeLists.txt /workspace/device/CMakeLists.txt
 
 RUN cmake .. || cmake ..
 
-RUN make -j4
+RUN make -j
 
 COPY demo-scripts/entrypoint.sh /workspace/entrypoint.sh
 RUN chmod +x /workspace/entrypoint.sh
