@@ -14,6 +14,34 @@ This Github repo references various 3rd party components as submodules. So remem
 git clone --recursive https://github.com/nabto/edge-device-webrtc.git
 ```
 
+## Demo container
+For demo purposes, this example can be run in a Docker container. This requires Docker to be installed on your system, but ensures all dependencies are installed and working.
+After cloning this repo as shown above, the demo can be build using:
+
+```
+docker build . -t edge-device-webrtc
+```
+
+Before starting the example, you need a device configured in the Nabto Cloud Console. This requires you to configure a fingerprint. To obtain this, run the demo with the `--create-key` argument:
+
+```
+docker run -it --rm edge-device-webrtc edge_device_webrtc --create-key
+Created Raw private key:
+  badfae3acfa7ab904ac639f0c4cb0ad268d23f4e324e0708aeb567f87da0c324
+With fingerprint:
+  73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54
+```
+The *Raw key* must be used when starting the example, the *Fingerprint* should be configured in the Nabto Cloud Console.
+
+If you do not already have a device in the Nabto Cloud Console, follow our [general guide for embedded applications](https://docs.nabto.com/developer/platforms/embedded/applications.html#console).
+
+After configuring the device fingerprint, the example device will be able to attach to the Nabto Basestation when starting the demo. The demo application persists its list of users to a local file. For this file to persist between container restarts, create a directory to mount as a docker volume before running the demo:
+
+```
+mkdir webrtc-home
+docker run -v `pwd`/webrtc-home:/homedir -it --rm edge-device-webrtc edge_device_webrtc -r rtsp://127.0.0.1:8554/video -H /homedir d <YOUR_DEVICE_ID> -p <YOUR_PRODUCT_ID> -k <RAW_KEY_CREATED_ABOVE>
+```
+
 ## Tools
 CMake and a C++ compiler is needed. Also, you need cURL and OpenSSL libraries for the target platform.
 
@@ -57,7 +85,7 @@ The *Raw key* must be used when starting the example, the *Fingerprint* should b
 
 If you do not already have a device in the Nabto Cloud Console, follow our [general guide for embedded applications](https://docs.nabto.com/developer/platforms/embedded/applications.html#console).
 
-After configuring the device fingerprint, the example device will be able to attach to the Nabto Basestation when started. 
+After configuring the device fingerprint, the example device will be able to attach to the Nabto Basestation when started.
 ### Running with RTP
 Assuming your RTP feeds are running on the default ports, the device is started with:
 
