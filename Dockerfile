@@ -20,7 +20,7 @@ COPY CMakeLists.txt /workspace/device/CMakeLists.txt
 
 RUN cmake .. || cmake ..
 
-RUN make -j16
+RUN make -j16 install
 
 WORKDIR /homedir
 COPY demo-scripts/entrypoint.sh /workspace/entrypoint.sh
