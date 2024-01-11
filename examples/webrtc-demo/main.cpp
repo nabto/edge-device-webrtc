@@ -329,6 +329,7 @@ bool parse_options(int argc, char** argv, json& opts)
             ("r,rtsp", "Use RTSP at the provided url instead of RTP (eg. rtsp://127.0.0.l:8554/video)", cxxopts::value<std::string>())
             ("rtp-port", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
             ("c,cloud-domain", "Optional. Domain for the cloud deployment. This is used to derive JWKS URL, JWKS issuer, and frontend URL", cxxopts::value<std::string>()->default_value("smartcloud.nabto.com"))
+            ("H,home-dir", "Set which dir to store IAM data", cxxopts::value<std::string>())
             ("iam-reset", "If set, will reset the IAM state and exit")
             ("create-key", "If set, will create and print a raw private key and its fingerprint. Then exit")
             ("h,help", "Shows this help text");
@@ -358,6 +359,10 @@ bool parse_options(int argc, char** argv, json& opts)
 
         if (result.count("serverurl")) {
             opts["serverUrl"] = result["serverurl"].as<std::string>();
+        }
+
+        if (result.count("home-dir")) {
+            opts["homeDir"] = result["home-dir"].as<std::string>();
         }
 
         opts["logLevel"] = result["log-level"].as<std::string>();

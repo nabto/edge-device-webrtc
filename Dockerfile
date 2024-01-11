@@ -22,6 +22,7 @@ RUN cmake .. || cmake ..
 
 RUN make -j16
 
+WORKDIR /homedir
 COPY demo-scripts/entrypoint.sh /workspace/entrypoint.sh
 RUN chmod +x /workspace/entrypoint.sh
 
