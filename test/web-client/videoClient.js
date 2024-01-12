@@ -24,6 +24,7 @@ var transceiver = null;         // RTCRtpTransceiver
 var webcamStream = null;        // MediaStream from webcam
 let metadata = undefined;
 let connected = false;
+let audioSender = null;
 let localStream;
 
 var iceServers = [{ urls: "stun:stun.nabto.net" }]; // Servers to use for Turn/stun
@@ -48,8 +49,19 @@ function bufferToBase64( buffer ) {
   return window.btoa( binary );
 }
 
-function getImage()
+async function getImage()
 {
+
+  const constraints = window.constraints = {
+    audio: true,
+    video: false
+  };
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+  var audio = document.getElementById("received_audio");
+  audio.srcObject = stream;
+
+  return;
   nabtoConnection.coapInvoke("GET", "/webrtc/info", undefined, undefined, (response) => {
     let resp = JSON.parse(response);
     boxLog("Got /webrtc/info coap response: " + JSON.stringify(resp));
@@ -178,7 +190,8 @@ function connect() {
   reset();
 
   // Remove this line to test locally (defaults to "ws://localhost:6503")
-  nabtoSignaling.setSignalingHost("ws://63.32.24.220:6503");
+  // nabtoSignaling.setSignalingHost("ws://63.32.24.220:6503");
+  nabtoSignaling.setSignalingHost("wss://signaling.smartcloud.nabto.com");
 
   console.log(`Connecting to server: ${nabtoSignaling.signalingHost}`);
   boxLog(`Connecting to server: ${nabtoSignaling.signalingHost}`);
@@ -646,7 +659,7 @@ function connectedState(isConn) {
   document.getElementById("passauth").disabled = !isConn;
   document.getElementById("setpass").disabled = !isConn;
   document.getElementById("fpvalid").disabled = !isConn;
-  document.getElementById("getimage").disabled = !isConn;
+  // document.getElementById("getimage").disabled = !isConn;
   document.getElementById("login").disabled = isConn;
 
 }
