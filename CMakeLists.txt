@@ -52,6 +52,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/sha
 add_subdirectory(src/library)
 add_subdirectory(src/modules/util)
 add_subdirectory(src/modules/event-queue)
+add_subdirectory(src/modules/codecs)
 add_subdirectory(src/modules/rtp-client)
 add_subdirectory(src/modules/rtsp-client)
 add_subdirectory(examples/webrtc-demo)

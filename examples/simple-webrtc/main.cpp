@@ -4,6 +4,7 @@
 
 #include <event-queue/event_queue_impl.hpp>
 #include <rtp-client/rtp_client.hpp>
+#include <codecs/h264.hpp>
 
 #include <rtc/global.hpp>
 #include <nlohmann/json.hpp>

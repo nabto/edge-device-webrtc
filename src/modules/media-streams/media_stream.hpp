@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nabto/nabto_device.h>
+#include <nabto/nabto_device_webrtc.hpp>
 
 #include <rtc/rtc.hpp>
 
