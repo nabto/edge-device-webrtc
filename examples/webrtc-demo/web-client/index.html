@@ -1,27 +1,12 @@
 <!doctype html>
 
-<!--
-    WebSocket chat client
-
-    WebSocket and WebRTC based multi-user chat sample with two-way video
-    calling, including use of TURN if applicable or necessary.
-
-    This file provides the structure of the chat client's web page, including
-    logging in, text chatting, and making private video calls to other users.
-
-    To read about how this sample works:  http://bit.ly/webrtc-from-chat
-
-    Any copyright is dedicated to the Public Domain.
-    http:   creativecommons.org/publicdomain/zero/1.0/
--->
-
 <html>
 <head>
   <title>WebRTC video streaming demo using Nabto</title>
   <meta charset="utf-8">
   <link href="styles.css" rel="stylesheet">
   <script src="nabtoBundle.js"></script>
-  <script src="videoClient.js"></script>
+  <script src="webclient.js"></script>
 </head>
 <body>
   <div class="container">
@@ -31,39 +16,37 @@
         <p>Enter Device Info: </p>
       </section>
       <section>
-        <label for="product">Product ID: </label>
-        <input id="product" type="text" maxlength="12" required inputmode="verbatim" value="pr-jzoqqta9">
-
-        <label for="device">Device ID: </label>
-        <input id="device" type="text" maxlength="12" required inputmode="verbatim" value="de-uguiictr">
-
-        <label for="sct">SCT: </label>
-        <input id="sct" type="text" maxlength="12" required inputmode="verbatim" value="demosct">
-
-        <label for="iamuser">IAM username: </label>
-        <input id="iamuser" type="text" maxlength="64" inputmode="verbatim" value="admin">
-
-        <label for="iampwd">IAM password: </label>
-        <input id="iampwd" type="text" maxlength="64" inputmode="verbatim" value="demoAdminPwd">
-
-        <label for="fp">Fingerprint: </label>
-        <input id="fp" type="text" maxlength="64" inputmode="verbatim" value="5fe0318b8e6e7b14fa30bba114ec0d98b6c5c3ba9f7aaa7babb639a03235c091">
-
-        <label for="oauthtoken">Oauth Token: </label>
-        <input id="oauthtoken" type="text" maxlength="1024" inputmode="verbatim" value="" onchange="tokenUpdated()">
+        <label for="devicelink">Device Pairing link: </label>
+        <input id="devicelink" type="text" required inputmode="verbatim" size="140"  value="">
       </section>
     </form>
     <div class="controlbox">
-      <label for="singleoffer">Offer to receive:</label>
-      <input id="singleoffer" type="checkbox" required>
+      <section>
+      <label for="audiodown">Downstream Audio:</label>
+      <input id="audiodown" type="checkbox" required>
       <input id="login" type="button" name="login" value="Connect" onclick="connect()">
       <input id="reqvid" type="button" name="reqVid" value="Request Video" onclick="requestVideo()" disabled>
-      <input id="addaudio" type="button" name="addaudio" value="Add downstream Audio" onclick="addAudio()" disabled>
       <input id="passauth" type="button" name="passAuth" value="Password Authenticate" onclick="passAuth()" disabled>
-      <input id="setpass" type="button" name="passSet" value="Set Password" onclick="setPassword()" disabled>
       <input id="fpvalid" type="button" name="fpValid" value="Validate Fingerprint" onclick="validateFingerprint()" disabled>
-      <input id="oauth" type="button" name="oAuth" value="Oauth login" onclick="oAuth()" disabled>
-      <input id="getimage" type="button" name="getimage" value="Local Audio Test" onclick="getImage()">
+    </section>
+    <section>
+      <label for="oauthtoken">Oauth Token: </label>
+      <input id="oauthtoken" type="text" maxlength="1024" inputmode="verbatim" value="" onchange="tokenUpdated()">
+    <input id="oauth" type="button" name="oAuth" value="Oauth login" onclick="oAuth()" disabled>
+    </section>
+    <section>
+      <h3>CoAP Requests</h3>
+      <label for="coapmethod">Method: </label>
+      <input id="coapmethod" type="text" maxlength="7" size="6" inputmode="verbatim" value="" onchange="updateUi()">
+      <label for="coappath">Path: </label>
+      <input id="coappath" type="text" inputmode="verbatim" value="" onchange="updateUi()">
+      <label for="coapct">Content Type: </label>
+      <input id="coapct" type="number" style="width:3em" value="">
+      <label for="coappayload">Payload: </label>
+      <input id="coappayload" type="text" inputmode="verbatim" value="">
+
+      <input id="coap" type="button" name="coap" value="Invoke CoAP" onclick="coapInvoke()" disabled>
+    </section>
     </div>
     <ul class="logbox"><b>LOG:</b></ul>
     <div class="camerabox">
@@ -72,9 +55,6 @@
         Hang Up
       </button>
       <audio id="received_audio" autoplay></audio>
-    </div>
-    <div class="picturebox">
-      <img id="nabtoimage" width="600" height="315">
     </div>
   </div>
 </body>
