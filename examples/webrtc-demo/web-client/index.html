@@ -14,12 +14,46 @@
     <form class="infobox">
       <section>
         <h1>Nabto WebRTC browser demo</h1>
-        <p>Enter Device Info: </p>
       </section>
       <section>
-        <label for="devicelink">Device Pairing link: </label>
-        <input id="devicelink" type="text" required inputmode="verbatim" size="140"  value="" onchange="parseLink()">
+        <label for="devicelink">Pairing link to parse for device info: </label>
+        <input id="devicelink" type="text" required inputmode="verbatim" size="140"  value="">
+        <input id="linkparse" type="button" name="linkparse" value="Parse" onclick="parseLink()">
       </section>
+      <section>
+        <table>
+          <tr>
+            <td><label for="product">Product ID: </label></td>
+            <td><input id="product" type="text" maxlength="12" required inputmode="verbatim" value=""></td>
+          </tr>
+          <tr>
+            <td><label for="device">Device ID: </label></td>
+          <td><input id="device" type="text" maxlength="12" required inputmode="verbatim" value=""></td>
+        </tr>
+        <tr>
+
+          <td><label for="sct">SCT: </label></td>
+            <td><input id="sct" type="text" maxlength="12" required inputmode="verbatim" value=""></td>
+        </tr>
+        <tr>
+
+          <td><label for="iamuser">IAM username: </label></td>
+            <td><input id="iamuser" type="text" maxlength="64" inputmode="verbatim" value=""></td>
+        </tr>
+        <tr>
+
+          <td><label for="iampwd">IAM password: </label></td>
+            <td><input id="iampwd" type="text" maxlength="64" inputmode="verbatim" value=""></td>
+        </tr>
+        <tr>
+
+          <td><label for="fp">Fingerprint: </label></td>
+            <td><input id="fp" type="text" maxlength="64" inputmode="verbatim" value=""></td>
+        </tr>
+
+        </table>
+      </section>
+
     </form>
     <div class="controlbox">
       <section>

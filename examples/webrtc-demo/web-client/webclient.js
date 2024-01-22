@@ -18,10 +18,6 @@ let connected = false;
 let localStream;
 
 function connect() {
-  if (!parseLink()) {
-    return;
-  };
-
   boxLog("Connecting to device: ");
   boxLog(`* Product ID: ${productId}`);
   boxLog(`* Device ID: ${deviceId}`);
@@ -175,9 +171,7 @@ async function audioDownstream() {
 
 function parseLink() {
   const devLink = document.getElementById("devicelink").value;
-  if (devLink.length > 0) {
-    localStorage.setItem("deviceLink", devLink);
-  } else {
+  if (devLink.length == 0) {
     boxLog("Invalid device link!");
     return false;
   }
@@ -187,29 +181,70 @@ function parseLink() {
     let [key, value] = p.split('=');
     if (key == "p") {
       productId = value;
+      localStorage.setItem("productId", productId);
     } else if (key == "d") {
       deviceId = value;
+      localStorage.setItem("deviceId", deviceId);
     } else if (key == "u") {
       username = value;
+      localStorage.setItem("username", username);
     } else if (key == "pwd") {
       password = value;
+      localStorage.setItem("password", password);
     } else if (key == "sct") {
       sct = value;
+      localStorage.setItem("sct", sct);
     } else if (key == "fp") {
       fingerprint = value;
+      localStorage.setItem("fingerprint", fingerprint);
     }
   }
-
+  updateInfo();
+  updateUi();
   return true;
 }
 
-
 addEventListener("load", (event) => {
+  updateInfo();
+});
+
+function updateInfo() {
+  const prod = localStorage.getItem("productId");
+  if (prod) {
+    document.getElementById("product").value = prod;
+    productId = prod;
+  }
+  const dev = localStorage.getItem("deviceId");
+  if (dev) {
+    document.getElementById("device").value = dev;
+    deviceId = dev;
+  }
+  const uname = localStorage.getItem("username");
+  if (uname) {
+    document.getElementById("iamuser").value = uname;
+    username = uname;
+  }
+  const pwd = localStorage.getItem("password");
+  if (pwd) {
+    document.getElementById("iampwd").value = pwd;
+    password = pwd;
+  }
+  const sctLoc = localStorage.getItem("sct");
+  if (sctLoc) {
+    document.getElementById("sct").value = sctLoc;
+    sct = sctLoc;
+  }
+  const fp = localStorage.getItem("fingerprint");
+  if (fp) {
+    document.getElementById("fp").value = fp;
+    fingerprint = fp;
+  }
+
   const link = localStorage.getItem("deviceLink");
   if (link) {
     document.getElementById("devicelink").value = link;
   }
-});
+};
 
 
 function updateUi() {
