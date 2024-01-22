@@ -6,6 +6,7 @@
   <meta charset="utf-8">
   <link href="styles.css" rel="stylesheet">
   <script src="nabtoBundle.js"></script>
+  <script src="util.js"></script>
   <script src="webclient.js"></script>
 </head>
 <body>
@@ -17,38 +18,45 @@
       </section>
       <section>
         <label for="devicelink">Device Pairing link: </label>
-        <input id="devicelink" type="text" required inputmode="verbatim" size="140"  value="">
+        <input id="devicelink" type="text" required inputmode="verbatim" size="140"  value="" onchange="parseLink()">
       </section>
     </form>
     <div class="controlbox">
       <section>
-      <label for="audiodown">Downstream Audio:</label>
-      <input id="audiodown" type="checkbox" required>
       <input id="login" type="button" name="login" value="Connect" onclick="connect()">
-      <input id="reqvid" type="button" name="reqVid" value="Request Video" onclick="requestVideo()" disabled>
       <input id="passauth" type="button" name="passAuth" value="Password Authenticate" onclick="passAuth()" disabled>
       <input id="fpvalid" type="button" name="fpValid" value="Validate Fingerprint" onclick="validateFingerprint()" disabled>
+      <input id="audiodown" type="button" name="audiodown" value="Add Downstream Audio" onclick="audioDownstream()" disabled>
     </section>
     <section>
       <label for="oauthtoken">Oauth Token: </label>
-      <input id="oauthtoken" type="text" maxlength="1024" inputmode="verbatim" value="" onchange="tokenUpdated()">
-    <input id="oauth" type="button" name="oAuth" value="Oauth login" onclick="oAuth()" disabled>
+      <input id="oauthtoken" type="text" maxlength="1024" inputmode="verbatim" value="" onchange="updateUi()">
     </section>
     <section>
       <h3>CoAP Requests</h3>
-      <label for="coapmethod">Method: </label>
-      <input id="coapmethod" type="text" maxlength="7" size="6" inputmode="verbatim" value="" onchange="updateUi()">
-      <label for="coappath">Path: </label>
-      <input id="coappath" type="text" inputmode="verbatim" value="" onchange="updateUi()">
-      <label for="coapct">Content Type: </label>
-      <input id="coapct" type="number" style="width:3em" value="">
-      <label for="coappayload">Payload: </label>
-      <input id="coappayload" type="text" inputmode="verbatim" value="">
+      <section>
+        <input id="inforeq" type="button" name="inforeq" value="Set Signaling Info Request" onclick="setSignalingReq()">
+        <input id="videoreq" type="button" name="videoreq" value="Set Video Request" onclick="setVideoReq()">
+        <input id="videoaudioreq" type="button" name="videoaudioreq" value="Set Video/Audio Request" onclick="setVideoAudioReq()">
+        <input id="tracksreq" type="button" name="tracksreq" value="Set Default Tracks Request" onclick="setDefaultTracksReq()">
+        <input id="oauth" type="button" name="oAuth" value="Set Oauth Request" onclick="setOauthReq()" disabled>
 
-      <input id="coap" type="button" name="coap" value="Invoke CoAP" onclick="coapInvoke()" disabled>
+      </section>
+      <section>
+        <label for="coapmethod">Method: </label>
+        <input id="coapmethod" type="text" maxlength="7" size="6" inputmode="verbatim" value="" onchange="updateUi()">
+        <label for="coappath">Path: </label>
+        <input id="coappath" type="text" inputmode="verbatim" value="" onchange="updateUi()">
+        <label for="coapct">Content Type: </label>
+        <input id="coapct" type="number" style="width:3em" value="">
+        <label for="coappayload">Payload: </label>
+        <input id="coappayload" type="text" inputmode="verbatim" value="">
+
+        <input id="coap" type="button" name="coap" value="Invoke CoAP" onclick="coapInvoke()" disabled>
+      </section>
     </section>
     </div>
-    <ul class="logbox"><b>LOG:</b></ul>
+    <ul class="logbox"><li><b>LOG:</b><input id="clearlog" type="button" name="clearlog" value="Clear Log" onclick="clearLog()"> </li></ul>
     <div class="camerabox">
       <video id="received_video" autoplay></video>
       <button id="hangup-button" onclick="hangUpCall();" role="button">

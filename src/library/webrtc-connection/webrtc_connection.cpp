@@ -347,6 +347,14 @@ void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
         auto track = pc_->addTrack(media);
         t->getImpl()->setRtcTrack(track);
         mediaTracks_.push_back(t);
+
+        auto self = shared_from_this();
+        track->onMessage([self, t](rtc::message_variant data) {
+            auto msg = rtc::make_message(data);
+            self->queue_->post([self, t, msg]() {
+                t->getImpl()->handleTrackMessage(msg);
+                });
+            });
     }
     std::cout << "createTracks Set local description" << std::endl;
     pc_->setLocalDescription();
