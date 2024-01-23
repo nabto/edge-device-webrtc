@@ -112,7 +112,7 @@ async function coapInvoke() {
     boxLog("CoAP Request Succeeded!")
   }
   boxLog(`* response code: ${resp.statusCode}`);
-  let cf = resp.contentType;
+  let cf = resp.contentFormat;
   if (cf == CoapContentFormat.TEXT_PLAIN_UTF8) {
     let data = String.fromCharCode.apply(String, resp.payload);
     boxLog(`* response UTF-8 payload: ${data}`);
@@ -124,6 +124,7 @@ async function coapInvoke() {
     let data = globalThis.window.nabtoModuleUtil.decodeCborPayload(resp.payload);
     boxLog(`* response CBOR payload: ${JSON.stringify(data)}`);
   } else if (resp.payload){
+    boxLog(`* response Content Format: ${resp.contentFormat}`);
     boxLog(`* response payload: ${JSON.stringify(resp.payload)}`);
   } else {
     boxLog(`* response without: ${JSON.stringify(resp)}`);
