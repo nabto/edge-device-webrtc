@@ -23,7 +23,7 @@
     "infobox infobox"
     "ctrlbox ctrlbox"
     "logbox camerabox"
-    "logbox picturebox";
+    "logbox camerabox";
   grid-gap: 1rem;
   grid-auto-rows: auto;
 }
@@ -128,4 +128,13 @@ input, label{
 
 label{
   font-weight: bold;
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-block-start: 0.1em;
+}
+
+body {
+  max-width: 1680px;
 }

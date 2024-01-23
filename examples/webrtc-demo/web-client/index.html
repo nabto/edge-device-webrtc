@@ -25,30 +25,25 @@
           <tr>
             <td><label for="product">Product ID: </label></td>
             <td><input id="product" type="text" maxlength="12" required inputmode="verbatim" value=""></td>
-          </tr>
-          <tr>
-            <td><label for="device">Device ID: </label></td>
+            <td></td>
+            <td><label for="fp">Fingerprint: </label></td>
+            <td><input id="fp" type="text" maxlength="64" inputmode="verbatim" value="" size="55"></td>
+        </tr>
+        <tr>
+          <td><label for="device">Device ID: </label></td>
           <td><input id="device" type="text" maxlength="12" required inputmode="verbatim" value=""></td>
-        </tr>
-        <tr>
 
-          <td><label for="sct">SCT: </label></td>
-            <td><input id="sct" type="text" maxlength="12" required inputmode="verbatim" value=""></td>
-        </tr>
-        <tr>
-
-          <td><label for="iamuser">IAM username: </label></td>
+            <td></td>
+            <td><label for="iamuser">IAM username: </label></td>
             <td><input id="iamuser" type="text" maxlength="64" inputmode="verbatim" value=""></td>
         </tr>
         <tr>
+          <td><label for="sct">SCT: </label></td>
+            <td><input id="sct" type="text" maxlength="12" required inputmode="verbatim" value=""></td>
 
+            <td style="width: 60px;"></td>
           <td><label for="iampwd">IAM password: </label></td>
             <td><input id="iampwd" type="text" maxlength="64" inputmode="verbatim" value=""></td>
-        </tr>
-        <tr>
-
-          <td><label for="fp">Fingerprint: </label></td>
-            <td><input id="fp" type="text" maxlength="64" inputmode="verbatim" value=""></td>
         </tr>
 
         </table>
@@ -63,11 +58,10 @@
       <input id="audiodown" type="button" name="audiodown" value="Add Downstream Audio" onclick="audioDownstream()" disabled>
     </section>
     <section>
-      <label for="oauthtoken">Oauth Token: </label>
-      <input id="oauthtoken" type="text" maxlength="1024" inputmode="verbatim" value="" onchange="updateUi()">
     </section>
-    <section>
-      <h3>CoAP Requests</h3>
+    <section style="border: 1px solid; max-width: 1500px;">
+      <div style="margin-left: 10px;">
+      <h2>CoAP Requests</h2>
       <section>
         <input id="inforeq" type="button" name="inforeq" value="Set Signaling Info Request" onclick="setSignalingReq()">
         <input id="videoreq" type="button" name="videoreq" value="Set Video Request" onclick="setVideoReq()">
@@ -76,6 +70,10 @@
         <input id="oauth" type="button" name="oAuth" value="Set Oauth Request" onclick="setOauthReq()" disabled>
 
       </section>
+      <section>
+        <label for="oauthtoken">Oauth Token: </label>
+        <input id="oauthtoken" type="text" maxlength="1024" inputmode="verbatim" value="" onchange="updateUi()">
+        </section>
       <section>
         <label for="coapmethod">Method: </label>
         <input id="coapmethod" type="text" maxlength="7" size="6" inputmode="verbatim" value="" onchange="updateUi()">
@@ -88,6 +86,7 @@
 
         <input id="coap" type="button" name="coap" value="Invoke CoAP" onclick="coapInvoke()" disabled>
       </section>
+    </div>
     </section>
     </div>
     <ul class="logbox"><li><b>LOG:</b><input id="clearlog" type="button" name="clearlog" value="Clear Log" onclick="clearLog()"> </li></ul>
