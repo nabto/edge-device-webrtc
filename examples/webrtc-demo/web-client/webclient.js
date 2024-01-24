@@ -29,8 +29,7 @@ function connect() {
   webrtcConnection = globalThis.window.EdgeWebrtc.EdgeWebrtcConnectionFactory.create();
 
   // TODO: Remove signalingUrl once an official non-demo signaling service is deployed
-  // let sigUrl = "wss://signaling.smartcloud.nabto.com";
-  let sigUrl = "wss://signaling.tk.dev.nabto.com";
+  let sigUrl = "wss://signaling.smartcloud.nabto.com";
   webrtcConnection.setConnectionOptions({deviceId: deviceId, productId: productId, sct: sct, signalingServerUrl: sigUrl});
   webrtcConnection.onConnected(() => {
     onConnected();
