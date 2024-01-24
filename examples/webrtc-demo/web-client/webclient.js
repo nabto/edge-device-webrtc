@@ -208,6 +208,24 @@ addEventListener("load", (event) => {
   updateInfo();
 });
 
+function storeInfo() {
+  productId = document.getElementById("product").value;
+  deviceId = document.getElementById("device").value;
+  username = document.getElementById("iamuser").value;
+  password = document.getElementById("iampwd").value;
+  sct = document.getElementById("sct").value;
+  fingerprint = document.getElementById("fp").value;
+
+  localStorage.setItem("productId", productId);
+  localStorage.setItem("deviceId", deviceId);
+  localStorage.setItem("username", username);
+  localStorage.setItem("password", password);
+  localStorage.setItem("sct", sct);
+  localStorage.setItem("fingerprint", fingerprint);
+  updateInfo();
+  updateUi();
+}
+
 function updateInfo() {
   const prod = localStorage.getItem("productId");
   if (prod) {
