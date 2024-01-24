@@ -58,9 +58,9 @@ bool SignalingStreamManager::start()
                 {"SignalingStreamPort", self->streamListener_->getStreamPort()}
             };
             std::cout << "Sending info response: " << resp.dump() << std::endl;
-            auto payload = nlohmann::json::to_cbor(resp);
+            auto payload = resp.dump();
             nabto_device_coap_response_set_code(coap, 205);
-            nabto_device_coap_response_set_content_format(coap, NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_CBOR);
+            nabto_device_coap_response_set_content_format(coap, NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON);
             nabto_device_coap_response_set_payload(coap, payload.data(), payload.size());
             nabto_device_coap_response_ready(coap);
         }
