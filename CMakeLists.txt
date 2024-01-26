@@ -32,8 +32,8 @@ set(DEVICE_BUILD_APPS OFF)
 add_subdirectory(nabto-embedded-sdk)
 
 set(NO_TESTS ON CACHE BOOL "disable tests")
-set(NO_EXAMPLES ON)
-set(USE_SYSTEM_JSON ON)
+set(NO_EXAMPLES ON CACHE BOOL "disable examples")
+set(USE_SYSTEM_JSON ON CACHE BOOL "system json")
 add_subdirectory(3rdparty/libdatachannel)
 
 include_directories(include)
