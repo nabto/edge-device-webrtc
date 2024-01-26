@@ -46,13 +46,11 @@ docker run -v `pwd`/webrtc-home:/homedir -it --rm edge-device-webrtc edge_device
 CMake and a C++ compiler is needed. Also, you need cURL and OpenSSL libraries for the target platform.
 
 ## Building
-The example is built using cmake from the root of this repo (note that cmake must be invoked twice as shown, this is a known issue, ticket sc-2419):
+The example is built using cmake from the root of this repo:
 
 ```
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ..
-# the above step will fail - ignore this and run the command again
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ..
 make -j16 install
 ```
@@ -61,8 +59,6 @@ On macOS you may need to turn off `sctp_werror` so the full set of commands beco
 ```
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
-# the above step will fail - ignore this and run the command again
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
 make -j16 install
 ```
