@@ -15,10 +15,11 @@ COPY examples /workspace/device/examples
 COPY include /workspace/device/include
 COPY mbedtls-config /workspace/device/mbedtsl-config
 COPY nabto-embedded-sdk /workspace/device/nabto-embedded-sdk
+COPY .git /workspace/device/.git
 COPY src /workspace/device/src
 COPY CMakeLists.txt /workspace/device/CMakeLists.txt
 
-RUN cmake .. || cmake ..
+RUN cmake ..
 
 RUN make -j16 install
 
