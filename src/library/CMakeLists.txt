@@ -1,5 +1,12 @@
 include(llvm_sanitizers.cmake)
 
+add_custom_target(GENERATE_WEBRTC_VERSION ALL
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/api/version.cpp
+  COMMAND ${CMAKE_COMMAND} -P
+  ${CMAKE_CURRENT_SOURCE_DIR}/version.cmake
+  )
+
 include_directories(.)
 
 set(src
@@ -12,6 +19,7 @@ set(src
     api/nabto_device_webrtc.cpp
     api/nabto_device_webrtc_impl.cpp
     api/media_track_impl.cpp
+    api/version.cpp
 )
 
 add_library( nabto_device_webrtc SHARED "${src}")

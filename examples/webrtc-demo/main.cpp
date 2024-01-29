@@ -115,6 +115,7 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "medias size: " << medias.size() << std::endl;
+    std::cout << "Nabto Device WebRTC version: " << nabto::NabtoDeviceWebrtc::version() << std::endl;
 
     auto webrtc = nabto::NabtoDeviceWebrtc::create(eventQueue, device->getDevice());
     webrtc->setCheckAccessCallback([device](NabtoDeviceConnectionRef ref, std::string action) -> bool {

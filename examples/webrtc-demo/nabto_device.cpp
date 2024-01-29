@@ -135,6 +135,8 @@ bool NabtoDeviceApp::start()
         return false;
     }
 
+    std::cout << "Nabto Embedded SDK version: " << nabto_device_version() << std::endl;
+
     std::cout << "Device: " << productId_ << "." << deviceId_ << " with fingerprint: [" << fp << "]" << std::endl;;
     nabto_device_string_free(fp);
 
