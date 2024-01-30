@@ -248,6 +248,16 @@ public:
      */
     void setCheckAccessCallback(CheckAccessCallback cb);
 
+    /**
+     * Get a string representation of the Nabto Device WebRTC library version.
+     *
+     * This returns the version of the WebRTC library, not the underlying Nabto Embedded SDK. For that use `nabto_device_version()`
+     *
+     * @returns String representation of the library version
+     */
+    static const std::string version();
+
+
 private:
     NabtoDeviceWebrtcImplPtr impl_;
 };

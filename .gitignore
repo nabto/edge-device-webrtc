@@ -4,3 +4,4 @@
 /test/unit-test/node_modules
 /examples/webrtc-demo/web-client/nabtoBundle.js
 /examples/webrtc-demo/web-client/node_modules/
+/src/library/api/version.cpp
