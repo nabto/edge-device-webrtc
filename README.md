@@ -127,7 +127,7 @@ The device can also be accessed through Android/iOS Apps, Google Home, and Alexa
 
 The RTP example supports sending video to the client, and sending and receiving audio from the client. This section shows how to start these 3 feeds using gstreamer, but any RTP source/sink can be used as long as they use the proper UDP ports and codecs.
 
-By default, the example expects an RTP video feed on UDP port 6000, an RTP audio feed on UDP port 6001, and an RTP audio sink on UDP port 6002. These ports can be changed using the `--rtp-port arg` argument. The port configured by this argument will be the port of the video feed. The Audio ports will always be the video port plus 1 and 2.
+By default, the example expects an RTP video feed on UDP port 6000, an RTP video sink on UDP port 6001, an RTP audio feed on UDP port 6002, and an RTP audio sink on UDP port 6004. These ports can be changed using the `--rtp-port arg` argument. The port configured by this argument will be the first port (defaulting to 6000). The 4 port numbers will always be consecutive.
 
 ### Create an RTP demo video feed
 
@@ -143,22 +143,29 @@ With gstreamer available, create an RTP stream using either a dummy generated fe
 gst-launch-1.0 videotestsrc ! clockoverlay ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay pt=96 mtu=1200 ! udpsink host=127.0.0.1 port=6000
 ```
 
-Or use an actual video source if available:
+Or use an actual video source if available (**note:** If using 2-way video, the client will try to use the webcam. This will fail the webcam feed is already taken by the device.):
 
 ```
 gst-launch-1.0 v4l2src device=/dev/video0 ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay pt=96 mtu=1200 ! udpsink host=127.0.0.1 port=6000
 ```
 
+### Create an RTP demo video sink (optional)
+In some terminal with gstreamer installed create an RTP sink using:
+
+```
+gst-launch-1.0 udpsrc uri=udp://127.0.0.1:6001 ! application/x-rtp, payload=96  ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! xvimagesink
+```
+
 ### Create an audio feed (optional)
 In some terminal with gstreamer installed create an RTP stream using:
 ```
-gst-launch-1.0 -v audiotestsrc wave=sine freq=220 volume=0.01 ! audioconvert ! opusenc ! rtpopuspay name=pay0 pt=111 ! udpsink host=127.0.0.1 port=6001
+gst-launch-1.0 -v audiotestsrc wave=sine freq=220 volume=0.01 ! audioconvert ! opusenc ! rtpopuspay name=pay0 pt=111 ! udpsink host=127.0.0.1 port=6002
 ```
 
 ### Create an audio sink (optional)
-In some terminal with gstreamer installed create an RTP stream using:
+In some terminal with gstreamer installed create an RTP sink using:
 ```
-gst-launch-1.0 -v udpsrc uri=udp://127.0.0.1:6002 caps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00" ! rtpopusdepay ! opusdec ! audioconvert ! autoaudiosink sync=false
+gst-launch-1.0 -v udpsrc uri=udp://127.0.0.1:6003 caps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00" ! rtpopusdepay ! opusdec ! audioconvert ! autoaudiosink sync=false
 ```
 
 ## RTSP feeds
@@ -179,11 +186,10 @@ docker run --rm -it --network host rtsp-demo-server
 **This RTSP demo container does not provide an audio feed so add Audio will not work.** Providing an RTSP server with an audio feed will make one-way audio work.
 
 ## Current limitations
- * `--rtpport` can be used to set the port number of the video video. It is then assumed the audio feed is on `port+1` and that the received audio should be sent to `port+2`;
  * H264 video codec (it is pretty simple to add codecs)
  * PCMU audio codec for RTSP feeds and OPUS audio codec for RTP feeds (Still simple to add/change codecs, but requires code changes to switch)
  * limited RTSP support:
- * - Only supports device sending video/audio feed, no recieving audio
+ * - Only supports device sending video/audio feed, no receiving
  * - The device will receive RTCP packets, and return dummy Receiver reports as our test cam uses this as keep alive.
  * No RTCP for RTP streams. We have not found any streamers which actually reacts to RTCP, so we do not handle it.
 
