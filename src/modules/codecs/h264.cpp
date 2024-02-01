@@ -76,7 +76,7 @@ int H264CodecMatcher::match(MediaTrackPtr track)
 
 rtc::Description::Media H264CodecMatcher::createMedia()
 {
-    rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
+    rtc::Description::Video media("video", rtc::Description::Direction::SendRecv);
     media.addH264Codec(96);
 
     auto r = media.rtpMap(96);

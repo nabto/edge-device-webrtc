@@ -277,6 +277,10 @@ void WebrtcConnection::acceptTrack(MediaTrackPtr track)
     if (trackCb_) {
         std::cout << "accepttrack with callback" << std::endl;
         trackCb_(getConnectionRef(), track);
+        if (track->getImpl()->getErrorState() != MediaTrack::ErrorState::OK) {
+            std::cout << "track callback set a track error, not listening for messages" << std::endl;
+            return;
+        }
         auto self = shared_from_this();
         track->getImpl()->getRtcTrack()->onMessage([self, track](rtc::message_variant data) {
             auto msg = rtc::make_message(data);
@@ -374,15 +378,21 @@ void WebrtcConnection::updateMetaTracks()
             }
             rtc::Description::Media media(sdp);
             auto mid = media.mid();
-            auto metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
             bool found = false;
-            for (auto& mt : metaTracks) {
-                if (mt["mid"].get<std::string>() == mid) {
-                    // Found the entry, insert error
-                    mt["error"] = trackErrorToString(error);
-                    found = true;
-                    break;
+            std::vector<nlohmann::json> metaTracks;
+            try {
+                metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
+                for (auto& mt : metaTracks) {
+                    if (mt["mid"].get<std::string>() == mid) {
+                        // Found the entry, insert error
+                        mt["error"] = trackErrorToString(error);
+                        found = true;
+                        break;
+                    }
                 }
+            } catch (nlohmann::json::exception& ex) {
+                std::cout << "Update metadata json exception: " << ex.what() << std::endl;
+                continue;
             }
             if (!found) {
                 // This track was not in metadata, so we must add it to return the error

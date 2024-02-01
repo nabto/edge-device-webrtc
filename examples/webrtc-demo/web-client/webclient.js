@@ -15,7 +15,6 @@ let username = null;
 let password = null;
 let webrtcConnection = null;
 let connected = false;
-let localStream;
 
 function connect() {
   boxLog("Connecting to device: ");
@@ -158,15 +157,32 @@ async function validateFingerprint() {
 
 }
 
-async function audioDownstream() {
+async function downstreamAudio() {
   const constraints = window.constraints = {
     audio: true,
     video: false
   };
-  let stream2 = await navigator.mediaDevices.getUserMedia(constraints);
-  localStream = stream2;
+  let stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-  await webrtcConnection.addTrack(localStream, "foobar");
+  let auTrack = stream.getAudioTracks();
+
+  if (auTrack.length > 0) {
+    await webrtcConnection.addTrack(auTrack[0], "frontdoor-audio");
+  }
+}
+
+async function downstreamVideo() {
+  const constraints = window.constraints = {
+    audio: false,
+    video: true
+  };
+  let stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+  let track = stream.getVideoTracks();
+
+  if (track.length > 0) {
+    await webrtcConnection.addTrack(track[0], "frontdoor-video");
+  }
 }
 
 function parseLink() {
@@ -271,6 +287,7 @@ function updateUi() {
   document.getElementById("fpvalid").disabled = (!connected || !fingerprint);
   document.getElementById("oauth").disabled = document.getElementById("oauthtoken").value.length == 0;
   document.getElementById("audiodown").disabled = !connected;
+  document.getElementById("videodown").disabled = !connected;
   canCoap(connected);
 }
 

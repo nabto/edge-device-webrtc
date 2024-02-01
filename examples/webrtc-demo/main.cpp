@@ -102,12 +102,12 @@ int main(int argc, char** argv) {
         rtpVideo->setPort(port);
         rtpVideo->setRtpCodecMatcher(&rtpVideoCodec);
         // Remote host is only used for 2-way medias, video is only 1-way
-        // rtpVideo->setRemoteHost("127.0.0.1");
+        rtpVideo->setRemoteHost("127.0.0.1");
 
         medias.push_back(rtpVideo);
 
         auto rtpAudio = nabto::RtpClient::create("frontdoor-audio");
-        rtpAudio->setPort(port+1);
+        rtpAudio->setPort(port + 2);
         rtpAudio->setRtpCodecMatcher(&rtpAudioCodec);
         rtpAudio->setRemoteHost("127.0.0.1");
 
@@ -129,6 +129,11 @@ int main(int argc, char** argv) {
             return;
         }
         auto feed = track->getTrackId();
+        if (feed.empty()) {
+            std::cout << "Received track event for track without track ID!" << std::endl;
+            track->setErrorState(nabto::MediaTrack::ErrorState::UNKNOWN_TRACK_ID);
+            return;
+        }
         bool found = false;
         for (auto m : medias) {
             if (m->isTrack(feed)) {

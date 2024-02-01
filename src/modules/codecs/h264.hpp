@@ -11,6 +11,7 @@ public:
     rtc::Description::Media createMedia();
     int payloadType() { return 96; }
     int ssrc() { return 42; }
+    enum Direction direction() { return SEND_RECV; }
 };
 
 } // namespace
