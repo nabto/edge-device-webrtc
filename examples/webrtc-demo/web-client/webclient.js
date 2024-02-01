@@ -17,6 +17,9 @@ let webrtcConnection = null;
 let connected = false;
 
 function connect() {
+  if (connected) {
+    return hangUpCall();
+  }
   boxLog("Connecting to device: ");
   boxLog(`* Product ID: ${productId}`);
   boxLog(`* Device ID: ${deviceId}`);
@@ -282,7 +285,7 @@ function updateInfo() {
 
 
 function updateUi() {
-  document.getElementById("login").disabled = connected;
+  document.getElementById("login").value = connected ? "Disconnect" : "Connect";
   document.getElementById("passauth").disabled = (!connected || !username || !password);
   document.getElementById("fpvalid").disabled = (!connected || !fingerprint);
   document.getElementById("oauth").disabled = document.getElementById("oauthtoken").value.length == 0;
