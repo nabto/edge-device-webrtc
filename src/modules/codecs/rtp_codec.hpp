@@ -13,6 +13,10 @@ public:
         SEND_RECV  // Device both sends and receives data
     };
 
+    RtpCodec(int pt, int ssrc, enum Direction dire):
+        payloadType_(pt),
+        ssrc_(ssrc),
+        dire_(dire) {}
     /**
      * match takes a media description and loops through the rtp map
      * For each map entry if:
@@ -27,14 +31,33 @@ public:
      */
     virtual rtc::Description::Media createMedia() = 0;
 
-    // payload type used to create media
-    virtual int payloadType() = 0;
+    /**
+     * payload type used to create media. This value should match the
+     * payload type of the RTP source (eg. Gstreamer).
+     *
+     * The payload type used on the WebRTC connection depends on the
+     * negotiation. The RTP client module will translate between the
+     * two values.
+     */
+    virtual int payloadType() { return payloadType_;};
 
-    // SSRC of the media
-    virtual int ssrc() = 0;
+    /**
+     * SSRC of the media.
+     * The SSRC must be unique for each source added across an entire SDP
+     * negotiation. To ensure this, it is recommended to use a UUID. For
+     * simplicity, the base SSRC is just a static value.
+     */
+    virtual int ssrc() { return ssrc_; };
 
-    // Direction of the created media
-    virtual enum Direction direction() { return SEND_ONLY; }
+    /**
+     *  Direction of the created media
+     */
+    virtual enum Direction direction() { return dire_; }
+
+protected:
+    int payloadType_;
+    int ssrc_;
+    enum Direction dire_;
 };
 
 } // namespace
