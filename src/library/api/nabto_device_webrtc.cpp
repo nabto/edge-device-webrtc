@@ -47,12 +47,12 @@ void NabtoDeviceWebrtc::setCheckAccessCallback(CheckAccessCallback cb)
 }
 
 
-MediaTrackPtr MediaTrack::create(std::string& trackId, std::string& sdp)
+MediaTrackPtr MediaTrack::create(const std::string& trackId, const std::string& sdp)
 {
     return std::make_shared<MediaTrack>(trackId, sdp);
 }
 
-MediaTrack::MediaTrack(std::string& trackId, std::string& sdp)
+MediaTrack::MediaTrack(const std::string& trackId, const std::string& sdp)
 : impl_(std::make_shared<MediaTrackImpl>(trackId, sdp)) { }
 
 MediaTrack::~MediaTrack() {
@@ -75,7 +75,7 @@ std::string MediaTrack::getSdp()
 }
 
 
-void MediaTrack::setSdp(std::string& sdp)
+void MediaTrack::setSdp(const std::string& sdp)
 {
     return impl_->setSdp(sdp);
 }

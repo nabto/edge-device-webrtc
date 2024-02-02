@@ -20,13 +20,13 @@ public:
 
 
 
-    virtual bool isTrack(std::string& trackId) = 0;
+    virtual bool isTrack(const std::string& trackId) = 0;
     virtual void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media) = 0;
     virtual void removeConnection(NabtoDeviceConnectionRef ref) = 0;
 
     virtual bool matchMedia(MediaTrackPtr media) = 0;
 
-    virtual MediaTrackPtr createMedia(std::string& trackId) = 0;
+    virtual MediaTrackPtr createMedia(const std::string& trackId) = 0;
 };
 
 

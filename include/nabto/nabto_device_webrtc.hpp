@@ -128,9 +128,9 @@ public:
      * @param sdp [in]      SDP string defining the track
      * @return smart pointer to the created track
      */
-    static MediaTrackPtr create(std::string& trackId, std::string& sdp);
+    static MediaTrackPtr create(const std::string& trackId, const std::string& sdp);
 
-    MediaTrack(std::string& trackId, std::string& sdp);
+    MediaTrack(const std::string& trackId, const std::string& sdp);
     ~MediaTrack();
 
     /**
@@ -154,7 +154,7 @@ public:
      *
      * @param sdp [in] The SDP string to set
     */
-    void setSdp(std::string& sdp);
+    void setSdp(const std::string& sdp);
 
     /**
      * Send data on this track

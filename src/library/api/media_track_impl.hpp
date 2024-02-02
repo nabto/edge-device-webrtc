@@ -6,13 +6,13 @@ namespace nabto {
 
 class MediaTrackImpl : public std::enable_shared_from_this<MediaTrackImpl> {
 public:
-    MediaTrackImpl(std::string& trackId, std::string& sdp);
+    MediaTrackImpl(const std::string& trackId, const std::string& sdp);
     ~MediaTrackImpl();
 
     // API METHODS
     std::string getTrackId();
     std::string getSdp();
-    void setSdp(std::string& sdp);
+    void setSdp(const std::string& sdp);
     bool send(const uint8_t* buffer, size_t length);
     void setReceiveCallback(MediaRecvCallback cb);
     void setCloseCallback(std::function<void()> cb);

@@ -20,7 +20,7 @@ RtspStream::~RtspStream()
     std::cout << "RtspStream destructor" << std::endl;
 }
 
-bool RtspStream::isTrack(std::string& trackId)
+bool RtspStream::isTrack(const std::string& trackId)
 {
     std::lock_guard<std::mutex> lock(mutex_);
 

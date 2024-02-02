@@ -12,12 +12,12 @@ const int RTP_BUFFER_SIZE = 2048;
 namespace nabto {
 
 
-RtpClientPtr RtpClient::create(std::string trackId)
+RtpClientPtr RtpClient::create(const std::string& trackId)
 {
     return std::make_shared<RtpClient>(trackId);
 }
 
-RtpClient::RtpClient(std::string& trackId)
+RtpClient::RtpClient(const std::string& trackId)
     : trackId_(trackId)
 {
 
@@ -34,7 +34,7 @@ std::string RtpClient::getTrackId()
     return trackId_;
 }
 
-bool RtpClient::isTrack(std::string& trackId)
+bool RtpClient::isTrack(const std::string& trackId)
 {
     if (trackId == trackId_) {
         return true;

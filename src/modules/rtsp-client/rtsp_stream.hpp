@@ -36,7 +36,7 @@ public:
         connections_.clear();
     }
 
-    bool isTrack(std::string& trackId);
+    bool isTrack(const std::string& trackId);
     bool matchMedia(MediaTrackPtr media);
     void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
     void removeConnection(NabtoDeviceConnectionRef ref);
@@ -49,7 +49,7 @@ public:
 
     void setPort(uint16_t port) { basePort_ = port; }
 
-    MediaTrackPtr createMedia(std::string& trackId) {
+    MediaTrackPtr createMedia(const std::string& trackId) {
         if (trackId == trackIdBase_ + "-audio") {
             auto m = audioMatcher_->createMedia();
             m.addSSRC(audioMatcher_->ssrc(), trackId);
@@ -86,4 +86,3 @@ private:
 };
 
 } // namespace
-

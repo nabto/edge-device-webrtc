@@ -2,7 +2,7 @@
 
 namespace nabto {
 
-MediaTrackImpl::MediaTrackImpl(std::string& trackId, std::string& sdp)
+MediaTrackImpl::MediaTrackImpl(const std::string& trackId, const std::string& sdp)
 : trackId_(trackId), sdp_(sdp)
 {
 
@@ -24,7 +24,7 @@ std::string MediaTrackImpl::getSdp()
     return sdp_;
 }
 
-void MediaTrackImpl::setSdp(std::string& sdp)
+void MediaTrackImpl::setSdp(const std::string& sdp)
 {
     sdp_ = sdp;
     if (sdp_[0] == 'm' && sdp_[1] == '=') {
