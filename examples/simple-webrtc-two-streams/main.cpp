@@ -57,7 +57,12 @@ public:
 
                                            nabto_device_coap_response_set_code(coap, 201);
                                            nabto_device_coap_response_ready(coap);
-                                       });
+                                           nabto_device_coap_request_free(coap);
+                                         });
+    }
+
+    ~Feed() {
+        //coapListener_->stop();
     }
 
 private:

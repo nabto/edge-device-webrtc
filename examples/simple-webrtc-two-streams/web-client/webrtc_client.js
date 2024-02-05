@@ -21,16 +21,22 @@ function connect()
   webrtcConnection.setConnectionOptions({productId: productId, deviceId: deviceId, sct: sct, signalingServerUrl: "wss://signaling.smartcloud.nabto.com"});
 
   webrtcConnection.onTrack((event, trackId) => {
-    console.log(`onTrack event: ${event}, trackId: ${trackId}`)
+    console.log(`onTrack event: ${JSON.stringify(event)}, trackId: ${trackId}`)
+    const streams = event.streams;
+    var videoElement;
+
     if (trackId === "feed1") {
-      var video = document.getElementById("received_video1");
-      video.srcObject = event.streams[0];
+      videoElement = document.getElementById("received_video1");
     } else if (trackId === "feed2") {
-      var video = document.getElementById("received_video2");
-      video.srcObject = event.streams[0];
+      videoElement = document.getElementById("received_video2");
     } else {
       console.log(`unknown track id ${trackId}`);
     }
+    const track = event.transceiver.receiver.track;
+
+    const stream = new MediaStream();
+    stream.addTrack(track);
+    videoElement.srcObject = stream;
   });
 
   webrtcConnection.onConnected(() => {
