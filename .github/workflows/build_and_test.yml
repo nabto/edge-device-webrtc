@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-12] # windows-2022,
+        os: [ubuntu-22.04] # windows-2022, macos-12,
         include:
           # - os: windows-2022
           #   cmake_command: cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts ..
@@ -20,10 +20,10 @@ jobs:
           - os: ubuntu-22.04
             cmake_command: cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts ..
             build_command: cmake --build build-dir --parallel --target install
-          - os: macos-12
-            cmake_command: cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts -Dsctp_werror=OFF ..
-            # 2024-01-05: Sometimes mac fails on github actions when doing builds so we use make without parallellism directly, since we hope that fixes the unknown problem.
-            build_command: cd build-dir && make -j 1 install
+          # - os: macos-12
+          #   cmake_command: cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts -Dsctp_werror=OFF ..
+          #   # 2024-01-05: Sometimes mac fails on github actions when doing builds so we use make without parallellism directly, since we hope that fixes the unknown problem.
+          #   build_command: cd build-dir && make -j 1 install
 
     steps:
       - uses: actions/checkout@v3
