@@ -29,8 +29,12 @@ jobs:
           fetch-depth: 0
 
       - if: matrix.os == 'ubuntu-22.04'
-        name: install dependencies
+        name: install dependencies Linux
         run: sudo apt-get install -y libcurl4-openssl-dev
+
+      - if: matrix.os == 'windows-2022'
+        name: install dependencies Win
+        run: vcpkg.exe install curl:x64-windows
 
       - name: Configure cmake
         run: mkdir build-dir && cd build-dir && cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts -Dsctp_werror=OFF ..
