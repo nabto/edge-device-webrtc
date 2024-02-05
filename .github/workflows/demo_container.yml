@@ -1,4 +1,4 @@
-name: Build And Test
+name: Demo Container Build
 
 on:
   push:
@@ -20,4 +20,4 @@ jobs:
         run: docker build . -t edge-device-webrtc
 
       - name: Test run
-        run: docker run -it --rm edge-device-webrtc edge_device_webrtc --help
+        run: docker run --rm edge-device-webrtc edge_device_webrtc --help

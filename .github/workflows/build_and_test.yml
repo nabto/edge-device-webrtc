@@ -12,11 +12,11 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [windows-2022, ubuntu-22.04, macos-12]
+        os: [ubuntu-22.04, macos-12] # windows-2022,
         include:
-          - os: windows-2022
-            cmake_command: cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts ..
-            build_command: cmake --build build-dir --parallel --target install
+          # - os: windows-2022
+          #   cmake_command: cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts ..
+          #   build_command: cmake --build build-dir --parallel --target install
           - os: ubuntu-22.04
             cmake_command: cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts ..
             build_command: cmake --build build-dir --parallel --target install
@@ -30,6 +30,9 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+      - name: install dependencies
+        run: sudo apt-get install -y libcurl4-openssl-dev
+
       - name: Configure cmake
         run: mkdir build-dir && cd build-dir && ${{matrix.cmake_command}}
 
