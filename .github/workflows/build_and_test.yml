@@ -31,7 +31,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - name: install dependencies
-        run: sudo apt-get install -y libcurl4-openssl-dev
+        run: sudo apt-get install -y libcurl4-openssl-dev && mkdir ${{ github.workspace }}/artifacts  && mkdir ${{ github.workspace }}/artifacts/cmake
 
       - name: Configure cmake
         run: mkdir build-dir && cd build-dir && ${{matrix.cmake_command}}
