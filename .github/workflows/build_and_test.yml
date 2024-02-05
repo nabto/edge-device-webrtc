@@ -14,13 +14,11 @@ jobs:
       matrix:
         os: [ macos-12, ubuntu-22.04 ] # windows-2022,
         include:
-          # - os: windows-2022
-          #   cmake_command: cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts ..
-          #   build_command: cmake --build build-dir --parallel --target install
+          - os: windows-2022
+            build_command: cmake --build build-dir --parallel --target install
           - os: ubuntu-22.04
             build_command: cmake --build build-dir --parallel --target install
           - os: macos-12
-          #   cmake_command: cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts -Dsctp_werror=OFF ..
             # 2024-01-05: Sometimes mac fails on github actions when doing builds so we use make without parallellism directly, since we hope that fixes the unknown problem.
             build_command: cd build-dir && make -j 1 install
 
@@ -33,10 +31,6 @@ jobs:
       - if: matrix.os == 'ubuntu-22.04'
         name: install dependencies
         run: sudo apt-get install -y libcurl4-openssl-dev
-
-      # - if: matrix.os == 'macos-12'
-      #   name: install dependencies
-      #   run: brew install curl
 
       - name: Configure cmake
         run: mkdir build-dir && cd build-dir && cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts -Dsctp_werror=OFF ..
