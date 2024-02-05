@@ -11,3 +11,11 @@ gst-launch-1.0 videotestsrc ! clockoverlay ! textoverlay text="Feed 2" ! video/x
 ```
 
 ## Start the device
+
+./examples/simple-webrtc-two-streams/simple_webrtc_device_two_streams -p ... -d ... -k ...
+
+## Open the webpage
+
+First build the page. `cd web-client && npm install`
+
+`file:///<path to index.html>`

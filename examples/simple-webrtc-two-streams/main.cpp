@@ -9,10 +9,24 @@
 #include <rtc/global.hpp>
 #include <nlohmann/json.hpp>
 #include <signal.h>
+#include <cxxopts/cxxopts.hpp>
 
 using nlohmann::json;
 
-class FeedConfig {
+
+class ProgramOptions {
+public:
+    std::string productId;
+    std::string deviceId;
+    std::string rawPrivateKey;
+    std::string sct = "demosct";
+    std::string logLevel = "info";
+};
+
+bool parse_options(int argc, char **argv, ProgramOptions &opts);
+
+class FeedConfig
+{
 public:
     FeedConfig(std::string trackId, uint16_t rtpPort) {
         trackId_ = trackId;
@@ -98,16 +112,15 @@ void signal_handler(int s)
 }
 
 
-bool initDevice(nabto::NabtoDevicePtr device, json& opts);
+bool initDevice(nabto::NabtoDevicePtr device, const ProgramOptions& opts);
 
 int main(int argc, char** argv) {
 
-    json opts;
-    opts["productId"] = std::string("pr-jzoqqta9");
-    opts["deviceId"] = std::string("de-uguiictr");
-    opts["sct"] = std::string("demosct");
-    opts["rawPrivateKey"] = std::string("5265f6ecbe263d51fc0ceacf6e6555840435150318ad5e24329cba6563a82025");
-    opts["logLevel"] = std::string("info");
+    ProgramOptions opts;
+
+    if (!parse_options(argc, argv, opts)) {
+        exit(1);
+    }
 
     auto device = nabto::makeNabtoDevice();
 
@@ -145,19 +158,19 @@ int main(int argc, char** argv) {
 }
 
 
-bool initDevice(nabto::NabtoDevicePtr device, json& opts)
+bool initDevice(nabto::NabtoDevicePtr device, const ProgramOptions& opts)
 {
     char* fp;
     NabtoDeviceError ec;
     if (nabto_device_set_log_std_out_callback(NULL) != NABTO_DEVICE_EC_OK ||
-        nabto_device_set_log_level(NULL, opts["logLevel"].get<std::string>().c_str()) != NABTO_DEVICE_EC_OK)
+        nabto_device_set_log_level(NULL, opts.logLevel.c_str()) != NABTO_DEVICE_EC_OK)
     {
         std::cout << "failed to set loglevel or logger" << std::endl;
         return false;
     }
 
     uint8_t key[32];
-    std::string rawPrivateKey = opts["rawPrivateKey"].get<std::string>();
+    std::string rawPrivateKey = opts.rawPrivateKey;
     for (size_t i = 0; i < 32; i++) {
         std::string s(&rawPrivateKey[i * 2], 2);
         key[i] = std::stoi(s, 0, 16);
@@ -172,13 +185,13 @@ bool initDevice(nabto::NabtoDevicePtr device, json& opts)
         return false;
     }
 
-    std::cout << "Device: " << opts["productId"].get<std::string>() << "." << opts["deviceId"].get<std::string>() << " with fingerprint: [" << fp << "]" << std::endl;;
+    std::cout << "Device: " << opts.productId << "." << opts.deviceId << " with fingerprint: [" << fp << "]" << std::endl;;
     nabto_device_string_free(fp);
 
-    if (nabto_device_set_product_id(device.get(), opts["productId"].get<std::string>().c_str()) != NABTO_DEVICE_EC_OK ||
-        nabto_device_set_device_id(device.get(), opts["deviceId"].get<std::string>().c_str()) != NABTO_DEVICE_EC_OK ||
+    if (nabto_device_set_product_id(device.get(), opts.productId.c_str()) != NABTO_DEVICE_EC_OK ||
+        nabto_device_set_device_id(device.get(), opts.deviceId.c_str()) != NABTO_DEVICE_EC_OK ||
         nabto_device_enable_mdns(device.get()) != NABTO_DEVICE_EC_OK ||
-        nabto_device_add_server_connect_token(device.get(), opts["sct"].get<std::string>().c_str()) != NABTO_DEVICE_EC_OK)
+        nabto_device_add_server_connect_token(device.get(), opts.sct.c_str()) != NABTO_DEVICE_EC_OK)
     {
         return false;
     }
@@ -194,4 +207,26 @@ bool initDevice(nabto::NabtoDevicePtr device, json& opts)
         return false;
     }
     return true;
+}
+
+
+bool parse_options(int argc, char** argv, ProgramOptions& opts)
+{
+    try
+    {
+        cxxopts::Options options(argv[0], "Nabto Webrtc Device example");
+        options.add_options()
+            ("d,deviceid", "Device ID to connect to", cxxopts::value<std::string>(opts.deviceId))
+            ("p,productid", "Product ID to use", cxxopts::value<std::string>(opts.productId))
+            ("log-level", "Optional. The log level (error|info|trace)", cxxopts::value<std::string>(opts.logLevel)->default_value("info"))
+            ("k,privatekey", "Raw private key to use", cxxopts::value<std::string>(opts.rawPrivateKey))
+            ;
+        auto result = options.parse(argc, argv);
+        return true;
+    }
+    catch (const cxxopts::OptionException &e)
+    {
+        std::cout << "Error parsing options: " << e.what() << std::endl;
+        return false;
+    }
 }
