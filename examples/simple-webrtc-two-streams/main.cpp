@@ -220,8 +220,13 @@ bool parse_options(int argc, char** argv, ProgramOptions& opts)
             ("p,productid", "Product ID to use", cxxopts::value<std::string>(opts.productId))
             ("log-level", "Optional. The log level (error|info|trace)", cxxopts::value<std::string>(opts.logLevel)->default_value("info"))
             ("k,privatekey", "Raw private key to use", cxxopts::value<std::string>(opts.rawPrivateKey))
+            ("h,help", "Print help")
             ;
         auto result = options.parse(argc, argv);
+        if (result.count("help")) {
+            std::cout << options.help({ "", "Group" }) << std::endl;
+            exit(0);
+        }
         return true;
     }
     catch (const cxxopts::OptionException &e)
