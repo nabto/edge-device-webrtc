@@ -96,9 +96,9 @@ int H264CodecMatcher::match(MediaTrackPtr track)
 rtc::Description::Media H264CodecMatcher::createMedia()
 {
     // Create a Video media description.
-    // This must have a unique `mid` however we only support one video feed, so the constant "video" is fine.
     // We support both sending and receiving video
-    rtc::Description::Video media("video", rtc::Description::Direction::SendRecv);
+    std::string mid = MidGenerator::generateMid();
+    rtc::Description::Video media(mid, rtc::Description::Direction::SendRecv);
 
     // Since we are creating the media track, only the supported payload type exists, so we might as well reuse the same value for the RTP session in WebRTC as the one we use in the RTP source (eg. Gstreamer)
     media.addH264Codec(payloadType_);

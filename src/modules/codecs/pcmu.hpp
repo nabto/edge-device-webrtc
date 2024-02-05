@@ -7,9 +7,9 @@ namespace nabto {
 class PcmuCodecMatcher : public RtpCodec
 {
 public:
-    // The ssrc must be unique in the entire SDP context. We only support one audio feed so any constant different from other codec matchers is fine.
+    // The ssrc must be unique in the entire SDP context.
     // This supports both sending and receiving
-    PcmuCodecMatcher() : RtpCodec(0, 44, SEND_RECV) {}
+    PcmuCodecMatcher() : RtpCodec(0, SEND_RECV) {}
     int match(MediaTrackPtr media);
     rtc::Description::Media createMedia();
 };

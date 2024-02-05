@@ -60,9 +60,9 @@ int PcmuCodecMatcher::match(MediaTrackPtr track)
 rtc::Description::Media PcmuCodecMatcher::createMedia()
 {
     // Create an Audio media description.
-    // This must have a unique `mid` however we only support one audio feed, so the constant "audio" is fine.
     // We support both sending and receiving audio
-    rtc::Description::Audio media("audio", rtc::Description::Direction::SendRecv);
+    std::string mid = MidGenerator::generateMid();
+    rtc::Description::Audio media(mid, rtc::Description::Direction::SendRecv);
 
     // Since we are creating the media track, only the supported payload type exists, so we might as well reuse the same value for the RTP session in WebRTC as the one we use in the RTP source (eg. Gstreamer)
     media.addPCMUCodec(0);
