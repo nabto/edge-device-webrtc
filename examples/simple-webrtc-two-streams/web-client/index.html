@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <title>WebRTC video streaming demo using Nabto</title>
+  <meta charset="utf-8">
+  <link href="chat.css" rel="stylesheet">
+  <script src="nabtoBundle.js"></script>
+  <script src="webrtc_client.js"></script>
+</head>
+<body>
+  <div class="container">
+    <form class="infobox">
+      <section>
+        <h1>Nabto Simple WebRTC example</h1>
+        <p>Enter Device Info: </p>
+      </section>
+      <section>
+        <label for="product">Product ID: </label>
+        <input id="product" type="text" maxlength="12" required inputmode="verbatim" value="pr-jzoqqta9">
+
+        <label for="device">Device ID: </label>
+        <input id="device" type="text" maxlength="12" required inputmode="verbatim" value="de-uguiictr">
+
+        <label for="sct">SCT: </label>
+        <input id="sct" type="text" maxlength="12" required inputmode="verbatim" value="demosct">
+      </section>
+    </form>
+    <div class="controlbox">
+      <input id="connect" type="button" name="connect" value="Connect" onclick="connect()">
+      <input id="start_feed1" type="button" name="connect" value="Start feed1" onclick="startFeed1()">
+      <input id="start_feed2" type="button" name="connect" value="Start feed2" onclick="startFeed2()">
+    </div>
+    <ul class="logbox"><b>LOG:</b></ul>
+    <div class="camerabox1">
+      <video id="received_video1" autoplay></video>
+    </div>
+    <div class="camerabox2">
+      <video id="received_video2" autoplay></video>
+    </div>
+  </div>
+</body>
+</html>

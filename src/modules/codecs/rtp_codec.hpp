@@ -1,8 +1,35 @@
 #pragma once
 
 #include <media-streams/media_stream.hpp>
+#include <sstream>
 
 namespace nabto {
+
+class SsrcGenerator {
+public:
+    static uint32_t generateSsrc() {
+        static std::mutex mutex;
+        std::lock_guard<std::mutex> lock(mutex);
+
+        static uint32_t ssrc = 0;
+
+        ssrc += 1;
+        return ssrc;
+    }
+};
+
+class MidGenerator {
+public:
+    static std::string generateMid() {
+        static std::mutex mutex;
+        std::lock_guard<std::mutex> lock(mutex);
+        static uint64_t midCounter = 0;
+        std::stringstream ss;
+        ss << "device-" << midCounter;
+        midCounter += 1;
+        return ss.str();
+    }
+};
 
 class RtpCodec
 {
@@ -13,9 +40,9 @@ public:
         SEND_RECV  // Device both sends and receives data
     };
 
-    RtpCodec(int pt, int ssrc, enum Direction dire):
+    RtpCodec(int pt, enum Direction dire):
         payloadType_(pt),
-        ssrc_(ssrc),
+        ssrc_(SsrcGenerator::generateSsrc()),
         dire_(dire) {}
     /**
      * match takes a media description and loops through the rtp map
@@ -56,7 +83,7 @@ public:
 
 protected:
     int payloadType_;
-    int ssrc_;
+    uint32_t ssrc_;
     enum Direction dire_;
 };
 

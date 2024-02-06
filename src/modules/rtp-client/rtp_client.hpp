@@ -18,11 +18,11 @@ typedef std::shared_ptr<RtpClient> RtpClientPtr;
 class RtpClient : public MediaStream, public std::enable_shared_from_this<RtpClient>
 {
 public:
-    static RtpClientPtr create(std::string trackId);
-    RtpClient(std::string& trackId);
+    static RtpClientPtr create(const std::string& trackId);
+    RtpClient(const std::string& trackId);
     ~RtpClient();
 
-    bool isTrack(std::string& trackId);
+    bool isTrack(const std::string& trackId);
     void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
     void removeConnection(NabtoDeviceConnectionRef ref);
     bool matchMedia(MediaTrackPtr media);
@@ -33,7 +33,7 @@ public:
     void setRtpCodecMatcher(RtpCodec* matcher) { matcher_ = matcher; }
     RtpCodec* getRtpCodecMatcher() { return matcher_; }
 
-    MediaTrackPtr createMedia(std::string& trackId) {
+    MediaTrackPtr createMedia(const std::string& trackId) {
         auto m = matcher_->createMedia();
         m.addSSRC(matcher_->ssrc(), trackId_);
         auto sdp = m.generateSdp();
@@ -59,6 +59,7 @@ private:
     std::string remoteHost_ = "127.0.0.1";
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
+    // TODO, ownership if matcher?
     RtpCodec* matcher_;
 };
 
