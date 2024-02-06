@@ -4,7 +4,9 @@ This WebRTC example implementation for Nabto Embedded SDK allows clients to esta
 
 In addition to WebRTC, this example also implements OAuth to authenticate connections in the IAM module.
 
-Note that Firefox' WebRTC support is limited and is not currently supported by Nabto Edge WebRTC.
+Note that Firefox' WebRTC support is limited and is not currently supported by the example application.
+
+Note that the example applications use the RTP client in `./src/modules/rtp-client`. This is used to relay RTP packets between a UDP socket and WebRTC. This implementation is based on Unix sockets, and will not work on Windows.
 
 ## Obtaining the Source
 
