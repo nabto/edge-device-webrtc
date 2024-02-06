@@ -18,6 +18,7 @@ COPY nabto-embedded-sdk /workspace/device/nabto-embedded-sdk
 COPY .git /workspace/device/.git
 COPY src /workspace/device/src
 COPY CMakeLists.txt /workspace/device/CMakeLists.txt
+COPY test /workspace/device/test
 
 RUN cmake ..
 
