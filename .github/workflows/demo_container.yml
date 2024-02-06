@@ -1,0 +1,23 @@
+name: Demo Container Build
+
+on:
+  push:
+  release:
+    types: [published]
+
+jobs:
+  build-and-test:
+    timeout-minutes: 20
+    name: Build
+    runs-on: "ubuntu-22.04"
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: build
+        run: docker build . -t edge-device-webrtc
+
+      - name: Test run
+        run: docker run --rm edge-device-webrtc edge_device_webrtc --help
