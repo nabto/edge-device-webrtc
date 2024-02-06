@@ -45,7 +45,12 @@ docker run -v `pwd`/webrtc-home:/homedir -it --rm edge-device-webrtc edge_device
 ```
 
 ## Tools
-CMake and a C++ compiler is needed. Also, you need cURL and OpenSSL libraries for the target platform.
+You need the following tools to build the example:
+
+* Git
+* [CMake](https://cmake.org/)
+* C++ compiler
+* cURL
 
 ## Building
 The example is built using cmake from the root of this repo:
