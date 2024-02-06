@@ -62,3 +62,6 @@ add_subdirectory(src/modules/rtsp-client)
 add_subdirectory(examples/webrtc-demo)
 add_subdirectory(examples/simple-webrtc)
 add_subdirectory(examples/simple-webrtc-two-streams)
+
+
+add_subdirectory(test)
