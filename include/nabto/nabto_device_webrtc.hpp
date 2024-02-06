@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <functional>
+#include <string>
 
 namespace nabto {
 
