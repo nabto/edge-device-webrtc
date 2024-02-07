@@ -190,12 +190,12 @@ void SignalingStream::readObjLength()
 void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
     SignalingStream* self = (SignalingStream*)userData;
-    self->reading_ = false;
     // nabto_device_future_free(future);
     if (ec == NABTO_DEVICE_EC_EOF) {
         // make a nice shutdown
         printf("Read reached EOF closing nicely\n");
         self->queue_->post([self]() {
+            self->reading_ = false;
             self->closeStream();
         });
         return;
@@ -203,11 +203,13 @@ void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError 
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
         self->queue_->post([self]() {
+            self->reading_ = false;
             self->cleanup();
         });
         return;
     }
     self->queue_->post([self]() {
+        self->reading_ = false;
         self->handleReadObjLen();
     });
 }
