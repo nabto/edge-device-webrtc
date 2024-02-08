@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <title>WebRTC video streaming demo using Nabto</title>
+  <meta charset="utf-8">
+  <link href="chat.css" rel="stylesheet">
+  <script src="nabtoBundle.js"></script>
+  <script src="webrtc_client.js"></script>
+</head>
+<body>
+  <div class="container">
+    <form class="infobox">
+      <section>
+        <h1>Nabto Simple WebRTC example</h1>
+        <p>Enter Device Info: </p>
+      </section>
+      <section>
+        <label for="productid">Product ID: </label>
+        <input id="productid" type="text" maxlength="12" required inputmode="verbatim" value="" onchange="storeInfo()">
+
+        <label for="deviceid">Device ID: </label>
+        <input id="deviceid" type="text" maxlength="12" required inputmode="verbatim" value="" onchange="storeInfo()">
+
+        <label for="sct">SCT: </label>
+        <input id="sct" type="text" maxlength="12" required inputmode="verbatim" value="" onchange="storeInfo()">
+      </section>
+    </form>
+    <div class="controlbox">
+      <input id="connect" type="button" name="connect" value="Connect" onclick="connect()">
+      <input id="send_audio" type="button" name="send_audio" value="Send Audio to Device" onclick="downstreamAudio()">
+    </div>
+    <ul class="logbox"><b>LOG:</b></ul>
+    <div class="camerabox1">
+      <video id="received_video1" autoplay></video>
+    </div>
+  </div>
+</body>
+</html>

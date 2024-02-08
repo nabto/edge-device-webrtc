@@ -6,5 +6,8 @@
 /examples/webrtc-demo/web-client/node_modules/
 /examples/simple-webrtc-two-streams/web-client/nabtoBundle.js
 /examples/simple-webrtc-two-streams/web-client/node_modules/
+/examples/simple-webrtc-send-audio-from-browser/web-client/nabtoBundle.js
+/examples/simple-webrtc-send-audio-from-browser/web-client/node_modules/
+
 
 /src/library/api/version.cpp

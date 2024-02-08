@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "install": "node_modules/browserify/bin/cmd.js nabtoModule.js -o nabtoBundle.js"
+  },
+  "dependencies": {
+    "bn.js": "^5.2.1",
+    "browserify": "^17.0.0",
+    "cbor": "^9.0.0",
+    "edge-webrtc-client": "../../../../edge-client-js-webrtc",
+    "elliptic": "^6.5.4",
+    "jsonwebtoken": "^9.0.2",
+    "spake2": "^1.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.2"
+  }
+
+}
