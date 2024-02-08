@@ -18,3 +18,6 @@ target_link_libraries(webrtc_unit_test
 )
 
 
+install(TARGETS webrtc_unit_test
+    RUNTIME DESTINATION bin
+)
