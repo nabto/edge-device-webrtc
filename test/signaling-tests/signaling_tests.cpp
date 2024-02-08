@@ -254,8 +254,8 @@ public:
                 BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
                 cb(self->conn_, self->stream_);
                 self->conn_ = NULL;
-                self->stream_ = nullptr;
-                self->coap_ = nullptr;
+                // self->stream_ = nullptr;
+                // self->coap_ = nullptr;
             });
 
         });
@@ -274,6 +274,8 @@ public:
 
     void stop() {
         auto device = device_.get();
+        stream_ = nullptr;
+        coap_ = nullptr;
 
         eventQueue_->post([device]() {
             nabto_device_stop(device);
