@@ -142,6 +142,10 @@ void SignalingStream::sendSignalligObject(std::string& data)
 void SignalingStream::tryWriteStream()
 {
     std::string data;
+    if (closed_) {
+        closeStream();
+        return;
+    }
     if (writeBuf_ != NULL) {
         std::cout << "Write while writing" << std::endl;
         return;
@@ -388,7 +392,6 @@ void SignalingStream::streamClosed(NabtoDeviceFuture* future, NabtoDeviceError e
     SignalingStream* self = (SignalingStream*)userData;
     self->queue_->post([self]() {
         self->closing_ = false;
-        self->webrtcConnection_ = nullptr;
         if (!self->reading_ && self->writeBuf_ == NULL) {
             std::cout << "Not reading && writeBuf is NULL" << std::endl;
             self->cleanup();

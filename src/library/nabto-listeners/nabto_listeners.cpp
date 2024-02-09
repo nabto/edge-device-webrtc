@@ -125,9 +125,9 @@ void NabtoCoapListener::newCoapRequest(NabtoDeviceFuture* future, NabtoDeviceErr
     {
         std::cout << "Coap listener future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
         self->queue_->post([self]() {
-            self->me_ = nullptr;
-            self->coapCb_ = nullptr;
             self->device_ = nullptr;
+            self->coapCb_ = nullptr;
+            self->me_ = nullptr;
         });
         return;
     }
