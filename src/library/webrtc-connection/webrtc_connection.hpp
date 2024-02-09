@@ -49,13 +49,15 @@ public:
 
     void createTracks(std::vector<MediaTrackPtr>& tracks);
 
-    void setMetadata(nlohmann::json& metadata)
+    void setMetadata(const nlohmann::json& metadata)
     {
         metadata_ = metadata;
         try {
-            bool noTrickle = metadata_["noTrickle"].get<bool>();
-            if (noTrickle) {
-                canTrickle_ = false;
+            if (metadata.contains("noTrickle")) {
+                bool noTrickle = metadata["noTrickle"].get<bool>();
+                if (noTrickle) {
+                    canTrickle_ = false;
+                }
             }
         } catch(std::exception& ex) {
             // Ignore missing noTrickle
