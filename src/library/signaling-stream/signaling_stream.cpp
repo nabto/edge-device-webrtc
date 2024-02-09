@@ -379,6 +379,11 @@ void SignalingStream::closeStream()
     }
     closed_ = true;
     closing_ = true;
+    if (webrtcConnection_ != nullptr) {
+        std::cout << "   with webrtcConnection stop()" << std::endl;
+        webrtcConnection_->stop();
+        webrtcConnection_ = nullptr;
+    }
     NabtoDeviceFuture* closeFuture = nabto_device_future_new(device_.get());
     nabto_device_stream_close(stream_, closeFuture);
     nabto_device_future_set_callback(closeFuture, streamClosed, this);
@@ -406,6 +411,7 @@ void SignalingStream::cleanup()
     closed_ = true;
     if (webrtcConnection_ != nullptr) {
         webrtcConnection_->stop();
+        webrtcConnection_ = nullptr;
     }
 
     webrtcConnection_ = nullptr;

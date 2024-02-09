@@ -478,6 +478,10 @@ BOOST_AUTO_TEST_CASE(answer_an_offer, *boost::unit_test::timeout(180))
 
                         auto answerData = resp["data"].get<std::string>();
                         BOOST_TEST(answerData.size() > 0);
+                        auto answerJson = nlohmann::json::parse(answerData);
+
+                        auto dataType = answerJson["type"].get<std::string>();
+                        BOOST_TEST(dataType == "answer");
                     } catch (std::exception& ex) {
                         std::cout << ex.what() << std::endl;
                         BOOST_TEST(ex.what() == "");
