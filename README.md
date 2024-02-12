@@ -4,7 +4,9 @@ This WebRTC example implementation for Nabto Embedded SDK allows clients to esta
 
 In addition to WebRTC, this example also implements OAuth to authenticate connections in the IAM module.
 
-Note that Firefox' WebRTC support is limited and is not currently supported by Nabto Edge WebRTC.
+Note that Firefox' WebRTC support is limited and is not currently supported by the example application.
+
+Note that the example applications use the RTP client in `./src/modules/rtp-client`. This is used to relay RTP packets between a UDP socket and WebRTC. This implementation is based on Unix sockets, and will not work on Windows.
 
 ## Obtaining the Source
 
@@ -43,7 +45,12 @@ docker run -v `pwd`/webrtc-home:/homedir -it --rm edge-device-webrtc edge_device
 ```
 
 ## Tools
-CMake and a C++ compiler is needed. Also, you need cURL and OpenSSL libraries for the target platform.
+You need the following tools to build the example:
+
+* Git
+* [CMake](https://cmake.org/)
+* C++ compiler
+* cURL
 
 ## Building
 The example is built using cmake from the root of this repo:

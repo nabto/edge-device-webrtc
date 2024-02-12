@@ -10,4 +10,7 @@
 /examples/simple-webrtc-send-audio-from-browser/web-client/node_modules/
 
 
+node_modules
+nabtoBundle.js
+
 /src/library/api/version.cpp
