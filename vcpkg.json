@@ -2,6 +2,7 @@
     "name": "nabto-edge-webrtc",
     "version-string": "0.0.1",
     "dependencies": [
-      "curl"
+      "curl",
+      "boost-test"
     ]
   }

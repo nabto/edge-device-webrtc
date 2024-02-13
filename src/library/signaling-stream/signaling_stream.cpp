@@ -142,6 +142,10 @@ void SignalingStream::sendSignalligObject(std::string& data)
 void SignalingStream::tryWriteStream()
 {
     std::string data;
+    if (closed_) {
+        closeStream();
+        return;
+    }
     if (writeBuf_ != NULL) {
         std::cout << "Write while writing" << std::endl;
         return;
@@ -190,12 +194,12 @@ void SignalingStream::readObjLength()
 void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
     SignalingStream* self = (SignalingStream*)userData;
-    self->reading_ = false;
     // nabto_device_future_free(future);
     if (ec == NABTO_DEVICE_EC_EOF) {
         // make a nice shutdown
         printf("Read reached EOF closing nicely\n");
         self->queue_->post([self]() {
+            self->reading_ = false;
             self->closeStream();
         });
         return;
@@ -203,11 +207,13 @@ void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError 
     if (ec != NABTO_DEVICE_EC_OK) {
         std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
         self->queue_->post([self]() {
+            self->reading_ = false;
             self->cleanup();
         });
         return;
     }
     self->queue_->post([self]() {
+        self->reading_ = false;
         self->handleReadObjLen();
     });
 }
@@ -373,6 +379,11 @@ void SignalingStream::closeStream()
     }
     closed_ = true;
     closing_ = true;
+    if (webrtcConnection_ != nullptr) {
+        std::cout << "   with webrtcConnection stop()" << std::endl;
+        webrtcConnection_->stop();
+        webrtcConnection_ = nullptr;
+    }
     NabtoDeviceFuture* closeFuture = nabto_device_future_new(device_.get());
     nabto_device_stream_close(stream_, closeFuture);
     nabto_device_future_set_callback(closeFuture, streamClosed, this);
@@ -386,7 +397,6 @@ void SignalingStream::streamClosed(NabtoDeviceFuture* future, NabtoDeviceError e
     SignalingStream* self = (SignalingStream*)userData;
     self->queue_->post([self]() {
         self->closing_ = false;
-        self->webrtcConnection_ = nullptr;
         if (!self->reading_ && self->writeBuf_ == NULL) {
             std::cout << "Not reading && writeBuf is NULL" << std::endl;
             self->cleanup();
@@ -401,6 +411,7 @@ void SignalingStream::cleanup()
     closed_ = true;
     if (webrtcConnection_ != nullptr) {
         webrtcConnection_->stop();
+        webrtcConnection_ = nullptr;
     }
 
     webrtcConnection_ = nullptr;
