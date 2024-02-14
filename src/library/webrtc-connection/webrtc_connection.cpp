@@ -37,45 +37,23 @@ void WebrtcConnection::stop()
     // sigStream_ = nullptr;
 }
 
-void WebrtcConnection::handleOffer(std::string& data)
-{
-    std::cout << "Got Offer: " << data << std::endl;
-    if (!pc_) {
+void WebrtcConnection::handleOfferAnswer(const std::string& data, const nlohmann::json& metadata) {
+    std::cout << "Got Offer/Answer: " << data << std::endl;
+     if (!pc_) {
         createPeerConnection();
     }
     try {
         nlohmann::json sdp = nlohmann::json::parse(data);
         rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
 
-        // std::cout << "Setting remDesc: " << remDesc << std::endl;
-        try {
-            pc_->setRemoteDescription(remDesc);
-        } catch (std::logic_error& ex) {
-            std::cout << "Failed to set remote description with logic error: " << ex.what() << std::endl;
-        }
-    }
-    catch (std::invalid_argument& ex) {
+        handleSignalingMessage(remDesc, metadata);
+    } catch (std::invalid_argument& ex) {
         std::cout << "GOT INVALID ARGUMENT: " << ex.what() << std::endl;
     }
     catch (nlohmann::json::exception& ex) {
         std::cout << "handleOffer json exception: " << ex.what() << std::endl;
     }
 
-}
-
-void WebrtcConnection::handleAnswer(std::string& data)
-{
-    std::cout << "Got Answer: " << data << std::endl;
-    try {
-        nlohmann::json sdp = nlohmann::json::parse(data);
-        rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
-        pc_->setRemoteDescription(remDesc);
-    }
-    catch (nlohmann::json::exception& ex) {
-        std::cout << "handleAnswer json exception: " << ex.what() << std::endl;
-    } catch (std::logic_error& ex) {
-        std::cout << "Failed to set remote description with logic error: " << ex.what() << std::endl;
-    }
 }
 
 void WebrtcConnection::handleIce(std::string& data)
@@ -89,7 +67,9 @@ void WebrtcConnection::handleIce(std::string& data)
     catch (nlohmann::json::exception& ex) {
         std::cout << "handleIce json exception: " << ex.what() << std::endl;
     } catch (std::logic_error& ex) {
-        std::cout << "Failed to add remote ICE candidate with logic error: " << ex.what() << std::endl;
+        if (!this->ignoreOffer_) {
+           std::cout << "Failed to add remote ICE candidate with logic error: " << ex.what() << std::endl;
+        }
     }
 }
 
@@ -225,15 +205,7 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
             {"sdp", std::string(description.value())} };
         auto data = message.dump();
         updateMetaTracks();
-
-        if (description->type() == rtc::Description::Type::Offer) {
-            std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
-            sigStream_->signalingSendOffer(data, metadata_);
-        }
-        else {
-            std::cout << "Sending answer: " << std::string(description.value()) << std::endl;
-            sigStream_->signalingSendAnswer(data, metadata_);
-        }
+        sendDescription(description);
     }
 
 }
@@ -418,6 +390,67 @@ std::string WebrtcConnection::trackErrorToString(enum MediaTrack::ErrorState sta
     case MediaTrack::ErrorState::UNKNOWN_ERROR: return std::string("UNKNOWN_ERROR");
     }
     return "UNKNOWN_ERROR";
+}
+
+void WebrtcConnection::handleSignalingMessage(rtc::optional<rtc::Description> description, const nlohmann::json& metadata)
+{
+    try {
+      if (description) {
+        bool offerCollision =
+          description->type() == rtc::Description::Type::Offer &&
+          (makingOffer_ || pc_->signalingState() != rtc::PeerConnection::SignalingState::Stable);
+
+        ignoreOffer_ = !polite_ && offerCollision;
+        if (ignoreOffer_) {
+          return;
+        }
+
+        setMetadata(metadata);
+        pc_->setRemoteDescription(*description);
+        if (description->type() == rtc::Description::Type::Offer) {
+          pc_->setLocalDescription();
+
+          //auto localDescription = pc_->localDescription();
+          //sendDescription(localDescription);
+        }
+      }
+    } catch (std::exception& err) {
+
+        std::cout << err.what() << std::endl;
+        // TODO close context if the error is??
+
+        // console.error(err);
+        // if (err instanceof Error)
+        // {
+        //     this.closeContext(err);
+    //   } else {
+    //     this.closeContext(new Error("unknown error type"));
+    //   }
+
+    }
+}
+
+void WebrtcConnection::sendDescription(rtc::optional<rtc::Description> description) {
+    //this.consumePendingMetadata();
+    if (description)
+    {
+        nlohmann::json message = {
+            {"type", description->typeString()},
+            {"sdp", std::string(description.value())}};
+        auto data = message.dump();
+        if (description->type() == rtc::Description::Type::Offer)
+        {
+            sigStream_->signalingSendOffer(data, metadata_);
+        }
+        else if (description->type() == rtc::Description::Type::Answer)
+        {
+            sigStream_->signalingSendAnswer(data, metadata_);
+        }
+        else
+        {
+            std::cout << "Something happened which should not happen, please debug the code." << std::endl;
+        }
+    }
 }
 
 } // namespace

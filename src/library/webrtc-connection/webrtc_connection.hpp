@@ -41,9 +41,8 @@ public:
     WebrtcConnection(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb);
     ~WebrtcConnection();
 
-    void handleOffer(std::string& data);
 
-    void handleAnswer(std::string& data);
+    void handleOfferAnswer(const std::string &data, const nlohmann::json& metadata );
 
     void handleIce(std::string& data);
 
@@ -93,6 +92,11 @@ private:
     void updateMetaTracks();
     std::string trackErrorToString(enum MediaTrack::ErrorState state);
 
+    void sendDescription(rtc::optional<rtc::Description> description);
+    void maybeNegotiationNeeded();
+    void onNegotiationNeeded();
+    void handleSignalingMessage(rtc::optional<rtc::Description> description, const nlohmann::json& metadata);
+
     SignalingStreamPtr sigStream_;
     NabtoDevicePtr device_;
     std::vector<struct TurnServer> turnServers_;
@@ -112,6 +116,12 @@ private:
 
     bool canTrickle_ = true;
     std::vector<MediaTrackPtr> mediaTracks_;
+
+    // State for Perfect Negotiation
+    bool polite_ = false;
+    bool makingOffer_ = false;
+    bool ignoreOffer_ = false;
+
 
 
 };

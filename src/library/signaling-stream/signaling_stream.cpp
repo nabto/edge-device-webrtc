@@ -134,6 +134,7 @@ void SignalingStream::createWebrtcConnection() {
 
 void SignalingStream::sendSignalligObject(std::string& data)
 {
+    std::cout << "Sending signaling object " << data << std::endl;
     writeBuffers_.push(data);
 
     tryWriteStream();
@@ -273,17 +274,11 @@ void SignalingStream::handleReadObject()
     try {
         obj = nlohmann::json::parse(objectBuffer_, objectBuffer_ + objectLength_);
         enum ObjectType type = static_cast<enum ObjectType>(obj["type"].get<int>());
-        if (type == WEBRTC_OFFER) {
+        if (type == WEBRTC_OFFER || type == WEBRTC_ANSWER) {
             auto offer = obj["data"].get<std::string>();
             nlohmann::json metadata = obj["metadata"];
-            webrtcConnection_->setMetadata(metadata);
-            webrtcConnection_->handleOffer(offer);
-        }
-        else if (type == WEBRTC_ANSWER) {
-            auto answer = obj["data"].get<std::string>();
-            webrtcConnection_->handleAnswer(answer);
-        }
-        else if (type == WEBRTC_ICE) {
+            webrtcConnection_->handleOfferAnswer(offer, metadata);
+        } else if (type == WEBRTC_ICE) {
             auto ice = obj["data"].get<std::string>();
             webrtcConnection_->handleIce(ice);
         }
