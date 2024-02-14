@@ -341,8 +341,7 @@ void WebrtcConnection::updateMetaTracks()
     bool hasError = false;
     for (auto m: mediaTracks_) {
         auto error = m->getImpl()->getErrorState();
-        if (error != MediaTrack::ErrorState::OK) {
-            hasError = true;
+        if (true) { // error != MediaTrack::ErrorState::OK) {
             auto sdp = m->getSdp();
             // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
             if (sdp[0] == 'm' && sdp[1] == '=') {
@@ -357,7 +356,10 @@ void WebrtcConnection::updateMetaTracks()
                 for (auto& mt : metaTracks) {
                     if (mt["mid"].get<std::string>() == mid) {
                         // Found the entry, insert error
-                        mt["error"] = trackErrorToString(error);
+                        if (error != MediaTrack::ErrorState::OK) {
+                            hasError = true;
+                            mt["error"] = trackErrorToString(error);
+                        }
                         found = true;
                         break;
                     }
@@ -370,9 +372,12 @@ void WebrtcConnection::updateMetaTracks()
                 // This track was not in metadata, so we must add it to return the error
                 nlohmann::json metaTrack = {
                     {"mid", mid},
-                    {"trackId", m->getTrackId()},
-                    {"error", trackErrorToString(error)}
-                };
+                    {"trackId", m->getTrackId()}};
+
+                if (error != MediaTrack::ErrorState::OK)
+                {
+                    metaTrack["error"] = trackErrorToString(error);
+                }
                 metaTracks.push_back(metaTrack);
             }
             metadata_["tracks"] = metaTracks;
@@ -402,7 +407,8 @@ void WebrtcConnection::handleSignalingMessage(rtc::optional<rtc::Description> de
 
         ignoreOffer_ = !polite_ && offerCollision;
         if (ignoreOffer_) {
-          return;
+            std::cout << "The device is impolite and there is a collision so we are discarding the received offer" << std::endl;
+            return;
         }
 
         setMetadata(metadata);
