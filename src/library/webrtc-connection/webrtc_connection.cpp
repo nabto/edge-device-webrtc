@@ -145,8 +145,6 @@ void WebrtcConnection::createPeerConnection()
 
     pc_->onLocalDescription([self](rtc::Description desc) {
         std::cout << "Got local description: " << desc << std::endl;
-        //auto description = self->pc_->localDescription();
-        //self->sendDescription(description);
     });
 
     pc_->onTrack([self](std::shared_ptr<rtc::Track> track) {
@@ -206,11 +204,6 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
     }
     if (canTrickle_ || pc_->gatheringState() == rtc::PeerConnection::GatheringState::Complete) {
         auto description = pc_->localDescription();
-        // nlohmann::json message = {
-        //     {"type", description->typeString()},
-        //     {"sdp", std::string(description.value())} };
-        // auto data = message.dump();
-        // updateMetaTracks();
         sendDescription(description);
     }
 
@@ -424,18 +417,7 @@ void WebrtcConnection::handleSignalingMessage(rtc::optional<rtc::Description> de
         }
       }
     } catch (std::exception& err) {
-
         std::cout << err.what() << std::endl;
-        // TODO close context if the error is??
-
-        // console.error(err);
-        // if (err instanceof Error)
-        // {
-        //     this.closeContext(err);
-    //   } else {
-    //     this.closeContext(new Error("unknown error type"));
-    //   }
-
     }
 }
 
