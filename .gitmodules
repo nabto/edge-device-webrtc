@@ -6,4 +6,4 @@
 	url = https://github.com/mkm85/libdatachannel.git
 [submodule "3rdparty/vcpkg"]
 	path = 3rdparty/vcpkg
-	url = git@github.com:microsoft/vcpkg.git
+	url = https://github.com/microsoft/vcpkg.git
