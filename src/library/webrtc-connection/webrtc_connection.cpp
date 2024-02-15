@@ -143,6 +143,12 @@ void WebrtcConnection::createPeerConnection()
         });
     });
 
+    pc_->onLocalDescription([self](rtc::Description desc) {
+        std::cout << "Got local description: " << desc << std::endl;
+        //auto description = self->pc_->localDescription();
+        //self->sendDescription(description);
+    });
+
     pc_->onTrack([self](std::shared_ptr<rtc::Track> track) {
         std::cout << "Got Track event" << std::endl;
         // Track events are triggered by setRemoteDescription, so they are already running on the event queue. This is likely the same for datachannels, however, tracks must be handled synchronously since they must remove all unacceptable codecs from the SDP.
@@ -188,7 +194,7 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
     } else if (state ==
                rtc::PeerConnection::SignalingState::HaveRemoteOffer) {
         try {
-            pc_->setLocalDescription();
+            //pc_->setLocalDescription();
         }
         catch (std::logic_error ex) {
             // TODO: handle this
@@ -200,11 +206,11 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
     }
     if (canTrickle_ || pc_->gatheringState() == rtc::PeerConnection::GatheringState::Complete) {
         auto description = pc_->localDescription();
-        nlohmann::json message = {
-            {"type", description->typeString()},
-            {"sdp", std::string(description.value())} };
-        auto data = message.dump();
-        updateMetaTracks();
+        // nlohmann::json message = {
+        //     {"type", description->typeString()},
+        //     {"sdp", std::string(description.value())} };
+        // auto data = message.dump();
+        // updateMetaTracks();
         sendDescription(description);
     }
 
@@ -415,9 +421,6 @@ void WebrtcConnection::handleSignalingMessage(rtc::optional<rtc::Description> de
         pc_->setRemoteDescription(*description);
         if (description->type() == rtc::Description::Type::Offer) {
           pc_->setLocalDescription();
-
-          //auto localDescription = pc_->localDescription();
-          //sendDescription(localDescription);
         }
       }
     } catch (std::exception& err) {
@@ -440,6 +443,7 @@ void WebrtcConnection::sendDescription(rtc::optional<rtc::Description> descripti
     //this.consumePendingMetadata();
     if (description)
     {
+        updateMetaTracks();
         nlohmann::json message = {
             {"type", description->typeString()},
             {"sdp", std::string(description.value())}};

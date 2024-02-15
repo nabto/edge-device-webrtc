@@ -13,7 +13,7 @@ var connected = false;
 
 function connect()
 {
-  webrtcConnection = globalThis.window.EdgeWebrtc.EdgeWebrtcConnectionFactory.create();
+  webrtcConnection = globalThis.window.EdgeWebrtc.createEdgeWebrtcConnection();
   productId = document.getElementById("productid").value;
   deviceId = document.getElementById("deviceid").value;
   sct = document.getElementById("sct").value;

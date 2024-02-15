@@ -121,9 +121,6 @@ private:
     bool polite_ = false;
     bool makingOffer_ = false;
     bool ignoreOffer_ = false;
-
-
-
 };
 
 
