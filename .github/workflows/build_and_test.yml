@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-test:
-    timeout-minutes: 20
+    timeout-minutes: 30
     name: Build
     runs-on: ${{matrix.os}}
     strategy:
@@ -35,7 +35,7 @@ jobs:
         run: ${{matrix.build_command}}
 
       - name: Test run
-        run: ${{ github.workspace }}/artifacts/bin/edge_device_webrtc --help
+        run: ${{ github.workspace }}/artifacts/bin/webrtc_unit_test --log_level=all
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

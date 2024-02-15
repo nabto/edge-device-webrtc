@@ -29,9 +29,9 @@ bool SignalingStreamManager::start()
         NabtoDeviceConnectionRef ref = nabto_device_stream_get_connection_ref(stream);
         if (self->accessCb_ && self->accessCb_(ref, "Webrtc:Signaling"))
         {
-            char* fp;
+            char* fp = NULL;
             nabto_device_connection_get_client_fingerprint(self->device_.get(), ref, &fp);
-            std::cout << "Creating Signaling stream for client fp: " << fp << std::endl;
+            std::cout << "Creating Signaling stream for client fp: " << (fp == NULL ? "NO FP" : fp) << std::endl;
             nabto_device_string_free(fp);
             SignalingStreamPtr s = SignalingStream::create(self->device_, stream, self, self->queue_,
                 [self](NabtoDeviceConnectionRef connRef, MediaTrackPtr track) {
