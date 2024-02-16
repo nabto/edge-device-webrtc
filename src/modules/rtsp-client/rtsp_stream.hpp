@@ -25,8 +25,8 @@ public:
 class RtspStream : public MediaStream, public std::enable_shared_from_this<RtspStream>
 {
 public:
-    static RtspStreamPtr create(std::string trackIdBase, std::string& url);
-    RtspStream(std::string& trackIdBase, std::string& url);
+    static RtspStreamPtr create(const std::string& trackIdBase, const std::string& url);
+    RtspStream(const std::string& trackIdBase, const std::string& url);
     ~RtspStream();
 
     void stop() {

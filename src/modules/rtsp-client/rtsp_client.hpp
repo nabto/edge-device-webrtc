@@ -26,8 +26,8 @@ typedef std::shared_ptr<RtspClient> RtspClientPtr;
 class RtspClient : public std::enable_shared_from_this<RtspClient>
 {
 public:
-    static RtspClientPtr create(std::string trackId, std::string& url);
-    RtspClient(std::string& trackId, std::string& url);
+    static RtspClientPtr create(const std::string& trackId, const std::string& url);
+    RtspClient(const std::string& trackId, const std::string& url);
     ~RtspClient();
 
     bool start(std::function<void(CURLcode res)> cb);
@@ -49,10 +49,10 @@ private:
     void setupRtsp();
     bool rtspPlay();
     void teardown();
-    bool performSetupReq(std::string& url, std::string& transport);
+    bool performSetupReq(const std::string& url, const std::string& transport);
 
-    bool parseSdpDescription(std::string& desc);
-    std::string parseControlAttribute(std::string& att);
+    bool parseSdpDescription(const std::string& desc);
+    std::string parseControlAttribute(const std::string& att);
 
     static size_t writeFunc(void* ptr, size_t size, size_t nmemb, void* self);
 

@@ -126,13 +126,13 @@ void SignalingStream::createWebrtcConnection() {
                 self->closeStream();
         }
     });
-    if (!defferedTracks_.empty()) {
-        createTracks(defferedTracks_);
-        defferedTracks_.clear();
+    if (!deferredTracks_.empty()) {
+        createTracks(deferredTracks_);
+        deferredTracks_.clear();
     }
 }
 
-void SignalingStream::sendSignalligObject(std::string& data)
+void SignalingStream::sendSignalligObject(const std::string& data)
 {
     std::cout << "Sending signaling object " << data << std::endl;
     writeBuffers_.push(data);
@@ -308,7 +308,7 @@ void SignalingStream::handleReadObject()
 }
 
 
-void SignalingStream::signalingSendOffer(std::string& data, nlohmann::json& metadata)
+void SignalingStream::signalingSendOffer(const std::string& data, const nlohmann::json& metadata)
 {
     nlohmann::json msg = {
          {"type", WEBRTC_OFFER},
@@ -319,7 +319,7 @@ void SignalingStream::signalingSendOffer(std::string& data, nlohmann::json& meta
     sendSignalligObject(obj);
 }
 
-void SignalingStream::signalingSendAnswer(std::string& data, nlohmann::json& metadata)
+void SignalingStream::signalingSendAnswer(const std::string& data, const nlohmann::json& metadata)
 {
     nlohmann::json msg = {
          {"type", WEBRTC_ANSWER},
@@ -331,7 +331,7 @@ void SignalingStream::signalingSendAnswer(std::string& data, nlohmann::json& met
 
 }
 
-void SignalingStream::signalingSendIce(std::string& data, nlohmann::json& metadata)
+void SignalingStream::signalingSendIce(const std::string& data, const nlohmann::json& metadata)
 {
     nlohmann::json msg = {
          {"type", WEBRTC_ICE},

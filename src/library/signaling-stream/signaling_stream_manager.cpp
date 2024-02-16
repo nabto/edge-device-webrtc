@@ -76,7 +76,7 @@ bool SignalingStreamManager::start()
 }
 
 
-bool SignalingStreamManager::connectionAddMedias(NabtoDeviceConnectionRef ref, std::vector<MediaTrackPtr>& tracks)
+bool SignalingStreamManager::connectionAddMedias(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks)
 {
     SignalingStreamPtr stream = nullptr;
 

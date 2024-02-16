@@ -30,9 +30,9 @@ public:
     void start();
 
     // Used by the WebrtcConnection to send signaling messages. These are fire-and-forget for the WebrtcConnection as these failing will mean the Nabto stream has failed. The Nabto stream failing will cause things to shutdown from another place.
-    void signalingSendOffer(std::string& data, nlohmann::json& metadata);
-    void signalingSendAnswer(std::string& data, nlohmann::json& metadata);
-    void signalingSendIce(std::string& data, nlohmann::json& metadata);
+    void signalingSendOffer(const std::string& data, const nlohmann::json& metadata);
+    void signalingSendAnswer(const std::string& data, const nlohmann::json& metadata);
+    void signalingSendIce(const std::string& data, const nlohmann::json& metadata);
 
     bool isConnection(NabtoDeviceConnectionRef ref)
     {
@@ -47,7 +47,7 @@ public:
         }
     }
 
-    bool createTracks(std::vector<MediaTrackPtr>& tracks)
+    bool createTracks(const std::vector<MediaTrackPtr>& tracks)
     {
         if (webrtcConnection_ != nullptr) {
             try {
@@ -57,7 +57,7 @@ public:
                 std::cout << "AcceptTrack runtime error: " << ex.what() << std::endl;
             }
         } else {
-            defferedTracks_.insert(defferedTracks_.end(), tracks.begin(), tracks.end());
+            deferredTracks_.insert(deferredTracks_.end(), tracks.begin(), tracks.end());
             return true;
         }
         return false;
@@ -73,7 +73,7 @@ private:
     void parseIceServers();
     void createWebrtcConnection();
 
-    void sendSignalligObject(std::string& data);
+    void sendSignalligObject(const std::string& data);
     void tryWriteStream();
     static void streamWriteCallback(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
@@ -120,7 +120,7 @@ private:
     SignalingStreamPtr self_;
 
 
-    std::vector<MediaTrackPtr> defferedTracks_;
+    std::vector<MediaTrackPtr> deferredTracks_;
 
 
 };

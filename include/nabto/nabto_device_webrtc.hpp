@@ -37,7 +37,7 @@ typedef std::function<void(NabtoDeviceConnectionRef connRef, MediaTrackPtr track
  * @param action [in]  The action being requested
  * @return True if the action should be allowed
 */
-typedef std::function<bool(NabtoDeviceConnectionRef connRef, std::string action)> CheckAccessCallback;
+typedef std::function<bool(NabtoDeviceConnectionRef connRef, const std::string& action)> CheckAccessCallback;
 
 /**
  * Callback invoked when a media track has data available.
@@ -224,7 +224,7 @@ public:
      * @param tracks [in] List of tracks to add
      * @returns False if the Nabto Connection referenced does not have a Signaling Stream open
     */
-    bool connectionAddMedias(NabtoDeviceConnectionRef ref, std::vector<MediaTrackPtr>& tracks);
+    bool connectionAddMedias(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks);
 
     /**
      * Set callback to be called when the Client has added a track to the PeerConnection. (ie. a WebRTC Offer containing new tracks was received)
