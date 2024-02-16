@@ -13,7 +13,7 @@ var connected = false;
 
 function connect()
 {
-  webrtcConnection = globalThis.window.EdgeWebrtc.EdgeWebrtcConnectionFactory.create();
+  webrtcConnection = globalThis.window.EdgeWebrtc.createEdgeWebrtcConnection();
   productId = document.getElementById("product").value;
   deviceId = document.getElementById("device").value;
   sct = document.getElementById("sct").value;
@@ -54,6 +54,13 @@ function startFeed1() {
 
 function startFeed2() {
   if (connected) {
+    webrtcConnection.coapInvoke("POST", "/webrtc/feed2");
+  }
+}
+
+function startBothFeeds() {
+  if (connected) {
+    webrtcConnection.coapInvoke("POST", "/webrtc/feed1");
     webrtcConnection.coapInvoke("POST", "/webrtc/feed2");
   }
 }

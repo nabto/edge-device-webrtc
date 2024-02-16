@@ -37,45 +37,23 @@ void WebrtcConnection::stop()
     // sigStream_ = nullptr;
 }
 
-void WebrtcConnection::handleOffer(std::string& data)
-{
-    std::cout << "Got Offer: " << data << std::endl;
-    if (!pc_) {
+void WebrtcConnection::handleOfferAnswer(const std::string& data, const nlohmann::json& metadata) {
+    std::cout << "Got Offer/Answer: " << data << std::endl;
+     if (!pc_) {
         createPeerConnection();
     }
     try {
         nlohmann::json sdp = nlohmann::json::parse(data);
         rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
 
-        // std::cout << "Setting remDesc: " << remDesc << std::endl;
-        try {
-            pc_->setRemoteDescription(remDesc);
-        } catch (std::logic_error& ex) {
-            std::cout << "Failed to set remote description with logic error: " << ex.what() << std::endl;
-        }
-    }
-    catch (std::invalid_argument& ex) {
+        handleSignalingMessage(remDesc, metadata);
+    } catch (std::invalid_argument& ex) {
         std::cout << "GOT INVALID ARGUMENT: " << ex.what() << std::endl;
     }
     catch (nlohmann::json::exception& ex) {
         std::cout << "handleOffer json exception: " << ex.what() << std::endl;
     }
 
-}
-
-void WebrtcConnection::handleAnswer(std::string& data)
-{
-    std::cout << "Got Answer: " << data << std::endl;
-    try {
-        nlohmann::json sdp = nlohmann::json::parse(data);
-        rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
-        pc_->setRemoteDescription(remDesc);
-    }
-    catch (nlohmann::json::exception& ex) {
-        std::cout << "handleAnswer json exception: " << ex.what() << std::endl;
-    } catch (std::logic_error& ex) {
-        std::cout << "Failed to set remote description with logic error: " << ex.what() << std::endl;
-    }
 }
 
 void WebrtcConnection::handleIce(std::string& data)
@@ -89,7 +67,9 @@ void WebrtcConnection::handleIce(std::string& data)
     catch (nlohmann::json::exception& ex) {
         std::cout << "handleIce json exception: " << ex.what() << std::endl;
     } catch (std::logic_error& ex) {
-        std::cout << "Failed to add remote ICE candidate with logic error: " << ex.what() << std::endl;
+        if (!this->ignoreOffer_) {
+           std::cout << "Failed to add remote ICE candidate with logic error: " << ex.what() << std::endl;
+        }
     }
 }
 
@@ -205,35 +185,14 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
 {
     if (state ==
         rtc::PeerConnection::SignalingState::HaveLocalOffer) {
-    } else if (state ==
-               rtc::PeerConnection::SignalingState::HaveRemoteOffer) {
-        try {
-            pc_->setLocalDescription();
-        }
-        catch (std::logic_error ex) {
-            // TODO: handle this
-            std::cout << "EXCEPTION!!!! " << ex.what() << std::endl;
-        }
+    } else if (state == rtc::PeerConnection::SignalingState::HaveRemoteOffer) {
     } else {
         std::cout << "Got unhandled signaling state: " << state << std::endl;
         return;
     }
     if (canTrickle_ || pc_->gatheringState() == rtc::PeerConnection::GatheringState::Complete) {
         auto description = pc_->localDescription();
-        nlohmann::json message = {
-            {"type", description->typeString()},
-            {"sdp", std::string(description.value())} };
-        auto data = message.dump();
-        updateMetaTracks();
-
-        if (description->type() == rtc::Description::Type::Offer) {
-            std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
-            sigStream_->signalingSendOffer(data, metadata_);
-        }
-        else {
-            std::cout << "Sending answer: " << std::string(description.value()) << std::endl;
-            sigStream_->signalingSendAnswer(data, metadata_);
-        }
+        sendDescription(description);
     }
 
 }
@@ -364,48 +323,50 @@ void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
     pc_->setLocalDescription();
 }
 
-void WebrtcConnection::updateMetaTracks()
-{
+void WebrtcConnection::updateMetaTracks() {
     bool hasError = false;
-    for (auto m: mediaTracks_) {
+    for (auto m : mediaTracks_) {
         auto error = m->getImpl()->getErrorState();
-        if (error != MediaTrack::ErrorState::OK) {
-            hasError = true;
-            auto sdp = m->getSdp();
-            // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
-            if (sdp[0] == 'm' && sdp[1] == '=') {
-                sdp = sdp.substr(2);
-            }
-            rtc::Description::Media media(sdp);
-            auto mid = media.mid();
-            bool found = false;
-            std::vector<nlohmann::json> metaTracks;
-            try {
-                metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
-                for (auto& mt : metaTracks) {
-                    if (mt["mid"].get<std::string>() == mid) {
-                        // Found the entry, insert error
-                        mt["error"] = trackErrorToString(error);
-                        found = true;
-                        break;
-                    }
-                }
-            } catch (nlohmann::json::exception& ex) {
-                std::cout << "Update metadata json exception: " << ex.what() << std::endl;
-                continue;
-            }
-            if (!found) {
-                // This track was not in metadata, so we must add it to return the error
-                nlohmann::json metaTrack = {
-                    {"mid", mid},
-                    {"trackId", m->getTrackId()},
-                    {"error", trackErrorToString(error)}
-                };
-                metaTracks.push_back(metaTrack);
-            }
-            metadata_["tracks"] = metaTracks;
+
+        auto sdp = m->getSdp();
+        // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
+        if (sdp[0] == 'm' && sdp[1] == '=') {
+            sdp = sdp.substr(2);
         }
+        rtc::Description::Media media(sdp);
+        auto mid = media.mid();
+        bool found = false;
+        std::vector<nlohmann::json> metaTracks;
+        try {
+            metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
+            for (auto& mt : metaTracks) {
+                if (mt["mid"].get<std::string>() == mid) {
+                    // Found the entry, insert error
+                    if (error != MediaTrack::ErrorState::OK) {
+                        hasError = true;
+                        mt["error"] = trackErrorToString(error);
+                    }
+                    found = true;
+                    break;
+                }
+            }
+        } catch (nlohmann::json::exception& ex) {
+            std::cout << "Update metadata json exception: " << ex.what() << std::endl;
+            continue;
+        }
+        if (!found) {
+            // This track was not in metadata, so we must add it to return the
+            // error
+            nlohmann::json metaTrack = {{"mid", mid}, {"trackId", m->getTrackId()}};
+
+            if (error != MediaTrack::ErrorState::OK) {
+                metaTrack["error"] = trackErrorToString(error);
+            }
+            metaTracks.push_back(metaTrack);
+        }
+        metadata_["tracks"] = metaTracks;
     }
+
     metadata_["status"] = hasError ? "FAILED" : "OK";
 }
 
@@ -418,6 +379,55 @@ std::string WebrtcConnection::trackErrorToString(enum MediaTrack::ErrorState sta
     case MediaTrack::ErrorState::UNKNOWN_ERROR: return std::string("UNKNOWN_ERROR");
     }
     return "UNKNOWN_ERROR";
+}
+
+void WebrtcConnection::handleSignalingMessage(rtc::optional<rtc::Description> description, const nlohmann::json& metadata)
+{
+    try {
+      if (description) {
+        bool offerCollision =
+          description->type() == rtc::Description::Type::Offer &&
+          (makingOffer_ || pc_->signalingState() != rtc::PeerConnection::SignalingState::Stable);
+
+        ignoreOffer_ = !polite_ && offerCollision;
+        if (ignoreOffer_) {
+            std::cout << "The device is impolite and there is a collision so we are discarding the received offer" << std::endl;
+            return;
+        }
+
+        setMetadata(metadata);
+        pc_->setRemoteDescription(*description);
+        if (description->type() == rtc::Description::Type::Offer) {
+          pc_->setLocalDescription();
+        }
+      }
+    } catch (std::exception& err) {
+        std::cout << err.what() << std::endl;
+    }
+}
+
+void WebrtcConnection::sendDescription(rtc::optional<rtc::Description> description) {
+    //this.consumePendingMetadata();
+    if (description)
+    {
+        updateMetaTracks();
+        nlohmann::json message = {
+            {"type", description->typeString()},
+            {"sdp", std::string(description.value())}};
+        auto data = message.dump();
+        if (description->type() == rtc::Description::Type::Offer)
+        {
+            sigStream_->signalingSendOffer(data, metadata_);
+        }
+        else if (description->type() == rtc::Description::Type::Answer)
+        {
+            sigStream_->signalingSendAnswer(data, metadata_);
+        }
+        else
+        {
+            std::cout << "Something happened which should not happen, please debug the code." << std::endl;
+        }
+    }
 }
 
 } // namespace

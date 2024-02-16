@@ -28,7 +28,7 @@ function connect() {
   boxLog(`* username: ${username}`);
   boxLog(`* password: ${password}`);
 
-  webrtcConnection = globalThis.window.EdgeWebrtc.EdgeWebrtcConnectionFactory.create();
+  webrtcConnection = globalThis.window.EdgeWebrtc.createEdgeWebrtcConnection();
 
   // TODO: Remove signalingUrl once an official non-demo signaling service is deployed
   let sigUrl = "wss://signaling.smartcloud.nabto.com";
@@ -293,4 +293,3 @@ function updateUi() {
   document.getElementById("videodown").disabled = !connected;
   canCoap(connected);
 }
-
