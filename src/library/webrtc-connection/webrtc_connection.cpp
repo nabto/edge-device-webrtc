@@ -143,10 +143,6 @@ void WebrtcConnection::createPeerConnection()
         });
     });
 
-    pc_->onLocalDescription([self](rtc::Description desc) {
-        std::cout << "Got local description: " << desc << std::endl;
-    });
-
     pc_->onTrack([self](std::shared_ptr<rtc::Track> track) {
         std::cout << "Got Track event" << std::endl;
         // Track events are triggered by setRemoteDescription, so they are already running on the event queue. This is likely the same for datachannels, however, tracks must be handled synchronously since they must remove all unacceptable codecs from the SDP.
@@ -189,15 +185,7 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
 {
     if (state ==
         rtc::PeerConnection::SignalingState::HaveLocalOffer) {
-    } else if (state ==
-               rtc::PeerConnection::SignalingState::HaveRemoteOffer) {
-        try {
-            //pc_->setLocalDescription();
-        }
-        catch (std::logic_error ex) {
-            // TODO: handle this
-            std::cout << "EXCEPTION!!!! " << ex.what() << std::endl;
-        }
+    } else if (state == rtc::PeerConnection::SignalingState::HaveRemoteOffer) {
     } else {
         std::cout << "Got unhandled signaling state: " << state << std::endl;
         return;
@@ -335,53 +323,50 @@ void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
     pc_->setLocalDescription();
 }
 
-void WebrtcConnection::updateMetaTracks()
-{
+void WebrtcConnection::updateMetaTracks() {
     bool hasError = false;
-    for (auto m: mediaTracks_) {
+    for (auto m : mediaTracks_) {
         auto error = m->getImpl()->getErrorState();
-        if (true) { // error != MediaTrack::ErrorState::OK) {
-            auto sdp = m->getSdp();
-            // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
-            if (sdp[0] == 'm' && sdp[1] == '=') {
-                sdp = sdp.substr(2);
-            }
-            rtc::Description::Media media(sdp);
-            auto mid = media.mid();
-            bool found = false;
-            std::vector<nlohmann::json> metaTracks;
-            try {
-                metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
-                for (auto& mt : metaTracks) {
-                    if (mt["mid"].get<std::string>() == mid) {
-                        // Found the entry, insert error
-                        if (error != MediaTrack::ErrorState::OK) {
-                            hasError = true;
-                            mt["error"] = trackErrorToString(error);
-                        }
-                        found = true;
-                        break;
-                    }
-                }
-            } catch (nlohmann::json::exception& ex) {
-                std::cout << "Update metadata json exception: " << ex.what() << std::endl;
-                continue;
-            }
-            if (!found) {
-                // This track was not in metadata, so we must add it to return the error
-                nlohmann::json metaTrack = {
-                    {"mid", mid},
-                    {"trackId", m->getTrackId()}};
 
-                if (error != MediaTrack::ErrorState::OK)
-                {
-                    metaTrack["error"] = trackErrorToString(error);
-                }
-                metaTracks.push_back(metaTrack);
-            }
-            metadata_["tracks"] = metaTracks;
+        auto sdp = m->getSdp();
+        // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
+        if (sdp[0] == 'm' && sdp[1] == '=') {
+            sdp = sdp.substr(2);
         }
+        rtc::Description::Media media(sdp);
+        auto mid = media.mid();
+        bool found = false;
+        std::vector<nlohmann::json> metaTracks;
+        try {
+            metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
+            for (auto& mt : metaTracks) {
+                if (mt["mid"].get<std::string>() == mid) {
+                    // Found the entry, insert error
+                    if (error != MediaTrack::ErrorState::OK) {
+                        hasError = true;
+                        mt["error"] = trackErrorToString(error);
+                    }
+                    found = true;
+                    break;
+                }
+            }
+        } catch (nlohmann::json::exception& ex) {
+            std::cout << "Update metadata json exception: " << ex.what() << std::endl;
+            continue;
+        }
+        if (!found) {
+            // This track was not in metadata, so we must add it to return the
+            // error
+            nlohmann::json metaTrack = {{"mid", mid}, {"trackId", m->getTrackId()}};
+
+            if (error != MediaTrack::ErrorState::OK) {
+                metaTrack["error"] = trackErrorToString(error);
+            }
+            metaTracks.push_back(metaTrack);
+        }
+        metadata_["tracks"] = metaTracks;
     }
+
     metadata_["status"] = hasError ? "FAILED" : "OK";
 }
 
