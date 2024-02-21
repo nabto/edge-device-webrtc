@@ -70,6 +70,8 @@ cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
 make -j16 install
 ```
 
+If your build host has limited resources and you try to limit the build concurrency using e.g. `make -j1`, you also need to explicitly limit the vcpkg build concurrency using `export VCPKG_MAX_CONCURRENCY=1` prior to running cmake.
+
 ## Running
 
 To start the device you must first either have RTP feeds or an RTSP server started. If you do not already have these, see [the sections below](#gstreamer-rtp-feeds) on how to start these.
