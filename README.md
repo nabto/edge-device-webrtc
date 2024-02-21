@@ -50,7 +50,7 @@ You need the following tools to build the example:
 * Git
 * [CMake](https://cmake.org/)
 * C++ compiler
-* cURL
+* curl zip unzip tar
 
 ## Building
 The example is built using cmake from the root of this repo:
