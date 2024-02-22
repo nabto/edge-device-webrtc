@@ -35,7 +35,7 @@ public:
 
     void init();
 
-    void handleStringMessage(std::string& data);
+    void handleStringMessage(const std::string& data);
 
 private:
 

@@ -29,7 +29,7 @@ NabtoDeviceWebrtc::~NabtoDeviceWebrtc()
 // }
 
 
-bool NabtoDeviceWebrtc::connectionAddMedias(NabtoDeviceConnectionRef ref, std::vector<MediaTrackPtr>& tracks)
+bool NabtoDeviceWebrtc::connectionAddMedias(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks)
 {
     return impl_->connectionAddMedias(ref, tracks);
 }

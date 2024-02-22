@@ -5,13 +5,13 @@
 
 namespace nabto {
 
-RtspClientPtr RtspClient::create(std::string trackId, std::string& url)
+RtspClientPtr RtspClient::create(const std::string& trackId, const std::string& url)
 {
     return std::make_shared<RtspClient>(trackId, url);
 
 }
 
-RtspClient::RtspClient(std::string& trackId, std::string& url)
+RtspClient::RtspClient(const std::string& trackId, const std::string& url)
     : trackId_(trackId), url_(url)
 {
 
@@ -290,7 +290,7 @@ size_t RtspClient::writeFunc(void* ptr, size_t size, size_t nmemb, void* s)
     return size * nmemb;
 }
 
-bool RtspClient::parseSdpDescription(std::string& sdp)
+bool RtspClient::parseSdpDescription(const std::string& sdp)
 {
 
     auto desc = rtc::Description(sdp);
@@ -345,7 +345,7 @@ bool RtspClient::parseSdpDescription(std::string& sdp)
     return true;
 }
 
-std::string RtspClient::parseControlAttribute(std::string& att)
+std::string RtspClient::parseControlAttribute(const std::string& att)
 {
     auto url = att.substr(strlen("control:"));
     if (url.empty() || url[0] == '*') {
@@ -363,7 +363,7 @@ std::string RtspClient::parseControlAttribute(std::string& att)
 
 }
 
-bool RtspClient::performSetupReq(std::string& url, std::string& transport)
+bool RtspClient::performSetupReq(const std::string& url, const std::string& transport)
 {
     // THIS IS CALLED FROM THE CURL WORKER THREAD
     CURLcode res = CURLE_OK;

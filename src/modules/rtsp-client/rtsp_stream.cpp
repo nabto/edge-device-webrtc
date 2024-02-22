@@ -3,13 +3,13 @@
 
 namespace nabto {
 
-RtspStreamPtr RtspStream::create(std::string trackIdBase, std::string& url)
+RtspStreamPtr RtspStream::create(const std::string& trackIdBase, const std::string& url)
 {
     return std::make_shared<RtspStream>(trackIdBase, url);
 
 }
 
-RtspStream::RtspStream(std::string& trackIdBase, std::string& url)
+RtspStream::RtspStream(const std::string& trackIdBase, const std::string& url)
     : trackIdBase_(trackIdBase), url_(url)
 {
 

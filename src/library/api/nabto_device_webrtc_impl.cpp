@@ -23,7 +23,7 @@ void NabtoDeviceWebrtcImpl::stop()
     // TODO: impl stop()
 }
 
-bool NabtoDeviceWebrtcImpl::connectionAddMedias(NabtoDeviceConnectionRef ref, std::vector<MediaTrackPtr>& tracks)
+bool NabtoDeviceWebrtcImpl::connectionAddMedias(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks)
 {
     return ssm_->connectionAddMedias(ref, tracks);
 }

@@ -44,9 +44,9 @@ public:
 
     void handleOfferAnswer(const std::string &data, const nlohmann::json& metadata );
 
-    void handleIce(std::string& data);
+    void handleIce(const std::string& data);
 
-    void createTracks(std::vector<MediaTrackPtr>& tracks);
+    void createTracks(const std::vector<MediaTrackPtr>& tracks);
 
     void setMetadata(const nlohmann::json& metadata)
     {

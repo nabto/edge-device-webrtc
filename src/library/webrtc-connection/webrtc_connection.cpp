@@ -56,7 +56,7 @@ void WebrtcConnection::handleOfferAnswer(const std::string& data, const nlohmann
 
 }
 
-void WebrtcConnection::handleIce(std::string& data)
+void WebrtcConnection::handleIce(const std::string& data)
 {
     std::cout << "Got ICE: " << data << std::endl;
     try {
@@ -290,7 +290,7 @@ NabtoDeviceConnectionRef WebrtcConnection::getConnectionRef() {
     }
 }
 
-void WebrtcConnection::createTracks(std::vector<MediaTrackPtr>& tracks)
+void WebrtcConnection::createTracks(const std::vector<MediaTrackPtr>& tracks)
 {
     if (!pc_) {
         createPeerConnection();

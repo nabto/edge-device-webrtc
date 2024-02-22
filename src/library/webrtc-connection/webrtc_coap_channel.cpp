@@ -198,7 +198,7 @@ void WebrtcCoapChannel::init()
     });
 }
 
-void WebrtcCoapChannel::handleStringMessage(std::string& data)
+void WebrtcCoapChannel::handleStringMessage(const std::string& data)
 {
     auto self = shared_from_this();
     try {
