@@ -61,8 +61,9 @@ add_subdirectory(src/modules/rtp-client)
 add_subdirectory(src/modules/rtsp-client)
 add_subdirectory(examples/webrtc-demo)
 add_subdirectory(examples/simple-webrtc)
-add_subdirectory(examples/simple-webrtc-two-streams)
-add_subdirectory(examples/simple-webrtc-send-audio-from-browser)
-add_subdirectory(examples/simple-webrtc-race-condition)
+
+add_subdirectory(test-apps/simple-webrtc-two-streams)
+add_subdirectory(test-apps/simple-webrtc-send-audio-from-browser)
+add_subdirectory(test-apps/simple-webrtc-race-condition)
 
 add_subdirectory(test)

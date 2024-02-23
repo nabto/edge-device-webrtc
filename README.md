@@ -194,12 +194,3 @@ docker run --rm -it --network host rtsp-demo-server
 ```
 **This RTSP demo container does not provide an audio feed so add Audio will not work.** Providing an RTSP server with an audio feed will make one-way audio work.
 
-## Current limitations
- * H264 video codec (it is pretty simple to add codecs)
- * PCMU audio codec for RTSP feeds and OPUS audio codec for RTP feeds (Still simple to add/change codecs, but requires code changes to switch)
- * limited RTSP support:
- * - Only supports device sending video/audio feed, no receiving
- * - The device will receive RTCP packets, and return dummy Receiver reports as our test cam uses this as keep alive.
- * No RTCP for RTP streams. We have not found any streamers which actually reacts to RTCP, so we do not handle it.
-
-

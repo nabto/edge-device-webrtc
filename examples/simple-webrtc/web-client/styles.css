@@ -19,34 +19,28 @@
   display: grid;
   min-width: 1250px;
   height: 100%;
-  grid-template-areas: "logbox camerabox"
-  "logbox buttonbox";
+  grid-template-areas:
+    "infobox infobox"
+    "ctrlbox ctrlbox"
+    "logbox camerabox"
+    "logbox picturebox";
   grid-gap: 1rem;
+  grid-auto-rows: auto;
 }
 
 .infobox {
   grid-area: infobox;
   overflow: auto;
-  height: 100px;
 }
 
-.userlistbox {
-  grid-area: userlistbox;
-  border: 1px solid black;
-  margin:0;
-  margin-left:5em;
-  padding:1px;
-  list-style:none;
-  line-height:1.1;
-  overflow-y:auto;
-  overflow-x:hidden;
-  width: 150px;
-  height: 600px;
+.controlbox {
+  grid-area: ctrlbox;
+  overflow: auto;
 }
 
-.userlistbox li {
-  cursor: pointer;
-  padding: 1px;
+.infobox section {
+  margin:10px;
+  margin-left: 0;
 }
 
 .logbox {
@@ -59,7 +53,6 @@
   overflow-y:auto;
   overflow-x:hidden;
   width: 500px;
-  height: 600px;
 }
 
 .logbox li {
@@ -81,7 +74,7 @@
 .picturebox {
   grid-area: picturebox;
   width: 600px;
-  height: 400px;
+  height: 340px;
   border: 1px solid black;
   vertical-align: top;
   display: block;
@@ -126,4 +119,12 @@
 
 .empty-container {
   grid-area: empty-container;
+}
+
+input, label{
+  display: inline-block;
+}
+
+label{
+  font-weight: bold;
 }
