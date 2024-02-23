@@ -38,6 +38,11 @@
   overflow: auto;
 }
 
+.infobox section {
+  margin:10px;
+  margin-left: 0;
+}
+
 .logbox {
   grid-area: logbox;
   border: 1px solid black;

@@ -6,23 +6,29 @@
   <link href="styles.css" rel="stylesheet">
   <script src="nabto_bundle.js"></script>
   <script src="webrtc_client.js"></script>
+  <script src="util.js"></script>
 </head>
 <body>
   <div class="container">
     <form class="infobox">
       <section>
         <h1>Nabto Simple WebRTC example</h1>
-        <p>Enter Device Info: </p>
+        <p>Copy the device configuration string and parse it or enter the device information below </p>
+      </section>
+      <section>
+        <label for="devicestring">Device Configuration string to parse for device info: </label>
+        <input id="devicestring" type="text" required inputmode="verbatim" size="140"  value="">
+        <input id="stringparse" type="button" name="stringparse" value="Parse" onclick="parseString()">
       </section>
       <section>
         <label for="product">Product ID: </label>
-        <input id="product" type="text" maxlength="12" required inputmode="verbatim" value="pr-jzoqqta9">
+        <input id="product" type="text" maxlength="12" required inputmode="verbatim" value="" onchange="storeInfo()">
 
         <label for="device">Device ID: </label>
-        <input id="device" type="text" maxlength="12" required inputmode="verbatim" value="de-uguiictr">
+        <input id="device" type="text" maxlength="12" required inputmode="verbatim" value="" onchange="storeInfo()">
 
         <label for="sct">SCT: </label>
-        <input id="sct" type="text" maxlength="12" required inputmode="verbatim" value="demosct">
+        <input id="sct" type="text" maxlength="12" required inputmode="verbatim" value="demosct" onchange="storeInfo()">
       </section>
     </form>
     <div class="controlbox">

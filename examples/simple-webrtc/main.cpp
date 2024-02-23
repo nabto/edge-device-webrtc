@@ -142,7 +142,11 @@ bool initDevice(nabto::NabtoDevicePtr device, json& opts)
         return false;
     }
 
-    std::cout << "Device: " << opts["productId"].get<std::string>() << "." << opts["deviceId"].get<std::string>() << " with fingerprint: [" << fp << "]" << std::endl;;
+    std::cout << "################################################################" << std::endl
+        << "# Device configuration string: " << std::endl
+        << "# productid:" << opts["productId"].get<std::string>() << ",deviceId:" << opts["deviceId"].get<std::string>() << ",sct:" << opts["sct"].get<std::string>() << std::endl
+        << "################################################################" << std::endl
+        << "The device fingerprint: [" << fp << "]" << std::endl;
     nabto_device_string_free(fp);
 
     if (nabto_device_set_product_id(device.get(), opts["productId"].get<std::string>().c_str()) != NABTO_DEVICE_EC_OK ||
