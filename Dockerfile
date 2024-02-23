@@ -19,6 +19,7 @@ COPY .git /workspace/device/.git
 COPY src /workspace/device/src
 COPY CMakeLists.txt /workspace/device/CMakeLists.txt
 COPY test /workspace/device/test
+COPY test-apps /workspace/device/test-apps
 COPY vcpkg.json /workspace/device/vcpkg.json
 
 RUN cmake ..
