@@ -24,3 +24,31 @@ This example includes a website used to connect to the device. Before using the 
 cd web-client
 npm install
 ```
+
+## Usage
+
+To start the device, use the device configuration created previously to start the device:
+
+```
+./simple_webrtc_device -p <PRODUCT_ID> -d <DEVICE_ID> -k <RAW_PRIVATE_KEY>
+################################################################
+# Device configuration string:
+# productid:<PRODUCT_ID>,deviceId:<DEVICE_ID>,sct:demosct
+################################################################
+The device fingerprint: [1cf5fdb1d1e6c2d6be5aba35043f4a211002f608a1749bac12313c33480c52bc]
+2024-02-23 10:56:41.312 ...sdk/src/core/nc_device.c(399)[_INFO] Starting Nabto Device
+2024-02-23 10:56:41.628 ...k/src/core/nc_attacher.c(747)[_INFO] Device attached to basestation
+```
+
+Note the *Device configuration string*. This will be used to configure the client.
+
+To start the client, open the `index.html` file from the `web-client` subdirectory of this example in a browser.
+
+```
+file:///PATH/TO/REPO/examples/simple-webrtc/web-client/index.html
+```
+
+Copy the *Device configuration string* into the website and press the *parse* button to fill in the device configuration.
+
+Finally, press the *Connect* button to connect to the device.
+
