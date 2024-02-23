@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "install": "node_modules/browserify/bin/cmd.js nabto_module.js -o nabto_bundle.js"
+  },
+  "dependencies": {
+    "edge-webrtc-client": "github:nabto/edge-client-js-webrtc#e38475900b54bb5a0ee8a0ccc81185c0f2c9d2fd"
+  },
+  "devDependencies": {
+    "browserify": "^17.0.0"
+  }
+}

@@ -1,16 +1,12 @@
 
-// import EdgeWebrtcConnectionFactory from "./edge-webrtc/edge_webrtc";
+let productId = null;
+let deviceId = null;
+let sct = null;
+let webrtcConnection = null;
 
-// var edgeWebrtc = require("./edge_webrtc_bundle")
-var edgeWebrtc = window.NabtoEdgeWebrtcFactory;
-
-var productId = null;
-var deviceId = null;
-var sct = null;
-
-function connect()
+async function connect()
 {
-  let webrtcConnection = edgeWebrtc.create();
+  webrtcConnection = globalThis.window.EdgeWebrtc.createEdgeWebrtcConnection();
   productId = document.getElementById("product").value;
   deviceId = document.getElementById("device").value;
   sct = document.getElementById("sct").value;
@@ -27,5 +23,16 @@ function connect()
 
   });
 
-  webrtcConnection.connect();
+  document.getElementById("connect").disabled = true;
+  await webrtcConnection.connect();
+  document.getElementById("disconnect").disabled = false;
+}
+
+async function disconnect()
+{
+  document.getElementById("disconnect").disabled = true;
+  document.getElementById("connect").disabled = false;
+  await webrtcConnection.close();
+  webrtcConnection = null;
+
 }

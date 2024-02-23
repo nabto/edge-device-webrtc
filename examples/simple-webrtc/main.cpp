@@ -5,7 +5,9 @@
 #include <event-queue/event_queue_impl.hpp>
 #include <rtp-client/rtp_client.hpp>
 #include <codecs/h264.hpp>
+#include <util/util.hpp>
 
+#include <cxxopts/cxxopts.hpp>
 #include <rtc/global.hpp>
 #include <nlohmann/json.hpp>
 #include <signal.h>
@@ -42,18 +44,17 @@ void signal_handler(int s)
     sigContext = nullptr;
 }
 
+bool parse_options(int argc, char** argv, json& opts);
 
 bool initDevice(nabto::NabtoDevicePtr device, json& opts);
 
 int main(int argc, char** argv) {
 
     json opts;
-    opts["productId"] = std::string("pr-jzoqqta9");
-    opts["deviceId"] = std::string("de-uguiictr");
-    opts["sct"] = std::string("demosct");
-    opts["rawPrivateKey"] = std::string("5265f6ecbe263d51fc0ceacf6e6555840435150318ad5e24329cba6563a82025");
-    opts["rtpPort"] = 6000;
-    opts["logLevel"] = std::string("info");
+    bool shouldExit = parse_options(argc, argv, opts);
+    if (shouldExit) {
+        return 0;
+    }
 
     auto device = nabto::makeNabtoDevice();
 
@@ -98,7 +99,7 @@ int main(int argc, char** argv) {
 
         nabto_device_coap_response_set_code(coap, 201);
         nabto_device_coap_response_ready(coap);
-
+        nabto_device_coap_request_free(coap);
     });
 
 
@@ -163,4 +164,58 @@ bool initDevice(nabto::NabtoDevicePtr device, json& opts)
         return false;
     }
     return true;
+}
+
+bool parse_options(int argc, char** argv, json& opts)
+{
+    try
+    {
+        cxxopts::Options options(argv[0], "Nabto Webrtc Device example");
+        options.add_options()
+            ("d,deviceid", "Device ID to connect to", cxxopts::value<std::string>())
+            ("p,productid", "Product ID to use", cxxopts::value<std::string>())
+            ("log-level", "Optional. The log level (error|info|trace)", cxxopts::value<std::string>()->default_value("info"))
+            ("k,privatekey", "Raw private key to use", cxxopts::value<std::string>())
+            ("rtp-port", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
+            ("sct", "SCT to use", cxxopts::value<std::string>()->default_value("demosct"))
+            ("create-key", "If set, will create and print a raw private key and its fingerprint. Then exit")
+            ("h,help", "Shows this help text");
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help")) {
+            std::cout << options.help({ "", "Group" }) << std::endl;
+            return true;
+        }
+
+        if (result.count("create-key")) {
+            nabto::PrivateKeyCreator();
+            return true;
+        }
+
+        if (!result.count("productid") ||
+            !result.count("deviceid") ||
+            !result.count("privatekey"))
+        {
+            std::cout << "Missing required argument" << std::endl;
+            std::cout << options.help({ "", "Group" }) << std::endl;
+            return true;
+        }
+        opts["productId"] = result["productid"].as<std::string>();
+        opts["deviceId"] = result["deviceid"].as<std::string>();
+        opts["rawPrivateKey"] = result["privatekey"].as<std::string>();
+        opts["sct"] = result["sct"].as<std::string>();
+
+        opts["logLevel"] = result["log-level"].as<std::string>();
+        if (result.count("rtsp")) {
+            opts["rtspUrl"] = result["rtsp"].as<std::string>();
+        }
+        opts["rtpPort"] = result["rtp-port"].as<uint16_t>();
+
+    } catch (const cxxopts::OptionException& e)
+    {
+        std::cout << "Error parsing options: " << e.what() << std::endl;
+        return true;
+    }
+    return false;
+
 }

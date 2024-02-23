@@ -14,3 +14,4 @@ node_modules
 nabtoBundle.js
 
 /src/library/api/version.cpp
+/examples/simple-webrtc/web-client/nabto_bundle.js
