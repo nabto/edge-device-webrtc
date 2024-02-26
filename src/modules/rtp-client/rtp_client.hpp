@@ -30,8 +30,8 @@ public:
     void setPort(uint16_t port) { videoPort_ = port; remotePort_ = port + 1; }
     // Remote Host used to send data to if stream is not SENDONLY
     void setRemoteHost(std::string host) { remoteHost_ = host; }
-    void setRtpCodecMatcher(RtpCodec* matcher) { matcher_ = matcher; }
-    RtpCodec* getRtpCodecMatcher() { return matcher_; }
+    void setRtpCodecMatcher(RtpCodecPtr matcher) { matcher_ = matcher; }
+    RtpCodecPtr getRtpCodecMatcher() { return matcher_; }
 
     MediaTrackPtr createMedia(const std::string& trackId) {
         auto m = matcher_->createMedia();
@@ -60,7 +60,7 @@ private:
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
     // TODO, ownership if matcher?
-    RtpCodec* matcher_;
+    RtpCodecPtr matcher_;
 };
 
 

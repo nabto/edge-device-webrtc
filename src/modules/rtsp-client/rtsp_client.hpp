@@ -36,7 +36,7 @@ public:
     RtpClientPtr getVideoStream();
     RtpClientPtr getAudioStream();
 
-    void setCodecMatchers(RtpCodec* videoMatcher, RtpCodec* audioMatcher)
+    void setCodecMatchers(RtpCodecPtr videoMatcher, RtpCodecPtr audioMatcher)
     {
         videoCodec_ = videoMatcher;
         audioCodec_ = audioMatcher;
@@ -80,13 +80,13 @@ private:
     std::string sessionControlUrl_;
 
     RtpClientPtr videoStream_ = nullptr;
-    RtpCodec* videoCodec_;
+    RtpCodecPtr videoCodec_;
     std::string videoControlUrl_;
     int videoPayloadType_;
     RtcpClientPtr videoRtcp_ = nullptr;
 
     RtpClientPtr audioStream_ = nullptr;
-    RtpCodec* audioCodec_;
+    RtpCodecPtr audioCodec_;
     std::string audioControlUrl_;
     int audioPayloadType_;
     RtcpClientPtr audioRtcp_ = nullptr;
