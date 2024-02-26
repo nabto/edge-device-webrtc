@@ -41,7 +41,7 @@ public:
     void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
     void removeConnection(NabtoDeviceConnectionRef ref);
 
-    void setCodecMatchers(RtpCodec* videoMatcher, RtpCodec* audioMatcher)
+    void setCodecMatchers(RtpCodecPtr videoMatcher, RtpCodecPtr audioMatcher)
     {
         videoMatcher_ = videoMatcher;
         audioMatcher_ = audioMatcher;
@@ -78,8 +78,8 @@ private:
     std::mutex mutex_;
     size_t counter_ = 0;
 
-    RtpCodec* videoMatcher_;
-    RtpCodec* audioMatcher_;
+    RtpCodecPtr videoMatcher_;
+    RtpCodecPtr audioMatcher_;
     uint16_t basePort_;
 
     std::map<NabtoDeviceConnectionRef, RtspConnection> connections_;

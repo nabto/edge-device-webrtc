@@ -36,6 +36,13 @@ public:
     RtpClientPtr getVideoStream();
     RtpClientPtr getAudioStream();
 
+    void setCodecMatchers(RtpCodecPtr videoMatcher, RtpCodecPtr audioMatcher)
+    {
+        videoCodec_ = videoMatcher;
+        audioCodec_ = audioMatcher;
+    }
+
+
     // Sets which transport ports to make RTSP server send RTP traffic to.
     // 4 ports are used in total:
     //   port  : Port for video stream
@@ -73,14 +80,13 @@ private:
     std::string sessionControlUrl_;
 
     RtpClientPtr videoStream_ = nullptr;
-    H264CodecMatcher videoCodec_;
+    RtpCodecPtr videoCodec_;
     std::string videoControlUrl_;
     int videoPayloadType_;
     RtcpClientPtr videoRtcp_ = nullptr;
 
     RtpClientPtr audioStream_ = nullptr;
-    // OpusCodecMatcher audioCodec_;
-    PcmuCodecMatcher audioCodec_;
+    RtpCodecPtr audioCodec_;
     std::string audioControlUrl_;
     int audioPayloadType_;
     RtcpClientPtr audioRtcp_ = nullptr;

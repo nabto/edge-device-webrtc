@@ -31,6 +31,9 @@ public:
     }
 };
 
+class RtpCodec;
+typedef std::shared_ptr<RtpCodec> RtpCodecPtr;
+
 class RtpCodec
 {
 public:

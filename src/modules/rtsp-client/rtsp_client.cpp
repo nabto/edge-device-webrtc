@@ -197,7 +197,7 @@ void RtspClient::setupRtsp() {
 
     if (!videoControlUrl_.empty()) {
         videoStream_ = RtpClient::create(trackId_ + "-video");
-        videoStream_->setRtpCodecMatcher(&videoCodec_);
+        videoStream_->setRtpCodecMatcher(videoCodec_);
         videoStream_->setPort(port_);
 
         videoRtcp_ = RtcpClient::create(port_ + 1);
@@ -206,7 +206,7 @@ void RtspClient::setupRtsp() {
 
     if (!audioControlUrl_.empty()) {
         audioStream_ = RtpClient::create(trackId_ + "-audio");
-        audioStream_->setRtpCodecMatcher(&audioCodec_);
+        audioStream_->setRtpCodecMatcher(audioCodec_);
         audioStream_->setPort(port_ + 2);
 
         audioRtcp_ = RtcpClient::create(port_ + 3);
@@ -323,7 +323,7 @@ bool RtspClient::parseSdpDescription(const std::string& sdp)
                 if (ptVec.size() > 0) {
                     videoPayloadType_ = ptVec[0];
                 } else {
-                    videoPayloadType_ = videoCodec_.payloadType();
+                    videoPayloadType_ = videoCodec_->payloadType();
                 }
             }
             else if (m->type() == "audio") {
@@ -332,7 +332,7 @@ bool RtspClient::parseSdpDescription(const std::string& sdp)
                     audioPayloadType_ = ptVec[0];
                 }
                 else {
-                    audioPayloadType_ = audioCodec_.payloadType();
+                    audioPayloadType_ = audioCodec_->payloadType();
                 }
             }
             else {
