@@ -59,7 +59,6 @@ private:
     std::string remoteHost_ = "127.0.0.1";
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
-    // TODO, ownership if matcher?
     RtpCodecPtr matcher_;
 };
 
