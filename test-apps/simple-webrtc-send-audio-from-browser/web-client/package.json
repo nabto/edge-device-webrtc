@@ -6,7 +6,7 @@
     "bn.js": "^5.2.1",
     "browserify": "^17.0.0",
     "cbor": "^9.0.0",
-    "edge-webrtc-client": "https://github.com/nabto/edge-client-js-webrtc#e38475900b54bb5a0ee8a0ccc81185c0f2c9d2fd",
+    "edge-webrtc-client": "https://github.com/nabto/edge-client-js-webrtc#cc8b8c9a05c780f9c281678e3b61dae3ebeb5a2d",
     "elliptic": "^6.5.4",
     "jsonwebtoken": "^9.0.2",
     "spake2": "^1.0.2"

@@ -18,14 +18,27 @@ async function connect()
     video.srcObject = event.streams[0];
   });
 
-  webrtcConnection.onConnected(() => {
-    webrtcConnection.coapInvoke("GET","/webrtc/get");
-
+  webrtcConnection.onClosed((error) => {
+    if (error) {
+      boxLog(`WebRTC connection closed: (${error.code}) ${error.message}`);
+    } else {
+      boxLog(`WebRTC connection closed`);
+    }
+    document.getElementById("disconnect").disabled = true;
+    document.getElementById("connect").disabled = false;
   });
 
   document.getElementById("connect").disabled = true;
-  await webrtcConnection.connect();
-  document.getElementById("disconnect").disabled = false;
+
+  try {
+    await webrtcConnection.connect();
+    document.getElementById("disconnect").disabled = false;
+    boxLog("Connected to device. Getting video feed.")
+    webrtcConnection.coapInvoke("GET","/webrtc/get");
+  } catch (err) {
+    boxLog(`Connect Failed: (${err.code}) ${err.message}`);
+    document.getElementById("connect").disabled = false;
+  }
 }
 
 async function disconnect()

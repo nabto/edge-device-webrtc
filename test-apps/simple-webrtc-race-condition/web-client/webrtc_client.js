@@ -11,7 +11,7 @@ var sct = null;
 var webrtcConnection = null;
 var connected = false;
 
-function connect()
+async function connect()
 {
   webrtcConnection = globalThis.window.EdgeWebrtc.createEdgeWebrtcConnection();
   productId = document.getElementById("productid").value;
@@ -35,11 +35,8 @@ function connect()
     }
   });
 
-  webrtcConnection.onConnected(() => {
-    connected = true;
-  });
-
-  webrtcConnection.connect();
+  await webrtcConnection.connect();
+  connected = true;
 }
 
 async function sendVideo() {

@@ -54,3 +54,11 @@ function storeInfo() {
   localStorage.setItem("sct", sct);
   updateConfig();
 }
+
+function boxLog(msg) {
+  var listElem = document.querySelector(".logbox");
+
+  var item = document.createElement("li");
+  item.appendChild(document.createTextNode(msg));
+  listElem.appendChild(item);
+}
