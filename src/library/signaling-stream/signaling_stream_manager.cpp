@@ -4,7 +4,7 @@
 
 namespace nabto {
 
-const char* coapInfoPath[] = { "webrtc", "info", NULL };
+const char* coapInfoPath[] = { "p2p", "webrtc-info", NULL };
 
 SignalingStreamManagerPtr SignalingStreamManager::create(NabtoDevicePtr device, EventQueuePtr queue)
 {
