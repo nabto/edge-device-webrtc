@@ -3,6 +3,11 @@
 #include <sstream>
 #include <cstring>
 
+namespace rtc {
+using std::get;
+using std::holds_alternative;
+}  // namespace rtc
+
 namespace nabto {
 
 RtspClientPtr RtspClient::create(const std::string& trackId, const std::string& url)
