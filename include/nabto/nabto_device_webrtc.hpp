@@ -89,6 +89,9 @@ public:
 
 };
 
+/**
+ * EventQueueWork used to keep EventQueue alive when there are no events to handle.
+ */
 class EventQueueWork {
 public:
     /**
@@ -100,17 +103,20 @@ public:
 
     /**
      * Destroy event queue work. This calls `removeWork()` on the event queue.
-    */
+     *
+     */
     ~EventQueueWork();
+
 private:
     EventQueuePtr queue_;
 
 };
 
-
+/**
+ * A MediaTrack represents a WebRTC track, and is used to send or receive media data on.
+ */
 class MediaTrack {
 public:
-
     /**
      * Error states to be set on a media track to inform the client of failures.
      */
@@ -198,6 +204,9 @@ private:
 
 };
 
+/**
+ * Main Webrtc Device context to handle WebRTC connections
+ */
 class NabtoDeviceWebrtc {
 public:
     /**
