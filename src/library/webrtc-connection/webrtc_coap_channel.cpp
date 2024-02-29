@@ -170,8 +170,20 @@ WebrtcCoapChannel::WebrtcCoapChannel(std::shared_ptr<rtc::PeerConnection> pc, st
 void WebrtcCoapChannel::init()
 {
     auto self = shared_from_this();
-    std::string cliFp = *(pc_->remoteDescription()->fingerprint());
-    std::string devFp = *(pc_->localDescription()->fingerprint());
+    auto remoteDescription = pc_->remoteDescription();
+    auto localDescription = pc_->localDescription();
+    if (!remoteDescription || !localDescription) {
+        std::cout << "Missing local or remote description" << std::endl;
+        return;
+    }
+    auto remoteFingerprint = pc_->remoteDescription()->fingerprint();
+    auto localFingerprint = pc_->remoteDescription()->fingerprint();
+    if (!remoteFingerprint || !localFingerprint) {
+        std::cout << "Missing local or remote fingerprint" << std::endl;
+        return;
+    }
+    std::string cliFp = remoteFingerprint->value;
+    std::string devFp = localFingerprint->value;
     cliFp.erase(std::remove(cliFp.begin(), cliFp.end(), ':'), cliFp.end());
     devFp.erase(std::remove(devFp.begin(), devFp.end(), ':'), devFp.end());
 

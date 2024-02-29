@@ -3,6 +3,11 @@
 #include <sstream>
 #include <cstring>
 
+namespace rtc {
+using std::get;
+using std::holds_alternative;
+}  // namespace rtc
+
 namespace nabto {
 
 RtspClientPtr RtspClient::create(const std::string& trackId, const std::string& url)
@@ -305,7 +310,7 @@ bool RtspClient::parseSdpDescription(const std::string& sdp)
     auto count = desc.mediaCount();
     for (size_t i = 0; i < count; i++) {
         if (rtc::holds_alternative<rtc::Description::Media*>(desc.media(i))) {
-            auto m = rtc::get<rtc::Description::Media*>(desc.media(i));
+            auto m = std::get<rtc::Description::Media*>(desc.media(i));
             std::cout << "Found Media type: " << m->type() << std::endl;
             std::string controlUrl;
 
