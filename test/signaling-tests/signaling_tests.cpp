@@ -264,7 +264,7 @@ public:
     void makeConnectionSigStream(std::function<void(NabtoDeviceVirtualConnection* conn, std::shared_ptr<VirtualStream> stream)> cb) {
         conn_ = makeConnection();
         auto self = shared_from_this();
-        coap_ = std::make_shared <VirtualCoap>(device_, conn_, NABTO_DEVICE_COAP_GET, "/webrtc/info");
+        coap_ = std::make_shared <VirtualCoap>(device_, conn_, NABTO_DEVICE_COAP_GET, "/p2p/webrtc-info");
         stream_ = std::make_shared<VirtualStream>(device_, conn_);
 
         coap_->execute([self, cb](NabtoDeviceError ec) {
@@ -340,7 +340,7 @@ BOOST_AUTO_TEST_CASE(get_stream_port, *boost::unit_test::timeout(180))
     auto td = std::make_shared<nabto::test::TestDevice>();
     auto conn = td->makeConnection();
 
-    auto coap = nabto::test::VirtualCoap(td->getDevice(), conn, NABTO_DEVICE_COAP_GET, "/webrtc/info");
+    auto coap = nabto::test::VirtualCoap(td->getDevice(), conn, NABTO_DEVICE_COAP_GET, "/p2p/webrtc-info");
 
     coap.execute([td, &coap](NabtoDeviceError ec) {
         BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
@@ -380,7 +380,7 @@ BOOST_AUTO_TEST_CASE(open_signaling_stream, *boost::unit_test::timeout(180))
     auto td = std::make_shared<nabto::test::TestDevice>();
     auto conn = td->makeConnection();
 
-    auto coap = nabto::test::VirtualCoap(td->getDevice(), conn, NABTO_DEVICE_COAP_GET, "/webrtc/info");
+    auto coap = nabto::test::VirtualCoap(td->getDevice(), conn, NABTO_DEVICE_COAP_GET, "/p2p/webrtc-info");
     auto stream = nabto::test::VirtualStream(td->getDevice(), conn);
 
     coap.execute([td, conn, &coap, &stream](NabtoDeviceError ec) {
