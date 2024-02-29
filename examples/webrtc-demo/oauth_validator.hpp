@@ -10,6 +10,7 @@
 #include <jwt-cpp/traits/nlohmann-json/traits.h>
 
 #include <memory>
+#include <sstream>
 
 namespace example {
 

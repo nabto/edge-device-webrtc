@@ -33,11 +33,13 @@ function connect() {
   // TODO: Remove signalingUrl once an official non-demo signaling service is deployed
   let sigUrl = "wss://signaling.smartcloud.nabto.com";
   webrtcConnection.setConnectionOptions({deviceId: deviceId, productId: productId, sct: sct, signalingServerUrl: sigUrl});
-  webrtcConnection.onConnected(() => {
-    onConnected();
-  });
-  webrtcConnection.onClosed(() => {
-    boxLog("Connection Closed!");
+
+  webrtcConnection.onClosed((error) => {
+    if (error) {
+      boxLog(`Connection Closed!: (${error.code}) ${error.message}`);
+    } else {
+      boxLog(`Connection Closed!`);
+    }
     connected = false;
     updateUi();
   });
@@ -80,18 +82,14 @@ function connect() {
   });
 
   webrtcConnection.connect().then(()=> {
-    //boxLog("Also connected!")
+    boxLog("Connected to device!")
+    connected = true;
+    updateUi();
   }).catch((err) => {
     boxLog(`Connection failed with: ${err}`);
   });
 
 
-}
-
-function onConnected() {
-  boxLog("Connected to device!")
-  connected = true;
-  updateUi();
 }
 
 async function coapInvoke() {

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 
+CMAKE_POLICY(SET CMP0135 NEW)
+
 option(USE_SYSTEM_MBEDTLS "use system mbedtls" OFF)
 option(USE_SYSTEM_LIBDATACHANNEL "Use libdatachannel from the system" OFF)
 

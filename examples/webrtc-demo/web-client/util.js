@@ -32,7 +32,7 @@ function setDefaultTracksReq() {
 
 function setSignalingReq() {
   document.getElementById("coapmethod").value = "GET";
-  document.getElementById("coappath").value = "/webrtc/info";
+  document.getElementById("coappath").value = "/p2p/webrtc-info";
   document.getElementById("coapct").value = "";
   document.getElementById("coappayload").value = "";
   updateUi();
