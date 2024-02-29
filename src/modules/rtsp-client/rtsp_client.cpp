@@ -310,7 +310,7 @@ bool RtspClient::parseSdpDescription(const std::string& sdp)
     auto count = desc.mediaCount();
     for (size_t i = 0; i < count; i++) {
         if (rtc::holds_alternative<rtc::Description::Media*>(desc.media(i))) {
-            auto m = std::get<rtc::Description::Media*>(desc.media(i));
+            auto m = rtc::get<rtc::Description::Media*>(desc.media(i));
             std::cout << "Found Media type: " << m->type() << std::endl;
             std::string controlUrl;
 
