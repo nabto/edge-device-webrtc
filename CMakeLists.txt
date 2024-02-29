@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.7)
 
+option(USE_SYSTEM_MBEDTLS "use system mbedtls" OFF)
+option(USE_SYSTEM_LIBDATACHANNEL "Use libdatachannel from the system" OFF)
+
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
@@ -23,10 +26,10 @@ FetchContent_Declare(nlohmann_json
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-include(FetchContent)
-FetchContent_Declare(jwt-cpp GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
-                         GIT_TAG v0.7.0-rc.0)
-FetchContent_MakeAvailable(jwt-cpp)
+# include(FetchContent)
+# FetchContent_Declare(jwt-cpp GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
+#                          GIT_TAG v0.7.0-rc.0)
+# FetchContent_MakeAvailable(jwt-cpp)
 
 
 set(DEVICE_BUILD_EXAMPLES OFF)
@@ -38,7 +41,11 @@ add_subdirectory(nabto-embedded-sdk)
 set(NO_TESTS ON CACHE BOOL "disable tests")
 set(NO_EXAMPLES ON CACHE BOOL "disable examples")
 set(USE_SYSTEM_JSON ON CACHE BOOL "system json")
-add_subdirectory(3rdparty/libdatachannel)
+
+
+if(NOT USE_SYSTEM_LIBDATACHANNEL)
+  add_subdirectory(3rdparty/libdatachannel)
+endif()
 
 include_directories(include)
 include_directories(src/modules)
@@ -58,12 +65,13 @@ add_subdirectory(src/modules/util)
 add_subdirectory(src/modules/event-queue)
 add_subdirectory(src/modules/codecs)
 add_subdirectory(src/modules/rtp-client)
-add_subdirectory(src/modules/rtsp-client)
-add_subdirectory(examples/webrtc-demo)
+#add_subdirectory(src/modules/rtsp-client)
+#add_subdirectory(examples/webrtc-demo)
 add_subdirectory(examples/simple-webrtc)
 
-add_subdirectory(test-apps/simple-webrtc-two-streams)
-add_subdirectory(test-apps/simple-webrtc-send-audio-from-browser)
-add_subdirectory(test-apps/simple-webrtc-race-condition)
-
-add_subdirectory(test)
+#add_subdirectory(test-apps/simple-webrtc-two-streams)
+#add_subdirectory(test-apps/simple-webrtc-send-audio-from-browser)
+#add_subdirectory(test-apps/simple-webrtc-race-condition)
+if(NOT NO_TESTS)
+  add_subdirectory(test)
+endif()

@@ -25,14 +25,16 @@ set(src
 add_library( nabto_device_webrtc SHARED "${src}")
 add_library( nabto_device_webrtc_static STATIC "${src}")
 
+find_package(LibDataChannel CONFIG REQUIRED)
+
 target_link_libraries(nabto_device_webrtc
     nabto_device_static
-    datachannel-static
+    LibDataChannel::LibDataChannel
 )
 
 target_link_libraries(nabto_device_webrtc_static
     nabto_device_static
-    datachannel-static
+    LibDataChannel::LibDataChannel
 )
 
 set_target_properties(nabto_device_webrtc PROPERTIES PUBLIC_HEADER "../../include/nabto/nabto_device_webrtc.hpp")
@@ -43,4 +45,3 @@ install(TARGETS nabto_device_webrtc
   ARCHIVE DESTINATION lib
   PUBLIC_HEADER DESTINATION include/nabto
   )
-
