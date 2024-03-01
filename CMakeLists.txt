@@ -38,6 +38,7 @@ set(DEVICE_BUILD_EXAMPLES OFF)
 set(DEVICE_BUILD_TESTS OFF)
 set(DEVICE_BUILD_APPS OFF)
 
+set(NABTO_DEVICE_MBEDTLS_PROVIDER "package" CACHE STRING "use mbedtls from the system")
 add_subdirectory(nabto-embedded-sdk)
 
 set(NO_TESTS ON CACHE BOOL "disable tests")
@@ -46,6 +47,8 @@ set(USE_SYSTEM_JSON ON CACHE BOOL "system json")
 
 
 if(NOT USE_SYSTEM_LIBDATACHANNEL)
+  SET(USE_MBEDTLS ON CACHE BOOL "use mbedtls")
+  SET(USE_SYSTEM_MBEDTLS ON CACHE BOOL "use mbedtls from the system")
   add_subdirectory(3rdparty/libdatachannel)
 endif()
 

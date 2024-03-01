@@ -8,7 +8,6 @@
 #include <util/util.hpp>
 
 #include <cxxopts/cxxopts.hpp>
-#include <rtc/global.hpp>
 #include <nlohmann/json.hpp>
 #include <signal.h>
 

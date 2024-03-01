@@ -26,16 +26,16 @@ RUN make -j 16 install
 # RUN make -j 16 install
 # RUN ls -R  /tmp/install
 
-FROM base as libdatachannel
+# FROM base as libdatachannel
 
-WORKDIR /tmp
-RUN git clone --recursive https://github.com/paullouisageneau/libdatachannel
-COPY --from=mbedtls /tmp/install /tmp/dependencies
+# WORKDIR /tmp
+# RUN git clone --recursive https://github.com/paullouisageneau/libdatachannel
+# COPY --from=mbedtls /tmp/install /tmp/dependencies
 
-# RUN curl -sSL https://github.com/paullouisageneau/libdatachannel/archive/refs/tags/v0.20.1.tar.gz | tar -xzf - --strip-components=1
-WORKDIR /tmp/build
-RUN cmake -DCMAKE_INSTALL_PREFIX=/tmp/install -DUSE_MBEDTLS=ON -DMbedTLS_ROOT=/tmp/dependencies -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DBUILD_SHARED_LIBS=OFF /tmp/libdatachannel
-RUN make -j 16 install
+# # RUN curl -sSL https://github.com/paullouisageneau/libdatachannel/archive/refs/tags/v0.20.1.tar.gz | tar -xzf - --strip-components=1
+# WORKDIR /tmp/build
+# RUN cmake -DCMAKE_INSTALL_PREFIX=/tmp/install -DUSE_MBEDTLS=ON -DMbedTLS_ROOT=/tmp/dependencies -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DBUILD_SHARED_LIBS=OFF /tmp/libdatachannel
+# RUN make -j 16 install
 
 from base as libcurl
 
@@ -52,7 +52,7 @@ RUN make -j 16 install
 FROM base as example
 
 COPY --from=mbedtls /tmp/install /tmp/dependencies
-COPY --from=libdatachannel /tmp/install /tmp/dependencies
+#COPY --from=libdatachannel /tmp/install /tmp/dependencies
 COPY --from=libcurl /tmp/install /tmp/dependencies
 
 COPY ./src /tmp/lib/src
@@ -64,7 +64,7 @@ COPY ./test /tmp/lib/test
 COPY ./nabto-embedded-sdk /tmp/lib/nabto-embedded-sdk
 
 WORKDIR /tmp/build
-RUN cmake -DCMAKE_INSTALL_PREFIX=/tmp/install -DMbedTLS_ROOT=/tmp/dependencies -DLibDataChannel_ROOT=/tmp/dependencies -DCURL_ROOT=/tmp/dependencies -DUSE_SYSTEM_LIBDATACHANNEL=ON -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DCMAKE_POLICY_DEFAULT_CMP0135=NEW /tmp/lib
+RUN cmake -DCMAKE_INSTALL_PREFIX=/tmp/install -DMbedTLS_ROOT=/tmp/dependencies -DCURL_ROOT=/tmp/dependencies -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DCMAKE_POLICY_DEFAULT_CMP0135=NEW /tmp/lib
 RUN make -j 16 install
 
 FROM debian:bookworm
