@@ -5,7 +5,7 @@ CMAKE_POLICY(SET CMP0135 NEW)
 option(NABTO_WEBRTC_USE_VCPKG "Use vcpkg for providing dependencies" ON)
 option(NABTO_WEBRTC_BUILD_TESTS "Build code meant for testing" ON)
 
-if (USE_VCPKG)
+if (NABTO_WEBRTC_USE_VCPKG)
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 endif()
 
