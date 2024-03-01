@@ -194,3 +194,51 @@ docker run --rm -it --network host rtsp-demo-server
 ```
 **This RTSP demo container does not provide an audio feed so add Audio will not work.** Providing an RTSP server with an audio feed will make one-way audio work.
 
+
+
+# Building for embedded systems
+
+The software is meant to be run on embedded systems such as linux based cameras,
+these cameras often comes with their own toolchains and libraries tailored to
+the platform.
+
+## Building without vcpkg
+
+Vcpkg is great when used to build standard software for common platforms such as
+Windows, Linux, Mac, iOS and Android. If the build is more specialized or you
+want to bring your own libraries usage of vcpkg can be disabled when invoking
+cmake by setting `NABTO_WEBRTC_USE_VCPKG` e.g. `cmake
+-DNABTO_WEBRTC_USE_VCPKG=OFF ...`. When vcpkg is disabled it is up to the
+builder to provide the needed libraries such as openssl, curl and boost test.
+The libraries needed depends on which configurations of the software is being
+built.
+
+## Building without tests
+
+Tests in the library depends on boot test, to remove this dependency the
+software can be compiled without tests, this can be done using the cmake flag
+"NABTO_WEBRTC_BUILD_TESTS" e.g. `cmake -DNABTO_WEBRTC_BUILD_TESTS=OFF ...`
+
+## Building without Curl
+
+Curl is used in the RTSP client and when validating OAuth tokens. It's currently
+not configurable to build the project without the curl dependency, but the
+software components defined inside `nabto/nabto_device_webrtc.hpp` does not
+depend on libcurl. It is currently not possible to build the software without
+libcurl being present. It is possible to build a binary which does not depend on
+libcurl. e.g. a binary which does not validate oauth tokens or use the rtsp
+client.
+
+## Building without OpenSSL
+
+OpenSSL is used when validating OAuth tokens, when challenge response validating
+device fingerprints and in libdatachannels dependencies. It is currently not
+configurable to build the project without OpenSSL. The components defined inside
+`nabto/nabto_device_webrtc.hpp` does not directly depend on OpenSSL only
+through dependencies which can be configured to use e.g. MbedTLS instead.
+
+## Building without CMake
+
+If the software needs to be built without using CMake, the source files and
+dependencies needs to be defined seperately in whatever buildsystem which is
+then used. This is out of scope for this documentation.
