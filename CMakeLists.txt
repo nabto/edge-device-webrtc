@@ -2,17 +2,18 @@ cmake_minimum_required(VERSION 3.7)
 
 CMAKE_POLICY(SET CMP0135 NEW)
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+option(NABTO_WEBRTC_USE_VCPKG "Use vcpkg for providing dependencies" ON)
+option(NABTO_WEBRTC_BUILD_TESTS "Build code meant for testing" ON)
 
+if (USE_VCPKG)
+  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+endif()
 
 project(edge-device-webrtc
     VERSION 0.0.1
     LANGUAGES CXX)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 99)
@@ -49,11 +50,11 @@ include_directories(nabto-embedded-sdk/src)
 include_directories(3rdparty/libdatachannel/deps/json/include)
 include_directories(3rdparty/)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/optional/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/string-view-lite/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/variant-lite/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/byte-lite/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/shared_mutex/include)
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/optional/include)
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/string-view-lite/include)
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/variant-lite/include)
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/byte-lite/include)
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/shared_mutex/include)
 
 add_subdirectory(src/library)
 add_subdirectory(src/modules/util)
@@ -64,8 +65,9 @@ add_subdirectory(src/modules/rtsp-client)
 add_subdirectory(examples/webrtc-demo)
 add_subdirectory(examples/simple-webrtc)
 
-add_subdirectory(test-apps/simple-webrtc-two-streams)
-add_subdirectory(test-apps/simple-webrtc-send-audio-from-browser)
-add_subdirectory(test-apps/simple-webrtc-race-condition)
-
-add_subdirectory(test)
+if (NABTO_WEBRTC_BUILD_TESTS)
+  add_subdirectory(test-apps/simple-webrtc-two-streams)
+  add_subdirectory(test-apps/simple-webrtc-send-audio-from-browser)
+  add_subdirectory(test-apps/simple-webrtc-race-condition)
+  add_subdirectory(test)
+endif()
