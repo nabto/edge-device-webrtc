@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.7)
 
-CMAKE_POLICY(SET CMP0135 NEW)
-
 option(NABTO_WEBRTC_USE_VCPKG "Use vcpkg for providing dependencies" ON)
 option(NABTO_WEBRTC_BUILD_TESTS "Build code meant for testing" ON)
 
