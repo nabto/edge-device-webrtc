@@ -3,6 +3,7 @@ set(src
     h264.cpp
     pcmu.cpp
     opus.cpp
+    vp8.cpp
 )
 
 add_library( rtp_codecs "${src}")
