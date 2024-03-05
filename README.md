@@ -177,6 +177,12 @@ In some terminal with gstreamer installed create an RTP sink using:
 gst-launch-1.0 -v udpsrc uri=udp://127.0.0.1:6003 caps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00" ! rtpopusdepay ! opusdec ! audioconvert ! autoaudiosink sync=false
 ```
 
+### Create a VP8 video feed
+
+```
+gst-launch-1.0 -v videotestsrc ! clockoverlay ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! vp8enc ! rtpvp8pay pt=127 mtu=1200 ! udpsink host=127.0.0.1 port=6000
+```
+
 ## RTSP feeds
 The WebRTC example supports getting a video and/or an audio feed from an RTSP server. There is currently no support for two-way audio with RTSP.
 
