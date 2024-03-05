@@ -177,7 +177,7 @@ void WebrtcCoapChannel::init()
         return;
     }
     auto remoteFingerprint = pc_->remoteDescription()->fingerprint();
-    auto localFingerprint = pc_->remoteDescription()->fingerprint();
+    auto localFingerprint = pc_->localDescription()->fingerprint();
     if (!remoteFingerprint || !localFingerprint) {
         std::cout << "Missing local or remote fingerprint" << std::endl;
         return;
