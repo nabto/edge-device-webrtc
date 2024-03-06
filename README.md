@@ -221,7 +221,9 @@ the end a container is made which is able to run the resulting aarch64 binary
 through qemu such that it is indeed possible to show that the compiled binary
 works on something else than the system used to compile the binary.
 
-The build can be run as `docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .`
+
+
+The build can be run as `docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .` you need to call the command from this directory such that the correct context is provided for docker.
 
 Then a resulting container with the binary and some rudimentary setup such that it can run the aarch64 binary can be run as `docker run --rm -it edge_device_webrtc_aarch64` and the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`
 
