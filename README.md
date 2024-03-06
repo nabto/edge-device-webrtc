@@ -208,28 +208,39 @@ The software is meant to be run on embedded systems such as linux based cameras,
 these cameras often comes with their own toolchains and libraries tailored to
 the platform.
 
-## Example cross build for aarch64
+## Cross building 
 
-The following example shows how it is possible to make a cross compilation of
-the edge_device_webrtc binary for an aarch64 target. The example is easy to
-modify for other targets and toolchains. The primary focus is to show how easy
-it is and that is is indeed possible with the right knowledge.
+A Dockerfile is provided in `./cross_build` that demonstrates how to cross compile the example application and all dependencies. The example build is for `aarch64`:
+
+```
+RUN apt-get update && apt-get install git build-essential cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu curl file -y
+
+ENV CC=aarch64-linux-gnu-gcc
+ENV CXX=aarch64-linux-gnu-g++
+ARG OPENSSL_TARGET=linux-aarch64
+```
+
+The `apt-get install` step assumes the toolchain is available as a Debian package. It can of course be obtained in other ways as necessary. Regardless of how it is obtained and included in the Docker image, the `CC`, `CXX` and `OPENSSL_TARGET` variables must be set. The `OPENSSL_TARGET` is typically `linux-armv4` for 32-bit ARM based targets. 
 
 The cross build example consists of a Dockerfile which uses several layers to
-build the individual dependency libraries, and then builds it into a binary. In
+build the individual dependency libraries and then builds it into a binary. In
 the end a container is made which is able to run the resulting aarch64 binary
 through qemu such that it is indeed possible to show that the compiled binary
 works on something else than the system used to compile the binary.
 
+The build can be run as follows: 
 
+```
+docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .
+```
 
-The build can be run as `docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .` you need to call the command from this directory such that the correct context is provided for docker.
+You need to call the command from this directory such that the correct context is provided for docker.
 
-Then a resulting container with the binary and some rudimentary setup such that it can run the aarch64 binary can be run as `docker run --rm -it edge_device_webrtc_aarch64` and the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`
+Then a resulting container with the binary and some rudimentary setup such that it can run the aarch64 binary can be run as `docker run --rm -it edge_device_webrtc_aarch64` and the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
 
+## Advanced build topics
 
-
-## Building without vcpkg
+### Building without vcpkg
 
 Vcpkg is great when used to build standard software for common platforms such as
 Windows, Linux, Mac, iOS and Android. If the build is more specialized or you
@@ -240,13 +251,13 @@ builder to provide the needed libraries such as openssl, curl and boost test.
 The libraries needed depends on which configurations of the software is being
 built.
 
-## Building without tests
+### Building without tests
 
 Tests in the library depends on boot test, to remove this dependency the
 software can be compiled without tests, this can be done using the cmake flag
 "NABTO_WEBRTC_BUILD_TESTS" e.g. `cmake -DNABTO_WEBRTC_BUILD_TESTS=OFF ...`
 
-## Building without Curl
+### Building without Curl
 
 Curl is used in the RTSP client and when validating OAuth tokens. It's currently
 not configurable to build the project without the curl dependency, but the
@@ -256,7 +267,7 @@ libcurl being present. It is possible to build a binary which does not depend on
 libcurl. e.g. a binary which does not validate oauth tokens or use the rtsp
 client.
 
-## Building without OpenSSL
+### Building without OpenSSL
 
 OpenSSL is used when validating OAuth tokens, when challenge response validating
 device fingerprints and in libdatachannels dependencies. It is currently not
@@ -264,7 +275,7 @@ configurable to build the project without OpenSSL. The components defined inside
 `nabto/nabto_device_webrtc.hpp` does not directly depend on OpenSSL only
 through dependencies which can be configured to use e.g. MbedTLS instead.
 
-## Building without CMake
+### Building without CMake
 
 If the software needs to be built without using CMake, the source files and
 dependencies needs to be defined seperately in whatever buildsystem which is
