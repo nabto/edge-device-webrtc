@@ -208,6 +208,17 @@ The software is meant to be run on embedded systems such as linux based cameras,
 these cameras often comes with their own toolchains and libraries tailored to
 the platform.
 
+## Example cross build for aarch64
+
+In the folder cross_build there is a Dockerfile which shows an example of how it
+can be possible to build a resulting binary for an aarch64 target.
+
+The build can be run as `docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .`
+
+Then a resulting container with the binary and some rudimentary setup such that it can run the aarch64 binary can be run as `docker run --rm -it edge_device_webrtc_aarch64` and the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`
+
+
+
 ## Building without vcpkg
 
 Vcpkg is great when used to build standard software for common platforms such as

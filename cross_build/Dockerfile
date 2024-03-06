@@ -1,0 +1,92 @@
+FROM debian:bookworm as base
+
+RUN apt-get update && apt-get install git build-essential cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu curl file -y
+
+ENV CC=aarch64-linux-gnu-gcc
+ENV CXX=aarch64-linux-gnu-g++
+ARG OPENSSL_TARGET=linux-aarch64
+
+FROM base as mbedtls
+
+RUN apt-get update && apt-get install python3 -y
+
+WORKDIR /tmp/lib
+RUN curl -sSL https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v3.5.2.tar.gz | tar -xzf - --strip-components=1
+RUN ./scripts/config.py set MBEDTLS_SSL_DTLS_SRTP
+WORKDIR /tmp/build
+RUN cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=/tmp/install /tmp/lib
+RUN make -j 16 install
+
+FROM base as openssl
+
+WORKDIR /tmp/lib
+RUN curl -sSL https://github.com/openssl/openssl/releases/download/openssl-3.2.1/openssl-3.2.1.tar.gz | tar -xzf - --strip-components=1
+WORKDIR /tmp/build
+RUN /tmp/lib/Configure --prefix=/tmp/install ${OPENSSL_TARGET}
+RUN make -j 16
+RUN make install_sw
+
+# FROM base as libsrtp
+
+# COPY --from=mbedtls /tmp/install /tmp/dependencies
+
+# WORKDIR /tmp/lib
+# RUN curl -sSL https://github.com/cisco/libsrtp/archive/refs/tags/v2.6.0.tar.gz | tar -xzf - --strip-components=1
+# RUN ./config.py set MBEDTLS_SSL_DTLS_SRTP
+# WORKDIR /tmp/build
+# RUN cmake -DCMAKE_INSTALL_PREFIX=/tmp/install -DENABLE_MBEDTLS=ON -DMbedTLS_ROOT=/tmp/dependencies /tmp/lib
+# RUN make -j 16 install
+# RUN ls -R  /tmp/install
+
+# FROM base as libdatachannel
+
+# WORKDIR /tmp
+# RUN git clone --recursive https://github.com/paullouisageneau/libdatachannel
+# COPY --from=mbedtls /tmp/install /tmp/dependencies
+
+# # RUN curl -sSL https://github.com/paullouisageneau/libdatachannel/archive/refs/tags/v0.20.1.tar.gz | tar -xzf - --strip-components=1
+# WORKDIR /tmp/build
+# RUN cmake -DCMAKE_INSTALL_PREFIX=/tmp/install -DUSE_MBEDTLS=ON -DMbedTLS_ROOT=/tmp/dependencies -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DBUILD_SHARED_LIBS=OFF /tmp/libdatachannel
+# RUN make -j 16 install
+
+from base as libcurl
+
+WORKDIR /tmp/lib
+RUN curl -sSL https://github.com/curl/curl/archive/refs/tags/curl-8_6_0.tar.gz | tar -xzf - --strip-components=1
+
+COPY --from=openssl /tmp/install /tmp/dependencies
+
+WORKDIR /tmp/build
+RUN cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=/tmp/install -DOPENSSL_ROOT_DIR=/tmp/dependencies -DOPENSSL_INCLUDE_DIR=/tmp/dependencies/include /tmp/lib
+RUN make -j 16 install
+
+
+FROM base as example
+
+COPY --from=mbedtls /tmp/install /tmp/dependencies
+COPY --from=openssl /tmp/install /tmp/dependencies
+COPY --from=libcurl /tmp/install /tmp/dependencies
+
+COPY ./src /tmp/lib/src
+COPY ./CMakeLists.txt /tmp/lib/
+COPY ./3rdparty /tmp/lib/3rdparty
+COPY ./include /tmp/lib/include
+COPY ./examples /tmp/lib/examples
+COPY ./test /tmp/lib/test
+COPY ./nabto-embedded-sdk /tmp/lib/nabto-embedded-sdk
+
+WORKDIR /tmp/build
+RUN cmake -DNABTO_WEBRTC_BUILD_TESTS=OFF -DNABTO_WEBRTC_USE_VCPKG=OFF -DCMAKE_INSTALL_PREFIX=/tmp/install -DMbedTLS_ROOT=/tmp/dependencies -DCURL_ROOT=/tmp/dependencies -DOPENSSL_ROOT_DIR=/tmp/dependencies -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DCMAKE_POLICY_DEFAULT_CMP0135=NEW /tmp/lib
+RUN make -j 16 install
+RUN file /tmp/install/bin/edge_device_webrtc
+#RUN $LDD /tmp/install/bin/edge_device_webrtc
+
+FROM debian:bookworm
+
+RUN dpkg --add-architecture arm64
+RUN apt-get update && apt-get install qemu-user qemu-user-static libc6:arm64 libstdc++-12-dev:arm64 -y
+
+COPY --from=example /tmp/install/bin/edge_device_webrtc /tmp/example/
+COPY --from=example /tmp/dependencies/lib/*.so* /tmp/example/
+
+# Run it as LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static ./edge_device_webrtc
