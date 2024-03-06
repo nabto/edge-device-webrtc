@@ -26,28 +26,6 @@ RUN /tmp/lib/Configure --prefix=/tmp/install ${OPENSSL_TARGET}
 RUN make -j 16
 RUN make install_sw
 
-# FROM base as libsrtp
-
-# COPY --from=mbedtls /tmp/install /tmp/dependencies
-
-# WORKDIR /tmp/lib
-# RUN curl -sSL https://github.com/cisco/libsrtp/archive/refs/tags/v2.6.0.tar.gz | tar -xzf - --strip-components=1
-# RUN ./config.py set MBEDTLS_SSL_DTLS_SRTP
-# WORKDIR /tmp/build
-# RUN cmake -DCMAKE_INSTALL_PREFIX=/tmp/install -DENABLE_MBEDTLS=ON -DMbedTLS_ROOT=/tmp/dependencies /tmp/lib
-# RUN make -j 16 install
-# RUN ls -R  /tmp/install
-
-# FROM base as libdatachannel
-
-# WORKDIR /tmp
-# RUN git clone --recursive https://github.com/paullouisageneau/libdatachannel
-# COPY --from=mbedtls /tmp/install /tmp/dependencies
-
-# # RUN curl -sSL https://github.com/paullouisageneau/libdatachannel/archive/refs/tags/v0.20.1.tar.gz | tar -xzf - --strip-components=1
-# WORKDIR /tmp/build
-# RUN cmake -DCMAKE_INSTALL_PREFIX=/tmp/install -DUSE_MBEDTLS=ON -DMbedTLS_ROOT=/tmp/dependencies -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DBUILD_SHARED_LIBS=OFF /tmp/libdatachannel
-# RUN make -j 16 install
 
 from base as libcurl
 
