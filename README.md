@@ -210,8 +210,16 @@ the platform.
 
 ## Example cross build for aarch64
 
-In the folder cross_build there is a Dockerfile which shows an example of how it
-can be possible to build a resulting binary for an aarch64 target.
+The following example shows how it is possible to make a cross compilation of
+the edge_device_webrtc binary for an aarch64 target. The example is easy to
+modify for other targets and toolchains. The primary focus is to show how easy
+it is and that is is indeed possible with the right knowledge.
+
+The cross build example consists of a Dockerfile which uses several layers to
+build the individual dependency libraries, and then builds it into a binary. In
+the end a container is made which is able to run the resulting aarch64 binary
+through qemu such that it is indeed possible to show that the compiled binary
+works on something else than the system used to compile the binary.
 
 The build can be run as `docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .`
 
