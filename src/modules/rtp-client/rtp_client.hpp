@@ -3,7 +3,7 @@
 #include "rtp_track.hpp"
 
 #include <media-streams/media_stream.hpp>
-#include <track-negotiators/rtp_codec.hpp>
+#include <track-negotiators/track_negotiator.hpp>
 #include <sys/socket.h>
 typedef int SOCKET;
 
@@ -30,8 +30,8 @@ public:
     void setPort(uint16_t port) { videoPort_ = port; remotePort_ = port + 1; }
     // Remote Host used to send data to if stream is not SENDONLY
     void setRemoteHost(std::string host) { remoteHost_ = host; }
-    void setRtpCodecMatcher(RtpCodecPtr matcher) { matcher_ = matcher; }
-    RtpCodecPtr getRtpCodecMatcher() { return matcher_; }
+    void setTrackNegotiator(RtpCodecPtr matcher) { matcher_ = matcher; }
+    RtpCodecPtr getTrackNegotiator() { return matcher_; }
 
     MediaTrackPtr createMedia(const std::string& trackId) {
         auto m = matcher_->createMedia();

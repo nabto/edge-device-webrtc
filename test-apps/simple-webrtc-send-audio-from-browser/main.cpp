@@ -72,8 +72,8 @@ int main(int argc, char** argv) {
 
     auto rtpVideo = nabto::RtpClient::create("frontdoor-audio");
     rtpVideo->setPort(6002);
-    auto rtpVideoCodec_ = nabto::OpusCodecMatcher::create();
-    rtpVideo->setRtpCodecMatcher(rtpVideoCodec_);
+    auto rtpVideoCodec_ = nabto::OpusNegotiator::create();
+    rtpVideo->setTrackNegotiator(rtpVideoCodec_);
 
 
     auto eventQueue = nabto::EventQueueImpl::create();

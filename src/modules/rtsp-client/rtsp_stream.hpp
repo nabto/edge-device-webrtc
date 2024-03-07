@@ -41,7 +41,7 @@ public:
     void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
     void removeConnection(NabtoDeviceConnectionRef ref);
 
-    void setCodecMatchers(RtpCodecPtr videoMatcher, RtpCodecPtr audioMatcher)
+    void setTrackNegotiators(RtpCodecPtr videoMatcher, RtpCodecPtr audioMatcher)
     {
         videoMatcher_ = videoMatcher;
         audioMatcher_ = audioMatcher;

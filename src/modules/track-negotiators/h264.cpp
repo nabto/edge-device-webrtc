@@ -3,7 +3,7 @@
 
 namespace nabto {
 
-int H264CodecMatcher::match(MediaTrackPtr track)
+int H264Negotiator::match(MediaTrackPtr track)
 {
     // We must go through all codecs in the Media Description and remove all codecs other than the one we support.
     // We start by getting and parsing the SDP
@@ -93,7 +93,7 @@ int H264CodecMatcher::match(MediaTrackPtr track)
     return rtp->payloadType;
 }
 
-rtc::Description::Media H264CodecMatcher::createMedia()
+rtc::Description::Media H264Negotiator::createMedia()
 {
     // Create a Video media description.
     // We support both sending and receiving video

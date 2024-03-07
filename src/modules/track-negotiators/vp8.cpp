@@ -2,7 +2,7 @@
 
 namespace nabto {
 
-int VP8CodecMatcher::match(MediaTrackPtr track)
+int VP8Negotiator::match(MediaTrackPtr track)
 {
     // We must go through all codecs in the Media Description and remove all codecs other than the one we support.
     // We start by getting and parsing the SDP
@@ -56,7 +56,7 @@ int VP8CodecMatcher::match(MediaTrackPtr track)
     return rtp->payloadType;
 }
 
-rtc::Description::Media VP8CodecMatcher::createMedia()
+rtc::Description::Media VP8Negotiator::createMedia()
 {
     // Create an Audio media description.
     // We support both sending and receiving audio

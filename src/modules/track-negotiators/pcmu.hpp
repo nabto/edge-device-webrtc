@@ -1,16 +1,16 @@
 #pragma once
 
-#include "rtp_codec.hpp"
+#include "track_negotiator.hpp"
 
 namespace nabto {
 
-class PcmuCodecMatcher : public RtpCodec
+class PcmuNegotiator : public RtpCodec
 {
 public:
-    static RtpCodecPtr create() { return std::make_shared<PcmuCodecMatcher>(); }
+    static RtpCodecPtr create() { return std::make_shared<PcmuNegotiator>(); }
     // The ssrc must be unique in the entire SDP context.
     // This supports both sending and receiving
-    PcmuCodecMatcher() : RtpCodec(0, SEND_RECV) {}
+    PcmuNegotiator() : RtpCodec(0, SEND_RECV) {}
     int match(MediaTrackPtr media);
     rtc::Description::Media createMedia();
 };

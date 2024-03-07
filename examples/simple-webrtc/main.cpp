@@ -62,11 +62,11 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    auto rtpVideoCodec = nabto::H264CodecMatcher::create();
+    auto rtpVideoCodec = nabto::H264Negotiator::create();
     uint16_t port = opts["rtpPort"].get<uint16_t>();
     auto rtpVideo = nabto::RtpClient::create(trackId);
     rtpVideo->setPort(port);
-    rtpVideo->setRtpCodecMatcher(rtpVideoCodec);
+    rtpVideo->setTrackNegotiator(rtpVideoCodec);
 
     auto eventQueue = nabto::EventQueueImpl::create();
 

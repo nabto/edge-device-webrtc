@@ -87,13 +87,13 @@ int main(int argc, char** argv) {
 
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
-    auto rtpVideoCodec = nabto::H264CodecMatcher::create();
-    auto rtpAudioCodec = nabto::OpusCodecMatcher::create();
+    auto rtpVideoCodec = nabto::H264Negotiator::create();
+    auto rtpAudioCodec = nabto::OpusNegotiator::create();
 
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
         rtsp = nabto::RtspStream::create("frontdoor", rtspUrl);
-        rtsp->setCodecMatchers(rtpVideoCodec, rtpAudioCodec);
+        rtsp->setTrackNegotiators(rtpVideoCodec, rtpAudioCodec);
         medias.push_back(rtsp);
     } catch (std::exception& ex) {
         // rtspUrl was not set, default to RTP.
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 
         auto rtpVideo = nabto::RtpClient::create("frontdoor-video");
         rtpVideo->setPort(port);
-        rtpVideo->setRtpCodecMatcher(rtpVideoCodec);
+        rtpVideo->setTrackNegotiator(rtpVideoCodec);
         // Remote host is only used for 2-way medias, video is only 1-way
         rtpVideo->setRemoteHost("127.0.0.1");
 
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 
         auto rtpAudio = nabto::RtpClient::create("frontdoor-audio");
         rtpAudio->setPort(port + 2);
-        rtpAudio->setRtpCodecMatcher(rtpAudioCodec);
+        rtpAudio->setTrackNegotiator(rtpAudioCodec);
         rtpAudio->setRemoteHost("127.0.0.1");
 
         medias.push_back(rtpAudio);

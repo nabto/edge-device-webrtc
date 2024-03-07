@@ -66,7 +66,7 @@ void RtspStream::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media
         RtspConnection rtsp;
         rtsp.client = RtspClient::create(media->getTrackId(), url_);
         rtsp.client->setRtpStartPort(42222 + (counter_ * 4));
-        rtsp.client->setCodecMatchers(videoMatcher_, audioMatcher_);
+        rtsp.client->setTrackNegotiators(videoMatcher_, audioMatcher_);
 
         connections_[ref] = rtsp;
         counter_++;

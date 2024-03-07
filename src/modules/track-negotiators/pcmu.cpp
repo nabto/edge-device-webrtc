@@ -3,7 +3,7 @@
 
 namespace nabto {
 
-int PcmuCodecMatcher::match(MediaTrackPtr track)
+int PcmuNegotiator::match(MediaTrackPtr track)
 {
     // We must go through all codecs in the Media Description and remove all codecs other than the one we support.
     // We start by getting and parsing the SDP
@@ -57,7 +57,7 @@ int PcmuCodecMatcher::match(MediaTrackPtr track)
     return rtp->payloadType;
 }
 
-rtc::Description::Media PcmuCodecMatcher::createMedia()
+rtc::Description::Media PcmuNegotiator::createMedia()
 {
     // Create an Audio media description.
     // We support both sending and receiving audio

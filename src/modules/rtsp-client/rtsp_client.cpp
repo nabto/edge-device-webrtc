@@ -202,7 +202,7 @@ void RtspClient::setupRtsp() {
 
     if (!videoControlUrl_.empty()) {
         videoStream_ = RtpClient::create(trackId_ + "-video");
-        videoStream_->setRtpCodecMatcher(videoCodec_);
+        videoStream_->setTrackNegotiator(videoCodec_);
         videoStream_->setPort(port_);
 
         videoRtcp_ = RtcpClient::create(port_ + 1);
@@ -211,7 +211,7 @@ void RtspClient::setupRtsp() {
 
     if (!audioControlUrl_.empty()) {
         audioStream_ = RtpClient::create(trackId_ + "-audio");
-        audioStream_->setRtpCodecMatcher(audioCodec_);
+        audioStream_->setTrackNegotiator(audioCodec_);
         audioStream_->setPort(port_ + 2);
 
         audioRtcp_ = RtcpClient::create(port_ + 3);

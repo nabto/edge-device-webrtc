@@ -36,7 +36,7 @@ public:
     RtpClientPtr getVideoStream();
     RtpClientPtr getAudioStream();
 
-    void setCodecMatchers(RtpCodecPtr videoMatcher, RtpCodecPtr audioMatcher)
+    void setTrackNegotiators(RtpCodecPtr videoMatcher, RtpCodecPtr audioMatcher)
     {
         videoCodec_ = videoMatcher;
         audioCodec_ = audioMatcher;
