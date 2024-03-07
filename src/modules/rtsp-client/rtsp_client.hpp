@@ -36,10 +36,10 @@ public:
     RtpClientPtr getVideoStream();
     RtpClientPtr getAudioStream();
 
-    void setTrackNegotiators(RtpCodecPtr videoMatcher, RtpCodecPtr audioMatcher)
+    void setTrackNegotiators(TrackNegotiatorPtr videoNegotiator, TrackNegotiatorPtr audioNegotiator)
     {
-        videoCodec_ = videoMatcher;
-        audioCodec_ = audioMatcher;
+        videoNegotiator_ = videoNegotiator;
+        audioNegotiator_ = audioNegotiator;
     }
 
 
@@ -80,13 +80,13 @@ private:
     std::string sessionControlUrl_;
 
     RtpClientPtr videoStream_ = nullptr;
-    RtpCodecPtr videoCodec_;
+    TrackNegotiatorPtr videoNegotiator_;
     std::string videoControlUrl_;
     int videoPayloadType_;
     RtcpClientPtr videoRtcp_ = nullptr;
 
     RtpClientPtr audioStream_ = nullptr;
-    RtpCodecPtr audioCodec_;
+    TrackNegotiatorPtr audioNegotiator_;
     std::string audioControlUrl_;
     int audioPayloadType_;
     RtcpClientPtr audioRtcp_ = nullptr;

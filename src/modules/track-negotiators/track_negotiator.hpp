@@ -31,10 +31,10 @@ public:
     }
 };
 
-class RtpCodec;
-typedef std::shared_ptr<RtpCodec> RtpCodecPtr;
+class TrackNegotiator;
+typedef std::shared_ptr<TrackNegotiator> TrackNegotiatorPtr;
 
-class RtpCodec
+class TrackNegotiator
 {
 public:
     enum Direction {
@@ -43,7 +43,7 @@ public:
         SEND_RECV  // Device both sends and receives data
     };
 
-    RtpCodec(int pt, enum Direction dire):
+    TrackNegotiator(int pt, enum Direction dire):
         payloadType_(pt),
         ssrc_(SsrcGenerator::generateSsrc()),
         dire_(dire) {}

@@ -44,7 +44,7 @@ bool RtpClient::isTrack(const std::string& trackId)
 
 bool RtpClient::matchMedia(MediaTrackPtr media)
 {
-    int pt = matcher_->match(media);
+    int pt = negotiator_->match(media);
     if (pt == 0) {
         std::cout << "    CODEC MATCHING FAILED!!! " << std::endl;
         return false;
@@ -67,11 +67,11 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
     // exactly 1 payload type should exist, else something has failed previously, so we just pick the first one blindly.
     int pt = pts.empty() ? 0 : pts[0];
 
-    const rtc::SSRC ssrc = matcher_->ssrc();
+    const rtc::SSRC ssrc = negotiator_->ssrc();
     RtpTrack track = {
         media,
         ssrc,
-        matcher_->payloadType(),
+        negotiator_->payloadType(),
         pt
     };
     addConnection(ref, track);
@@ -88,7 +88,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
         start();
     }
 
-    if (matcher_->direction() != RtpCodec::SEND_ONLY) {
+    if (negotiator_->direction() != TrackNegotiator::SEND_ONLY) {
         // We are also gonna receive data
         std::cout << "    adding Track receiver" << std::endl;
        auto self = shared_from_this();

@@ -36,7 +36,7 @@ bool RtspStream::matchMedia(MediaTrackPtr media)
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (media->getTrackId() == trackIdBase_ + "-audio") {
-        int pt = audioMatcher_->match(media);
+        int pt = audioNegotiator_->match(media);
         if (pt == 0) {
             std::cout << "    AUDIO CODEC MATCHING FAILED!!! " << std::endl;
             // TODO: Fail
@@ -45,7 +45,7 @@ bool RtspStream::matchMedia(MediaTrackPtr media)
         return true;
     }
     else if (media->getTrackId() == trackIdBase_ + "-video") {
-        int pt = videoMatcher_->match(media);
+        int pt = videoNegotiator_->match(media);
         if (pt == 0) {
             std::cout << "    VIDEO CODEC MATCHING FAILED!!! " << std::endl;
             // TODO: Fail
@@ -66,7 +66,7 @@ void RtspStream::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media
         RtspConnection rtsp;
         rtsp.client = RtspClient::create(media->getTrackId(), url_);
         rtsp.client->setRtpStartPort(42222 + (counter_ * 4));
-        rtsp.client->setTrackNegotiators(videoMatcher_, audioMatcher_);
+        rtsp.client->setTrackNegotiators(videoNegotiator_, audioNegotiator_);
 
         connections_[ref] = rtsp;
         counter_++;

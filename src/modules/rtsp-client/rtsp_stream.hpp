@@ -41,25 +41,25 @@ public:
     void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
     void removeConnection(NabtoDeviceConnectionRef ref);
 
-    void setTrackNegotiators(RtpCodecPtr videoMatcher, RtpCodecPtr audioMatcher)
+    void setTrackNegotiators(TrackNegotiatorPtr videoNegotiator, TrackNegotiatorPtr audioNegotiator)
     {
-        videoMatcher_ = videoMatcher;
-        audioMatcher_ = audioMatcher;
+        videoNegotiator_ = videoNegotiator;
+        audioNegotiator_ = audioNegotiator;
     }
 
     void setPort(uint16_t port) { basePort_ = port; }
 
     MediaTrackPtr createMedia(const std::string& trackId) {
         if (trackId == trackIdBase_ + "-audio") {
-            auto m = audioMatcher_->createMedia();
-            m.addSSRC(audioMatcher_->ssrc(), trackId);
+            auto m = audioNegotiator_->createMedia();
+            m.addSSRC(audioNegotiator_->ssrc(), trackId);
             auto sdp = m.generateSdp();
             return MediaTrack::create(trackId, sdp);
 
         }
         else if (trackId == trackIdBase_ + "-video") {
-            auto m = videoMatcher_->createMedia();
-            m.addSSRC(videoMatcher_->ssrc(), trackId);
+            auto m = videoNegotiator_->createMedia();
+            m.addSSRC(videoNegotiator_->ssrc(), trackId);
             auto sdp = m.generateSdp();
             return MediaTrack::create(trackId, sdp);
         }
@@ -78,8 +78,8 @@ private:
     std::mutex mutex_;
     size_t counter_ = 0;
 
-    RtpCodecPtr videoMatcher_;
-    RtpCodecPtr audioMatcher_;
+    TrackNegotiatorPtr videoNegotiator_;
+    TrackNegotiatorPtr audioNegotiator_;
     uint16_t basePort_;
 
     std::map<NabtoDeviceConnectionRef, RtspConnection> connections_;

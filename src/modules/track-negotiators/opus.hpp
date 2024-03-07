@@ -4,13 +4,13 @@
 
 namespace nabto {
 
-class OpusNegotiator : public RtpCodec
+class OpusNegotiator : public TrackNegotiator
 {
 public:
-    static RtpCodecPtr create() { return std::make_shared<OpusNegotiator>(); }
+    static TrackNegotiatorPtr create() { return std::make_shared<OpusNegotiator>(); }
     // The ssrc must be unique in the entire SDP context.
     // This supports both sending and receiving
-    OpusNegotiator() : RtpCodec(111, SEND_RECV) {}
+    OpusNegotiator() : TrackNegotiator(111, SEND_RECV) {}
     int match(MediaTrackPtr media);
     rtc::Description::Media createMedia();
 };

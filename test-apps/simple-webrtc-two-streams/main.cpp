@@ -81,7 +81,7 @@ public:
 
 private:
     CoapListenerPtr coapListener_;
-    nabto::RtpCodecPtr rtpVideoNegotiator_ = nabto::H264Negotiator::create();
+    nabto::TrackNegotiatorPtr rtpVideoNegotiator_ = nabto::H264Negotiator::create();
 };
 
 class SigIntContext {
