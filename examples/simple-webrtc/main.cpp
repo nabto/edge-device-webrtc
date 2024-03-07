@@ -4,7 +4,7 @@
 
 #include <event-queue/event_queue_impl.hpp>
 #include <rtp-client/rtp_client.hpp>
-#include <codecs/h264.hpp>
+#include <track-negotiators/h264.hpp>
 #include <util/util.hpp>
 
 #include <cxxopts/cxxopts.hpp>

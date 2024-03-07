@@ -3,8 +3,8 @@
 #include <event-queue/event_queue_impl.hpp>
 #include <util/util.hpp>
 #include <media-streams/media_stream.hpp>
-#include <codecs/h264.hpp>
-#include <codecs/opus.hpp>
+#include <track-negotiators/h264.hpp>
+#include <track-negotiators/opus.hpp>
 #include <rtp-client/rtp_client.hpp>
 #include <rtsp-client/rtsp_stream.hpp>
 #include <nabto/nabto_device_webrtc.hpp>

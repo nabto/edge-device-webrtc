@@ -4,8 +4,8 @@
 
 #include <event-queue/event_queue_impl.hpp>
 #include <rtp-client/rtp_client.hpp>
-#include <codecs/h264.hpp>
-#include <codecs/opus.hpp>
+#include <track-negotiators/h264.hpp>
+#include <track-negotiators/opus.hpp>
 
 #include <rtc/global.hpp>
 #include <nlohmann/json.hpp>

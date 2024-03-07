@@ -1,8 +1,8 @@
 #pragma once
 
 #include <rtp-client/rtp_client.hpp>
-#include <codecs/h264.hpp>
-#include <codecs/pcmu.hpp>
+#include <track-negotiators/h264.hpp>
+#include <track-negotiators/pcmu.hpp>
 #include "rtcp_client.hpp"
 #include <util/util.hpp>
 
