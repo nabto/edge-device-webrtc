@@ -62,11 +62,11 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    auto rtpVideoCodec = nabto::H264Negotiator::create();
+    auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     uint16_t port = opts["rtpPort"].get<uint16_t>();
     auto rtpVideo = nabto::RtpClient::create(trackId);
     rtpVideo->setPort(port);
-    rtpVideo->setTrackNegotiator(rtpVideoCodec);
+    rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
 
     auto eventQueue = nabto::EventQueueImpl::create();
 
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
         return true;
         });
 
-    coapListener->setCoapCallback([webrtc, device, rtpVideo, rtpVideoCodec](NabtoDeviceCoapRequest* coap) {
+    coapListener->setCoapCallback([webrtc, device, rtpVideo, rtpVideoNegotiator](NabtoDeviceCoapRequest* coap) {
         std::cout << "Got new coap request" << std::endl;
 
         NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);

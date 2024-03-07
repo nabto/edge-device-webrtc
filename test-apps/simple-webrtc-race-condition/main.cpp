@@ -46,7 +46,7 @@ public:
     {
         auto rtpVideo = nabto::RtpClient::create(config.trackId_);
         rtpVideo->setPort(config.rtpPort_);
-        rtpVideo->setTrackNegotiator(rtpVideoCodec_);
+        rtpVideo->setTrackNegotiator(rtpVideoNegotiator_);
 
         coapListener_ = CoapListener::create(device, NABTO_DEVICE_COAP_POST, config.coapFeedPath_, eventQueue);
         coapListener_->setCoapCallback([config, webrtc, device, rtpVideo](NabtoDeviceCoapRequest *coap)
@@ -82,7 +82,7 @@ public:
 
 private:
     CoapListenerPtr coapListener_;
-    nabto::RtpCodecPtr rtpVideoCodec_ = nabto::H264Negotiator::create();
+    nabto::RtpCodecPtr rtpVideoNegotiator_ = nabto::H264Negotiator::create();
 };
 
 class SigIntContext {
@@ -131,8 +131,8 @@ int main(int argc, char** argv) {
 
     auto rtpVideo = nabto::RtpClient::create("from_browser");
     rtpVideo->setPort(6002);
-    auto rtpVideoCodec_ = nabto::H264Negotiator::create();
-    rtpVideo->setTrackNegotiator(rtpVideoCodec_);
+    auto rtpVideoNegotiator_ = nabto::H264Negotiator::create();
+    rtpVideo->setTrackNegotiator(rtpVideoNegotiator_);
 
 
     auto eventQueue = nabto::EventQueueImpl::create();
