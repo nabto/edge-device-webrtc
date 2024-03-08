@@ -52,6 +52,7 @@ COPY ./include /tmp/lib/include
 COPY ./examples /tmp/lib/examples
 COPY ./test /tmp/lib/test
 COPY ./nabto-embedded-sdk /tmp/lib/nabto-embedded-sdk
+COPY ./.git /tmp/lib/.git
 
 WORKDIR /tmp/build
 RUN cmake -DNABTO_WEBRTC_BUILD_TESTS=OFF -DNABTO_WEBRTC_USE_VCPKG=OFF -DCMAKE_INSTALL_PREFIX=/tmp/install -DMbedTLS_ROOT=/tmp/dependencies -DCURL_ROOT=/tmp/dependencies -DOPENSSL_ROOT_DIR=/tmp/dependencies -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DCMAKE_POLICY_DEFAULT_CMP0135=NEW /tmp/lib
