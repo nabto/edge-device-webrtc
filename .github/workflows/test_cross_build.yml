@@ -1,0 +1,26 @@
+name: Build And Test
+
+on:
+  push:
+
+jobs:
+  test-cross-build:
+    timeout-minutes: 30
+    name: test-cross-build
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ ubuntu-22.04 ] #, windows-2022
+        include:
+          # - os: windows-2022
+          #   build_command: cmake --build build-dir --parallel --target install
+          - os: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Build
+        run: docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .
