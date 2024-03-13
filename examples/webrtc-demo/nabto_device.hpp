@@ -69,6 +69,8 @@ private:
     std::string deviceId_;
     std::string rawPrivateKey_;
     std::string logLevel_ = "info";
+    std::optional<std::string> caBundle_;
+
     enum nn_log_severity iamLogLevel_ = NN_LOG_SEVERITY_INFO;
     std::string serverUrl_;
 

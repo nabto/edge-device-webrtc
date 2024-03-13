@@ -22,8 +22,8 @@ typedef std::shared_ptr<NabtoOauthValidator> NabtoOauthValidatorPtr;
 class NabtoOauthValidator : public std::enable_shared_from_this<NabtoOauthValidator>
 {
 public:
-    NabtoOauthValidator(std::string& url, std::string& issuer, std::string& productId, std::string& deviceId)
-        : url_(url), issuer_(issuer), productId_(productId), deviceId_(deviceId)
+    NabtoOauthValidator(std::string& url, std::string& issuer, std::string& productId, std::string& deviceId, const std::optional<std::string>& caBundle = std::nullopt)
+        : url_(url), issuer_(issuer), productId_(productId), deviceId_(deviceId), caBundle_(caBundle)
     {
 
     }
@@ -248,6 +248,15 @@ private:
             std::cout << "Failed to set Curl write function option" << std::endl;
             return false;
         }
+
+        if (caBundle_.has_value()) {
+            res = curl_easy_setopt(c, CURLOPT_CAINFO, caBundle_.value().c_str());
+            if (res != CURLE_OK) {
+                std::cout << "Failed to set CA bundle" << std::endl;
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -449,6 +458,7 @@ private:
     std::string issuer_;
     std::string productId_;
     std::string deviceId_;
+    std::optional<std::string> caBundle_;
 
     nabto::CurlAsyncPtr curl_ = nullptr;
 
