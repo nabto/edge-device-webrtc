@@ -10,6 +10,7 @@
 #include <memory>
 
 #include <fstream>
+#include <optional>
 
 namespace example {
 
