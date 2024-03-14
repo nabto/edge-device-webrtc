@@ -14,6 +14,8 @@
 #include <cxxopts/cxxopts.hpp>
 #include <nlohmann/json.hpp>
 #include <signal.h>
+#include <cstdlib>
+
 
 using nlohmann::json;
 
@@ -342,6 +344,8 @@ bool parse_options(int argc, char** argv, json& opts)
             ("H,home-dir", "Set which dir to store IAM data", cxxopts::value<std::string>())
             ("iam-reset", "If set, will reset the IAM state and exit")
             ("create-key", "If set, will create and print a raw private key and its fingerprint. Then exit")
+            ("cacert", "Optional. Path to a CA certificate file; overrides CURL_CA_BUNDLE env var if set.", cxxopts::value<std::string>())
+
             ("h,help", "Shows this help text");
         auto result = options.parse(argc, argv);
 
@@ -392,6 +396,22 @@ bool parse_options(int argc, char** argv, json& opts)
         }
         else {
             opts["iamReset"] = false;
+        }
+
+        if (result.count("cacert")) {
+            opts["caBundle"] = result["cacert"].as<std::string>();
+        } else {
+            const char* curlCaBundle = std::getenv("CURL_CA_BUNDLE");
+            if (curlCaBundle != nullptr) {
+                opts["caBundle"] = std::string(curlCaBundle);
+            }
+        }
+        if (opts.contains("caBundle")) {
+            std::ifstream f(opts["caBundle"].get<std::string>());
+            if (!f.good()) {
+                std::cout << "CA certificate bundle file does not exist: " << opts["caBundle"].get<std::string>() << std::endl;
+                return true;
+            }
         }
 
     } catch (const cxxopts::OptionException& e)

@@ -42,6 +42,9 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
         productId_ = opts["productId"].get<std::string>();
         deviceId_ = opts["deviceId"].get<std::string>();
         rawPrivateKey_ = opts["rawPrivateKey"].get<std::string>();
+        if (opts.contains("caBundle")) {
+            caBundle_ = opts["caBundle"].get<std::string>();
+        }
     } catch (std::exception& e ) {
         std::cout << "Missing input option. Options must include: productId, deviceId, rawPrivateKey" << std::endl;
         return false;
@@ -422,7 +425,7 @@ void NabtoDeviceApp::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
 
     auto self = shared_from_this();
 
-    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_);
+    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_, caBundle_);
 
     oauth->validateToken(token, [self, coap](bool valid, std::string subject) {
         if (valid) {
@@ -502,7 +505,7 @@ void NabtoDeviceApp::handleChallengeRequest(NabtoDeviceCoapRequest* coap) {
     }
 
     // TODO: dont require jwksurl, issuer, product id, device id for this
-    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_);
+    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_, caBundle_);
 
     std::string devFp(deviceFp, 64);
     std::string cliFp(clientFp, 64);
