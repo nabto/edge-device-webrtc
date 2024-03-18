@@ -3,7 +3,7 @@
 #include <event-queue/event_queue_impl.hpp>
 #include <util/util.hpp>
 #include <media-streams/media_stream.hpp>
-#include <track-negotiators/h264.hpp>
+#include <track-negotiators/h265.hpp>
 #include <track-negotiators/opus.hpp>
 #include <rtp-client/rtp_client.hpp>
 #include <rtsp-client/rtsp_stream.hpp>
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
 
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
-    auto rtpVideoNegotiator = nabto::H264Negotiator::create();
+    auto rtpVideoNegotiator = nabto::H265Negotiator::create();
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
 
     try {

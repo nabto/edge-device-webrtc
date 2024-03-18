@@ -1,6 +1,7 @@
 
 set(src
     h264.cpp
+    h265.cpp
     pcmu.cpp
     opus.cpp
     vp8.cpp
