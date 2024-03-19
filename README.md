@@ -8,6 +8,16 @@ Note that Firefox' WebRTC support is limited and is not currently supported by t
 
 Note that the example applications use the RTP client in `./src/modules/rtp-client`. This is used to relay RTP packets between a UDP socket and WebRTC. This implementation is based on Unix sockets, and will not work on Windows.
 
+Below, 3 different approaches to building the example application are shown:
+
+1. [Demo Docker container for quick desktop test](#demo-docker-container-for-quick-desktop-test): Get started instantly with no tool or build hassle, you just need Docker installed
+2. [Cross building the example for a Linux based camera](): Cross build the example application for Linux based camera using a Docker based build container you can customize with your own specific toolchain
+3. [Building the example for desktop](): Build the example application using build tools in your development environment
+
+> :bulb: If you want to compile for your camera, pick [approach 2]().
+
+You can see how to run the resulting executable from approaches 2 and 3 in the [Running](#running-the-example) section.
+
 ## Obtaining the Source
 
 This Github repo references various 3rd party components as submodules. So remember to clone recursively:
@@ -16,7 +26,8 @@ This Github repo references various 3rd party components as submodules. So remem
 git clone --recursive https://github.com/nabto/edge-device-webrtc.git
 ```
 
-## Demo container
+## Demo Docker container for quick desktop test
+
 For demo purposes, this example can be run in a Docker container. This requires Docker to be installed on your system, but ensures all dependencies are installed and working.
 After cloning this repo as shown above, the demo can be build using:
 
@@ -44,7 +55,47 @@ mkdir webrtc-home
 docker run -v `pwd`/webrtc-home:/homedir -it --rm edge-device-webrtc edge_device_webrtc -r rtsp://127.0.0.1:8554/video -H /homedir -d <YOUR_DEVICE_ID> -p <YOUR_PRODUCT_ID> -k <RAW_KEY_CREATED_ABOVE>
 ```
 
-## Tools
+Too see how to build the example for a desktop system, see section [Build example for desktop]
+
+## Cross building the example for a Linux based camera
+
+The software is meant to be run on embedded systems such as Linux based cameras,
+these cameras often comes with their own toolchains and libraries tailored to
+the platform.
+
+A Dockerfile is provided in `./cross_build` that demonstrates how to cross compile the example application and all dependencies. The example build is for `aarch64`. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image by modifying the Dockerfile as follows:
+
+```
+RUN apt-get update && apt-get install git build-essential cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu curl file tar -y
+COPY camera-toolchain.tar.gz /opt/
+RUN tar xfz /opt/camera-toolchain.tar.gz -C /opt/
+
+ENV CC=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
+ENV CXX=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++
+ARG OPENSSL_TARGET=linux-aarch64
+```
+The `OPENSSL_TARGET` is typically `linux-aarch64` for 64-bit ARM based targets and `linux-armv4` for 32-bit.
+
+The cross build example consists of a Dockerfile which uses several layers to
+build the individual dependency libraries and then builds it into a binary.
+
+The default Dockerfile has a commented out section at the bottom that shows how to run the resulting default aarch64 binary through qemu such that it is indeed possible to show that the compiled binary works on something else than the system used to compile the binary.
+
+The build can be run as follows:
+
+```
+docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .
+```
+
+> :heavy_exclamation_mark: You need to call the command from this directory such that the correct context is provided for docker.
+
+If enabling the qemu section at the bottom of the default Dockerfile, the resulting default aarch64 binary can be run by starting and interactive session with `docker run --rm -it edge_device_webrtc_aarch64`. Then the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
+
+## Building the example for desktop
+
+If building for the desktop, e.g. for development or testing without Docker, build scripts are provided that build dependencies through [vcpkg](https://vcpkg.io/en/). For embedded systems, it is simpler to build using a Docker container as outlined above. The default vcpkg build will fail for embedded systems and is not supported.
+
+### Tools
 You need the following tools to build the example:
 
 * Git
@@ -52,7 +103,7 @@ You need the following tools to build the example:
 * C++ compiler
 * curl zip unzip tar
 
-## Building
+### Building
 The example is built using cmake from the root of this repo:
 
 ```
@@ -70,11 +121,12 @@ cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
 make -j16 install
 ```
 
-If your build host has limited resources and you try to limit the build concurrency using e.g. `make -j1`, you also need to explicitly limit the vcpkg build concurrency using `export VCPKG_MAX_CONCURRENCY=1` prior to running cmake.
+> :heavy_exclamation_mark: If your build host has limited resources and you try to limit the build concurrency using e.g. `make -j1`, you also need to explicitly limit the vcpkg build concurrency using `export VCPKG_MAX_CONCURRENCY=1` prior to running cmake.
 
-## Running
 
-To start the device you must first either have RTP feeds or an RTSP server started. If you do not already have these, see [the sections below](#gstreamer-rtp-feeds) on how to start these.
+## Running the example
+
+To start the device you must first either have RTP feeds or an RTSP server started. If you do not already have these, we have [guides available](https://docs.nabto.com/developer/platforms/embedded/linux-ipc/webrtc-example.html#feeds) for starting both simulated RTP and RTSP feeds.
 
 Before starting the example, you need a device configured in the Nabto Cloud Console. This requires you to configure a fingerprint. To obtain this, run the example application with the `--create-key` argument:
 
@@ -91,6 +143,7 @@ The *Raw key* must be used when starting the example, the *Fingerprint* should b
 If you do not already have a device in the Nabto Cloud Console, follow our [general guide for embedded applications](https://docs.nabto.com/developer/platforms/embedded/applications.html#console).
 
 After configuring the device fingerprint, the example device will be able to attach to the Nabto Basestation when started.
+
 ### Running with RTP
 Assuming your RTP feeds are running on the default ports, the device is started with:
 
@@ -107,6 +160,7 @@ medias size: 1
 ```
 
 ### Running with RTSP
+
 To use an RTSP server the `--rtsp` argument is used to set the RTSP URL to use. For the RTSP server shown in the RTSP feeds section, the device is started with:
 ```
 ./edge_device_webrtc -d <YOUR_DEVICE_ID> -p <YOUR_PRODUCT_ID> -k <RAW_KEY_CREATED_ABOVE> --rtsp rtsp://127.0.0.1:8554/video
@@ -121,122 +175,14 @@ medias size: 1
 ```
 
 ### Connecting to the device
-To connect to your device, follow the `Initial user pairing link` printed by the device when first started. This will open our WebRTC demo website and initiate pairing with the device.
 
-First you must create an account in the demo backend. Click `Sign in`, then click `Sign up`. Create your account using an email and a password. Once your account is verifed, you will be redirected back to the device pairing flow.
+To connect to your device, follow the `Initial user pairing link` printed by the device when first started. This will open our [WebRTC demo website](https://demo.smartcloud.nabto.com/) and initiate pairing with the device. The process is described in more detail [in the documentation](https://docs.nabto.com/developer/guides/webrtc/quickstart.html#website). Alternatively, instead of using the full website, you can use the simple [standalone static web page](https://docs.nabto.com/developer/platforms/js/webrtc-example.html).
 
-Now, accept the device invitation. This will add the device information to your account in the backend. It then connects to the device, verify the device fingerprint, perform password authentication as the initial user, configure the OAuth subject of your account on the initial user, and finally removes the password of the initial user.
-
-When the invitation is accepted, you can connect to the device and authenticate using OAuth and see the video feed. When connected to the device, you can also invite other users to your device. This will create a new IAM user on the device, and generate a link similar to the `initial user pairing link` allowing another user to go through the same invite flow as described here.
 
 ### Other connect options
+
 The device can also be accessed through Android/iOS Apps, Google Home, and Alexa. These functionalities are not yet finalized. For more information about these features, contact Nabto support.
 
-## GStreamer RTP feeds
-
-The RTP example supports sending video to the client, and sending and receiving audio from the client. This section shows how to start these 3 feeds using gstreamer, but any RTP source/sink can be used as long as they use the proper UDP ports and codecs.
-
-By default, the example expects an RTP video feed on UDP port 6000, an RTP video sink on UDP port 6001, an RTP audio feed on UDP port 6002, and an RTP audio sink on UDP port 6004. These ports can be changed using the `--rtp-port arg` argument. The port configured by this argument will be the first port (defaulting to 6000). The 4 port numbers will always be consecutive.
-
-### Create an RTP demo video feed
-
-First install gstreamer, for instance on macOS use homebrew:
-
-```
-brew install gstreamer
-```
-
-With gstreamer available, create an RTP stream using either a dummy generated feed with clock overlay as follows:
-
-```
-gst-launch-1.0 videotestsrc ! clockoverlay ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay pt=96 mtu=1200 ! udpsink host=127.0.0.1 port=6000
-```
-
-Or use an actual video source if available (**note:** If using 2-way video, the client will try to use the webcam. This will fail the webcam feed is already taken by the device.):
-
-```
-gst-launch-1.0 v4l2src device=/dev/video0 ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1000 key-int-max=30 ! video/x-h264, profile=constrained-baseline ! rtph264pay pt=96 mtu=1200 ! udpsink host=127.0.0.1 port=6000
-```
-
-### Create an RTP demo video sink (optional)
-In some terminal with gstreamer installed create an RTP sink using:
-
-```
-gst-launch-1.0 udpsrc uri=udp://127.0.0.1:6001 ! application/x-rtp, payload=96  ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! xvimagesink
-```
-
-### Create an audio feed (optional)
-In some terminal with gstreamer installed create an RTP stream using:
-```
-gst-launch-1.0 -v audiotestsrc wave=sine freq=220 volume=0.01 ! audioconvert ! opusenc ! rtpopuspay name=pay0 pt=111 ! udpsink host=127.0.0.1 port=6002
-```
-
-### Create an audio sink (optional)
-In some terminal with gstreamer installed create an RTP sink using:
-```
-gst-launch-1.0 -v udpsrc uri=udp://127.0.0.1:6003 caps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00" ! rtpopusdepay ! opusdec ! audioconvert ! autoaudiosink sync=false
-```
-
-### Create a VP8 video feed
-
-```
-gst-launch-1.0 -v videotestsrc ! clockoverlay ! video/x-raw,width=640,height=480 ! videoconvert ! queue ! vp8enc ! rtpvp8pay pt=127 mtu=1200 ! udpsink host=127.0.0.1 port=6000
-```
-
-## RTSP feeds
-The WebRTC example supports getting a video and/or an audio feed from an RTSP server. There is currently no support for two-way audio with RTSP.
-
-For the first connection to the device, it will use RTSP to open an RTP video stream on port 45222 with RTCP on port 45223 and, if the RTSP server has one, an RTP audio stream on port 45224 with RTCP on port 45225. So multiple connections do not clash with eachother, a second connection to the device will use ports 45226-45229 (Connection `n` uses ports `45222+4n - 45222+4n+3`). The UDP socket is bound to `0.0.0.0`, so it will also work with remote RTSP hosts.
-
-The RTSP client only supports one video and one audio stream. If the servers response to the RTSP `Describe` request contains more than one stream of a kind (video/audio), one will be picked and the remaining will be ignored.
-
-### Nabto RTSP demo container
-An RTSP server can be started using the Nabto provided RTSP demo container. It is important that the RTSP server and the device example has free network access to each other to enable the UDP streaming sockets to work properly. This is why the example uses `--network host`. **Docker Network host mode does not work on MacOS**.
-
-start the [rtsp-demo-container](https://github.com/nabto/rtsp-demo-container) with:
-
-```
-docker run --rm -it --network host rtsp-demo-server
-```
-**This RTSP demo container does not provide an audio feed so add Audio will not work.** Providing an RTSP server with an audio feed will make one-way audio work.
-
-
-
-# Building for embedded systems
-
-The software is meant to be run on embedded systems such as linux based cameras,
-these cameras often comes with their own toolchains and libraries tailored to
-the platform.
-
-## Cross building 
-
-A Dockerfile is provided in `./cross_build` that demonstrates how to cross compile the example application and all dependencies. The example build is for `aarch64`:
-
-```
-RUN apt-get update && apt-get install git build-essential cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu curl file -y
-
-ENV CC=aarch64-linux-gnu-gcc
-ENV CXX=aarch64-linux-gnu-g++
-ARG OPENSSL_TARGET=linux-aarch64
-```
-
-The `apt-get install` step assumes the toolchain is available as a Debian package. It can of course be obtained in other ways as necessary. Regardless of how it is obtained and included in the Docker image, the `CC`, `CXX` and `OPENSSL_TARGET` variables must be set. The `OPENSSL_TARGET` is typically `linux-armv4` for 32-bit ARM based targets. 
-
-The cross build example consists of a Dockerfile which uses several layers to
-build the individual dependency libraries and then builds it into a binary. In
-the end a container is made which is able to run the resulting aarch64 binary
-through qemu such that it is indeed possible to show that the compiled binary
-works on something else than the system used to compile the binary.
-
-The build can be run as follows: 
-
-```
-docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .
-```
-
-You need to call the command from this directory such that the correct context is provided for docker.
-
-Then a resulting container with the binary and some rudimentary setup such that it can run the aarch64 binary can be run as `docker run --rm -it edge_device_webrtc_aarch64` and the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
 
 ## Advanced build topics
 
