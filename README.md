@@ -11,10 +11,10 @@ Note that the example applications use the RTP client in `./src/modules/rtp-clie
 Below, 3 different approaches to building the example application are shown:
 
 1. [Demo Docker container for quick desktop test](#demo-docker-container-for-quick-desktop-test): Get started instantly with no tool or build hassle, you just need Docker installed
-2. [Cross building the example for a Linux based camera](): Cross build the example application for Linux based camera using a Docker based build container you can customize with your own specific toolchain
-3. [Building the example for desktop](): Build the example application using build tools in your development environment
+2. [Cross building the example for a Linux based camera](#cross-building-the-example-for-a-linux-based-camera): Cross build the example application for Linux based camera using a Docker based build container you can customize with your own specific toolchain
+3. [Building the example for desktop](#building-the-example-for-desktop): Build the example application using build tools in your development environment
 
-> :bulb: If you want to compile for your camera, pick [approach 2]().
+> :bulb: **To build a binary to be installed on a camera, pick [approach 2](#cross-building-the-example-for-a-linux-based-camera)**.
 
 You can see how to run the resulting executable from approaches 2 and 3 in the [Running](#running-the-example) section.
 
