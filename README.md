@@ -60,7 +60,7 @@ Too see how to build the example for a desktop system, see section [Build exampl
 ## Cross building the example for a Linux based camera
 
 The software is meant to be run on embedded systems such as Linux based cameras,
-these cameras often comes with their own toolchains and libraries tailored to
+these cameras often come with their own toolchains and libraries tailored to
 the platform.
 
 A Dockerfile is provided in `./cross_build` that demonstrates how to cross compile the example application and all dependencies. The example build is for `aarch64`. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image by modifying the Dockerfile as follows:
@@ -79,8 +79,6 @@ The `OPENSSL_TARGET` is typically `linux-aarch64` for 64-bit ARM based targets a
 The cross build example consists of a Dockerfile which uses several layers to
 build the individual dependency libraries and then builds it into a binary.
 
-The default Dockerfile has a commented out section at the bottom that shows how to run the resulting default aarch64 binary through qemu such that it is indeed possible to show that the compiled binary works on something else than the system used to compile the binary.
-
 The build can be run as follows:
 
 ```
@@ -88,6 +86,8 @@ docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aa
 ```
 
 > :heavy_exclamation_mark: You need to call the command from this directory such that the correct context is provided for docker.
+
+The default Dockerfile has a commented out section at the bottom that shows how to run the resulting default aarch64 binary through qemu such that it is indeed possible to show that the compiled binary works on something else than the system used to compile the binary.
 
 If enabling the qemu section at the bottom of the default Dockerfile, the resulting default aarch64 binary can be run by starting and interactive session with `docker run --rm -it edge_device_webrtc_aarch64`. Then the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
 
