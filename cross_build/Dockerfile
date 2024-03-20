@@ -1,6 +1,6 @@
 FROM debian:bookworm as base
 
-RUN apt-get update && apt-get install git build-essential cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu curl file -y
+RUN apt-get update && apt-get install git build-essential cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu curl file tar -y
 
 ENV CC=aarch64-linux-gnu-gcc
 ENV CXX=aarch64-linux-gnu-g++
@@ -60,12 +60,12 @@ RUN make -j 16 install
 RUN file /tmp/install/bin/edge_device_webrtc
 #RUN $LDD /tmp/install/bin/edge_device_webrtc
 
-FROM debian:bookworm
-
-RUN dpkg --add-architecture arm64
-RUN apt-get update && apt-get install qemu-user qemu-user-static libc6:arm64 libstdc++-12-dev:arm64 -y
-
-COPY --from=example /tmp/install/bin/edge_device_webrtc /tmp/example/
-COPY --from=example /tmp/dependencies/lib/*.so* /tmp/example/
+#FROM debian:bookworm
+#
+#RUN dpkg --add-architecture arm64
+#RUN apt-get update && apt-get install qemu-user qemu-user-static libc6:arm64 libstdc++-12-dev:arm64 -y
+#
+#COPY --from=example /tmp/install/bin/edge_device_webrtc /tmp/example/
+#COPY --from=example /tmp/dependencies/lib/*.so* /tmp/example/
 
 # Run it as LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static ./edge_device_webrtc
