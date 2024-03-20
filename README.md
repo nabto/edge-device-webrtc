@@ -66,7 +66,7 @@ the platform.
 A Dockerfile is provided in `./cross_build` that demonstrates how to cross compile the example application and all dependencies. The example build is for `aarch64`. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image by modifying the Dockerfile as follows:
 
 ```
-RUN apt-get update && apt-get install git build-essential cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu curl file tar -y
+RUN apt-get update && apt-get install git build-essential cmake curl file tar -y
 COPY camera-toolchain.tar.gz /opt/
 RUN tar xfz /opt/camera-toolchain.tar.gz -C /opt/
 
