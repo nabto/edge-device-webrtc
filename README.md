@@ -72,7 +72,7 @@ RUN tar xfz /opt/camera-toolchain.tar.gz -C /opt/
 
 ENV CC=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
 ENV CXX=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++
-ARG OPENSSL_TARGET=linux-aarch64
+ARG OPENSSL_TARGET=linux-armv4
 ```
 The `OPENSSL_TARGET` is typically `linux-aarch64` for 64-bit ARM based targets and `linux-armv4` for 32-bit.
 
@@ -82,12 +82,23 @@ build the individual dependency libraries and then builds it into a binary.
 The build can be run as follows:
 
 ```
-docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .
+docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_sigmastar .
 ```
 
-> :heavy_exclamation_mark: You need to call the command from this directory such that the correct context is provided for docker.
+> :heavy_exclamation_mark: You need to call the command from this directory to ensure the correct context is provided for docker.
 
-The default Dockerfile has a commented out section at the bottom that shows how to run the resulting default aarch64 binary through qemu such that it is indeed possible to show that the compiled binary works on something else than the system used to compile the binary.
+To access the build output, create an instance of the container and copy the binary to the current directory on the host machine:
+
+```
+$ docker create --name tmp_container edge_device_webrtc_sigmastar
+$ docker cp tmp_container:/tmp/install/bin/edge_device_webrtc .
+$ file edge_device_webrtc
+edge_device_webrtc: ELF 32-bit LSB executable, ARM, EABI5 version 1 (GNU/Linux), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, BuildID[sha1]=c85e0ee63d691499630efeae4e2b00e22068cc22, for GNU/Linux 3.2.0, with debug_info, not stripped
+```
+
+#### Testing the cross build without a physical target
+
+The default Dockerfile has a commented out section at the bottom that shows how to run the resulting default aarch64 binary through qemu; this demonstrates that the compiled binary works on something else than the system used to compile the binary.
 
 If enabling the qemu section at the bottom of the default Dockerfile, the resulting default aarch64 binary can be run by starting and interactive session with `docker run --rm -it edge_device_webrtc_aarch64`. Then the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
 
