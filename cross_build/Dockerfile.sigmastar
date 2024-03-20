@@ -6,7 +6,7 @@ RUN tar xfz /opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf.tar.gz -
 
 ENV CC=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
 ENV CXX=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++
-ARG OPENSSL_TARGET=linux-aarch64
+ARG OPENSSL_TARGET=linux-armv4
 
 FROM base as mbedtls
 
