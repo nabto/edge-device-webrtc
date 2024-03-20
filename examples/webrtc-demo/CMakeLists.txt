@@ -25,3 +25,8 @@ install(TARGETS edge_device_webrtc
     RUNTIME DESTINATION bin
 )
 
+if(CMAKE_BUILD_TYPE MATCHES Release)
+    add_custom_command(TARGET edge_device_webrtc POST_BUILD
+        COMMAND ${CMAKE_STRIP} $<TARGET_FILE:edge_device_webrtc>
+        COMMENT "Stripping release binary")
+endif()
