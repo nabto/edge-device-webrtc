@@ -242,7 +242,7 @@ bool NabtoDeviceApp::setupIam(const char* fp)
         try {
             auto initialUsername = iamState["InitialPairingUsername"].get<std::string>();
             auto user = nm_iam_state_find_user_by_username(state, initialUsername.c_str());
-            if (user && (user->fingerprint == NULL && user->oauthSubject == NULL)) {
+            if (user && (nn_llist_empty(&user->fingerprints) && user->oauthSubject == NULL)) {
                 // We have an initial user and it is unpaired
                 // Creating invite link
                 std::cout << "################################################################" << std::endl << "# Initial user pairing link:    " << std::endl << "# " << frontendUrl_ << "?p=" << productId_ << "&d=" << deviceId_ << "&u=" << initialUsername;
