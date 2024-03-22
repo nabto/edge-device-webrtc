@@ -2,6 +2,8 @@
 
 #include <jwt-cpp/jwt.h>
 
+#include <openssl/md5.h>
+
 #include <sstream>
 #include <cstring>
 
@@ -455,6 +457,29 @@ bool RtspClient::sendDescribe()
         pos = curlHeaders_.find("WWW-Authenticate: Digest");
         if (pos != std::string::npos) {
             std::cout << "Got digest header" << std::endl;
+
+            // HA1
+            std::string str1 = username_ + ":GStreamer RTSP Server:" + password_;
+            unsigned char ha1[MD5_DIGEST_LENGTH];
+            MD5((unsigned char*)str1.c_str(), str1.size(), ha1);
+            std::cout << "HA1: " << toHex(ha1, MD5_DIGEST_LENGTH) << std::endl;
+
+            // HA2
+            std::string str2 = "DESCRIBE:rtsp://127.0.0.1:8554/video";
+            std::cout << "str2: " << str2 << std::endl;
+            unsigned char ha2[MD5_DIGEST_LENGTH];
+            MD5((unsigned char*)str2.c_str(), str2.size(), ha2);
+            std::cout << "HA2: " << toHex(ha2, MD5_DIGEST_LENGTH) << std::endl;
+
+            // RESPONSE
+            std::string nonce = "7371e33d8a68df2e";
+            std::string strResp = toHex(ha1, MD5_DIGEST_LENGTH) + ":" + nonce + ":" + toHex(ha2, MD5_DIGEST_LENGTH);
+
+            unsigned char response[MD5_DIGEST_LENGTH];
+            MD5((unsigned char*)strResp.c_str(), strResp.size(), response);
+
+            std::cout << "response: " << toHex(response, MD5_DIGEST_LENGTH) << std::endl;
+
             return false;
         }
 
@@ -479,4 +504,15 @@ void RtspClient::resolveStart(CURLcode res, uint16_t statuscode)
         cb(res, statuscode);
     }
 }
+
+std::string RtspClient::toHex(uint8_t* data, size_t len)
+{
+    std::stringstream stream;
+    for (size_t i = 0; i < len; i++) {
+        stream << std::setfill('0') << std::setw(2) << std::hex << (int)data[i];
+    }
+    std::string result(stream.str());
+    return result;
+}
+
 } // namespace

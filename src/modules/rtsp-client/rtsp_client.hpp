@@ -65,6 +65,7 @@ private:
     static size_t writeFunc(void* ptr, size_t size, size_t nmemb, void* self);
 
     void resolveStart(CURLcode res, uint16_t statuscode);
+    std::string toHex(uint8_t* data, size_t len);
 
     std::string trackId_;
     std::string url_;
