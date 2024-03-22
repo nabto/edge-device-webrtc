@@ -30,7 +30,7 @@ public:
     RtspClient(const std::string& trackId, const std::string& url);
     ~RtspClient();
 
-    bool start(std::function<void(CURLcode res)> cb);
+    bool start(std::function<void(CURLcode res, uint16_t statusCode)> cb);
     void stop();
 
     RtpClientPtr getVideoStream();
@@ -54,28 +54,35 @@ public:
 
 private:
     void setupRtsp();
-    bool rtspPlay();
     void teardown();
     bool performSetupReq(const std::string& url, const std::string& transport);
+
+    bool sendDescribe();
 
     bool parseSdpDescription(const std::string& desc);
     std::string parseControlAttribute(const std::string& att);
 
     static size_t writeFunc(void* ptr, size_t size, size_t nmemb, void* self);
 
-    void resolveStart(CURLcode res);
+    void resolveStart(CURLcode res, uint16_t statuscode);
 
     std::string trackId_;
     std::string url_;
+    std::string username_;
+    std::string password_;
     uint16_t port_ = 42222;
     bool stopped_ = false;
 
-    std::function<void(CURLcode res)> startCb_;
+    std::function<void(CURLcode res, uint16_t statuscode)> startCb_;
 
     CurlAsyncPtr curl_;
     std::string curlHeaders_;
     std::string readBuffer_;
     std::string contentBase_;
+
+    struct curl_slist* curlReqHeaders_ = NULL;
+
+    std::string authHeader_;
 
     std::string sessionControlUrl_;
 

@@ -36,6 +36,7 @@ public:
 
     // Reinvoke the request. This must be called from the callback of a previous request and is a direct blocking invocation of the curl_easy_perform.
     CURLcode reinvoke();
+    void reinvokeStatus(CURLcode* code, uint16_t* status);
 
 
 private:

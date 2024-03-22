@@ -11,6 +11,7 @@ find_package(CURL REQUIRED)
 target_link_libraries(rtsp_client
     nabto_device_static
     track_negotiators
+    jwt-cpp::jwt-cpp
     rtp_client
     datachannel-static
     CURL::libcurl

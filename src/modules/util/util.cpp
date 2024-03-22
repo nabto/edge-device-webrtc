@@ -102,6 +102,15 @@ CURLcode CurlAsync::reinvoke()
     return curl_easy_perform(curl_);
 }
 
+void CurlAsync::reinvokeStatus(CURLcode* code, uint16_t* status)
+{
+    CURLcode res = curl_easy_perform(curl_);
+    *code = res;
+    if (res == CURLE_OK) {
+        curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, status);
+    }
+}
+
 
 void CurlAsync::threadRunner(CurlAsync* self)
 {
