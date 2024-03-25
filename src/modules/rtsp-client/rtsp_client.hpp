@@ -30,7 +30,7 @@ public:
     RtspClient(const std::string& trackId, const std::string& url);
     ~RtspClient();
 
-    bool start(std::function<void(CURLcode res, uint16_t statusCode)> cb);
+    bool start(std::function<void(std::optional<std::string> error)> cb);
     void stop();
 
     RtpClientPtr getVideoStream();
@@ -55,16 +55,19 @@ public:
 private:
     void setupRtsp();
     void teardown();
+
+    std::optional<std::string> sendDescribe();
+    bool parseDescribeHeaders();
+
+
+
     bool performSetupReq(const std::string& url, const std::string& transport);
-
-    bool sendDescribe();
-
     bool parseSdpDescription(const std::string& desc);
     std::string parseControlAttribute(const std::string& att);
 
     static size_t writeFunc(void* ptr, size_t size, size_t nmemb, void* self);
 
-    void resolveStart(CURLcode res, uint16_t statuscode);
+    void resolveStart(std::optional<std::string> error = std::nullopt);
     std::string toHex(uint8_t* data, size_t len);
 
     bool setDigestHeader(std::string method, std::string url);
@@ -74,7 +77,7 @@ private:
     uint16_t port_ = 42222;
     bool stopped_ = false;
 
-    std::function<void(CURLcode res, uint16_t statuscode)> startCb_;
+    std::function<void(std::optional<std::string> error)> startCb_;
 
     CurlAsyncPtr curl_;
     std::string curlHeaders_;

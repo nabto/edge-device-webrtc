@@ -52,7 +52,7 @@ RtspClient::~RtspClient()
     }
 }
 
-bool RtspClient::start(std::function<void(CURLcode res, uint16_t statuscode)> cb)
+bool RtspClient::start(std::function<void(std::optional<std::string> error)> cb)
 {
 
     curl_ = CurlAsync::create();
@@ -67,20 +67,12 @@ bool RtspClient::start(std::function<void(CURLcode res, uint16_t statuscode)> cb
 
     // SENDING OPTIONS REQ
     std::cout << "Sending RTSP OPTIONS request" << std::endl;
-    res = curl_easy_setopt(curl, CURLOPT_URL, url_.c_str());
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl URL option" << std::endl;
-        return false;
-    }
 
-    res = curl_easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, url_.c_str());
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl RTSP stream URI option" << std::endl;
-        return false;
-    }
-    res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_OPTIONS);
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl RTSP Request options" << std::endl;
+    if ((res = curl_easy_setopt(curl, CURLOPT_URL, url_.c_str())) != CURLE_OK ||
+        (res = curl_easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, url_.c_str())) != CURLE_OK ||
+        (res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_OPTIONS)) != CURLE_OK
+    ) {
+        std::cout << "Failed to initialize Curl OPTIONS request with CURLE: " << res << std::endl;
         return false;
     }
 
@@ -88,7 +80,8 @@ bool RtspClient::start(std::function<void(CURLcode res, uint16_t statuscode)> cb
     bool ok = curl_->asyncInvoke([self](CURLcode res, uint16_t statusCode) {
         if (res != CURLE_OK || statusCode > 299) {
             std::cout << "Failed to perform RTSP OPTIONS request: " << res << std::endl;
-            return self->resolveStart(res, statusCode);
+            std::string msg = res != CURLE_OK ? "Failed to send Options Request" : ("RTSP OPTIONS request failed with status code: " + statusCode);
+            return self->resolveStart(msg);
         }
         std::cout << "Options request complete " << res << " " << statusCode << std::endl;
         self->setupRtsp();
@@ -129,34 +122,21 @@ void RtspClient::setupRtsp() {
     CURLcode res = CURLE_OK;
     CURL* curl = curl_->getCurl();
 
-    if (!sendDescribe()) {
-        std::cout << "sendDescribe() failed" << std::endl;
-        return;
+    // DESCRIBE REQ
+    auto ret = sendDescribe();
+    if (ret.has_value()) {
+        // On failure, sendDescribe calls resolveStart()!!
+        std::cout << "sendDescribe() failed: " << *ret << std::endl;
+        return resolveStart(ret);
     }
     std::cout << "Read SDP description: " << std::endl << readBuffer_ << std::endl;
 
-    // RFC2326 C.1:
-    // ... look for a base URL in the following order:
-    // 1.     The RTSP Content-Base field
-    // 2.     The RTSP Content-Location field
-    // 3.     The RTSP request URL
-    size_t pos = curlHeaders_.find("Content-Base: ");
-    if (pos != std::string::npos) {
-        contentBase_ = curlHeaders_.substr(pos + strlen("Content-Base: "));
-        if ((pos = contentBase_.find("\r\n")) != std::string::npos) {
-            contentBase_ = contentBase_.substr(0, pos);
-        }
+    if (!parseDescribeHeaders() ||
+        !parseSdpDescription(readBuffer_)) {
+       std::cout << "Failed to parse Describe response" << std::endl;
+
+       return resolveStart("Failed to parse DESCRIBE response");
     }
-    else if ((pos = curlHeaders_.find("Content-Location: ")) != std::string::npos) {
-        contentBase_ = curlHeaders_.substr(pos);
-        if ((pos = contentBase_.find("\r\n")) != std::string::npos) {
-            contentBase_ = contentBase_.substr(0, pos);
-        }
-    } else {
-        contentBase_ = url_;
-    }
-    std::cout << "Parsed Content-Base to: " << contentBase_ << std::endl;
-    parseSdpDescription(readBuffer_);
 
     std::cout << "Parsed SDP description!" << std::endl << "  videoControlUrl: " << videoControlUrl_ << " video PT: " << videoPayloadType_ << std::endl;
     if(!audioControlUrl_.empty()) {
@@ -174,7 +154,7 @@ void RtspClient::setupRtsp() {
         std::string transStr = trans.str();
         if (!performSetupReq(videoControlUrl_, transStr)) {
             std::cout << "Failed to send Video SETUP request" << std::endl;
-            return resolveStart(res, 0);
+            return resolveStart("Failed to send Video SETUP request");
         }
     }
     if (!audioControlUrl_.empty()) {
@@ -184,9 +164,11 @@ void RtspClient::setupRtsp() {
         std::string transStr = trans.str();
         if (!performSetupReq(audioControlUrl_, transStr)) {
             std::cout << "Failed to send Audio SETUP request" << std::endl;
-            return resolveStart(res, 0);
+            return resolveStart("Failed to send Audio SETUP request");
         }
     }
+
+
     std::cout << "RTSP setup completed successfully" << std::endl;
 
     if (!videoControlUrl_.empty()) {
@@ -209,41 +191,36 @@ void RtspClient::setupRtsp() {
 
     const char* range = "npt=now-";
     std::string uri = sessionControlUrl_;
-    res = curl_easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, uri.c_str());
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl RTSP stream URI option" << std::endl;
-        return resolveStart(res, 0);
-    }
-    res = curl_easy_setopt(curl, CURLOPT_RANGE, range);
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl RTSP Range option" << std::endl;
-        return resolveStart(res, 0);
-    }
-    res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_PLAY);
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl RTSP Request option" << std::endl;
-        return resolveStart(res, 0);
+
+    if ((res = curl_easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, uri.c_str())) != CURLE_OK ||
+        (res = curl_easy_setopt(curl, CURLOPT_RANGE, range)) != CURLE_OK ||
+        (res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_PLAY)) != CURLE_OK
+    ) {
+        std::cout << "Failed to create PLAY request" << std::endl;
+        resolveStart("Failed to create PLAY request");
     }
 
     if (isDigestAuth_ && !setDigestHeader("PLAY", uri)) {
         std::cout << "Failed to set digest auth header" << std::endl;
-        return resolveStart(CURLE_AUTH_ERROR, 0);
+        return resolveStart("Failed to set Authorization Digest header");
     }
 
-    res = curl_->reinvoke();
-    if (res != CURLE_OK) {
+    uint16_t status = 0;
+    curl_->reinvokeStatus(&res, &status);
+    if (res != CURLE_OK || status > 299) {
         std::cout << "Failed to perform RTSP PLAY request" << std::endl;
-        return resolveStart(res, 0);
+        std::string msg = res != CURLE_OK ? "Failed to send PLAY Request" : ("RTSP PLAY request failed with status code: " + status);
+        return resolveStart(msg);
     }
 
     // switch off using range again
     res = curl_easy_setopt(curl, CURLOPT_RANGE, NULL);
     if (res != CURLE_OK) {
         std::cout << "Failed to reset Curl RTSP Range option" << std::endl;
-        return resolveStart(res, 0);
+        return resolveStart("Failed to reset Curl RTSP range option");
     }
 
-    return resolveStart(CURLE_OK, 0);
+    return resolveStart();
 }
 
 void RtspClient::teardown()
@@ -381,7 +358,6 @@ bool RtspClient::performSetupReq(const std::string& url, const std::string& tran
     }
 
     if (isDigestAuth_) {
-        std::cout << "indeed" << std::endl;
         if (!setDigestHeader("SETUP", url)) {
             std::cout << "Failed to set digest auth header" << std::endl;
             return false;
@@ -404,7 +380,7 @@ bool RtspClient::performSetupReq(const std::string& url, const std::string& tran
 
 }
 
-bool RtspClient::sendDescribe()
+std::optional<std::string> RtspClient::sendDescribe()
 {
     // SENDING DESCRIBE REQ
 
@@ -412,33 +388,16 @@ bool RtspClient::sendDescribe()
     readBuffer_.clear();
     curlHeaders_.clear();
     CURL* curl = curl_->getCurl();
+    CURLcode res = CURLE_OK;
 
-    CURLcode res = curl_easy_setopt(curl, CURLOPT_HEADERDATA, &curlHeaders_);
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl header data option" << std::endl;
-        resolveStart(res, 0);
-        return false;
-    }
 
-    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunc);
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl write function option" << std::endl;
-        resolveStart(res, 0);
-        return false;
-    }
-
-    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&readBuffer_);
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl write function option" << std::endl;
-        resolveStart(res, 0);
-        return false;
-    }
-
-    res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_DESCRIBE);
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl RTSP request option" << std::endl;
-        resolveStart(res, 0);
-        return false;
+    if ((res = curl_easy_setopt(curl, CURLOPT_HEADERDATA, &curlHeaders_)) != CURLE_OK ||
+        (res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunc)) != CURLE_OK ||
+        (res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&readBuffer_)) != CURLE_OK ||
+        (res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_DESCRIBE)) != CURLE_OK
+    ) {
+        std::cout << "Failed to create RTSP Describe request" << std::endl;
+        return "Failed to create RTSP Describe request";
     }
 
     uint16_t status = 0;
@@ -451,8 +410,7 @@ bool RtspClient::sendDescribe()
         std::cout << "Failed to perform RTSP DESCRIBE request" << std::endl;
         std::cout << "CurlHeaders: " << curlHeaders_ << std::endl;
         std::cout << "readBuffer: " << readBuffer_ << std::endl;
-        resolveStart(res, status);
-        return false;
+        return "Failed to perform RTSP DESCRIBE request";
     }
 
     if (status == 401 && authHeader_.empty()) {
@@ -462,9 +420,7 @@ bool RtspClient::sendDescribe()
         if (pos != std::string::npos) {
             std::string credStr = username_ + ":" + password_;
             std::cout << "Got Basic header login with: " << credStr << std::endl;
-            // auto creds = jwt::base::trim<jwt::alphabet::base64>(jwt::base::encode<jwt::alphabet::base64>(credStr));
             auto creds = jwt::base::encode<jwt::alphabet::base64>(credStr);
-            std::cout << "Creds: " << creds << std::endl;
             authHeader_ = "Authorization: Basic " + creds;
             curlReqHeaders_ = curl_slist_append(curlReqHeaders_, authHeader_.c_str());
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curlReqHeaders_);
@@ -480,14 +436,14 @@ bool RtspClient::sendDescribe()
             auto realmPos = curlHeaders_.find("realm=\"");
             if (realmPos == std::string::npos) {
                 std::cout << "Could not find realm string" << std::endl;
-                return false;
+                return "Invalid Describe response header";
             }
             realmPos += strlen("realm=\"");
             auto realm = curlHeaders_.substr(realmPos);
             realmPos = realm.find("\"");
             if (realmPos == std::string::npos) {
                 std::cout << "Could not find realm trailing \"" << std::endl;
-                return false;
+                return "Invalid Describe response header";
             }
             realm_ = realm.substr(0, realmPos);
             std::cout << "Found Realm: " << realm_ << std::endl;
@@ -495,14 +451,14 @@ bool RtspClient::sendDescribe()
             auto noncePos = curlHeaders_.find("nonce=\"");
             if (noncePos == std::string::npos) {
                 std::cout << "Could not find nonce string" << std::endl;
-                return false;
+                return "Invalid Describe response header";
             }
             noncePos += strlen("nonce=\"");
             auto nonce = curlHeaders_.substr(noncePos);
             noncePos = nonce.find("\"");
             if (noncePos == std::string::npos) {
                 std::cout << "Could not find nonce trailing \"" << std::endl;
-                return false;
+                return "Invalid Describe response header";
             }
             nonce_ = nonce.substr(0, noncePos);
             std::cout << "Found nonce: " << nonce_ << std::endl;
@@ -520,13 +476,12 @@ bool RtspClient::sendDescribe()
 
         std::cout << "WWW-Authenticate header missing from 401 response" << std::endl;
 
-        return false;
+        return "Invalid Describe response header";
     } else if (status > 299) {
-        return false;
+        return "Describe request failed with status code: " + std::to_string(status);
     }
 
-
-    return true;
+    return std::nullopt;
 }
 
 bool RtspClient::setDigestHeader(std::string method, std::string url)
@@ -563,13 +518,13 @@ bool RtspClient::setDigestHeader(std::string method, std::string url)
     return true;
 }
 
-void RtspClient::resolveStart(CURLcode res, uint16_t statuscode)
+void RtspClient::resolveStart(std::optional<std::string> error)
 {
     // TODO: ensure everything is cleaned up/resolved
     if (startCb_) {
         auto cb = startCb_;
         startCb_ = nullptr;
-        cb(res, statuscode);
+        cb(error);
     }
 }
 
@@ -582,5 +537,33 @@ std::string RtspClient::toHex(uint8_t* data, size_t len)
     std::string result(stream.str());
     return result;
 }
+
+bool RtspClient::parseDescribeHeaders()
+{
+    // RFC2326 C.1:
+    // ... look for a base URL in the following order:
+    // 1.     The RTSP Content-Base field
+    // 2.     The RTSP Content-Location field
+    // 3.     The RTSP request URL
+    size_t pos = curlHeaders_.find("Content-Base: ");
+    if (pos != std::string::npos) {
+        contentBase_ = curlHeaders_.substr(pos + strlen("Content-Base: "));
+        if ((pos = contentBase_.find("\r\n")) != std::string::npos) {
+            contentBase_ = contentBase_.substr(0, pos);
+        }
+    }
+    else if ((pos = curlHeaders_.find("Content-Location: ")) != std::string::npos) {
+        contentBase_ = curlHeaders_.substr(pos);
+        if ((pos = contentBase_.find("\r\n")) != std::string::npos) {
+            contentBase_ = contentBase_.substr(0, pos);
+        }
+    }
+    else {
+        contentBase_ = url_;
+    }
+    std::cout << "Parsed Content-Base to: " << contentBase_ << std::endl;
+    return true;
+}
+
 
 } // namespace

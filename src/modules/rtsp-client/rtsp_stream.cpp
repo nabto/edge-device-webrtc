@@ -71,9 +71,9 @@ void RtspStream::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media
         connections_[ref] = rtsp;
         counter_++;
         auto self = shared_from_this();
-        rtsp.client->start([self, ref](CURLcode res, uint16_t statuscode) {
-            if (res != CURLE_OK) {
-                std::cout << "Failed to start RTSP client, CurlCode: " << res << " StatusCode: " << statuscode << std::endl;
+        rtsp.client->start([self, ref](std::optional<std::string> error) {
+            if (error.has_value()) {
+                std::cout << "Failed to start RTSP client with error: " << error.value() << std::endl;
                 return;
             }
             std::lock_guard<std::mutex> lock(self->mutex_);

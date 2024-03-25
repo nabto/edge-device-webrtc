@@ -23,14 +23,24 @@ void waitForTermination() {
 } // namespace terminationWaiter
 
 int main(int argc, char** argv) {
+    if (argc != 2) {
+        std::cout << "Usage: " << std::endl << "  " << argv[0] << " <RTSP_URL>" << std::endl;
+        return -1;
+    }
 
-    auto rtsp = nabto::RtspClient::create("footrack", "rtsp://user:password@127.0.0.1:8554/video");
+    std::string url(argv[1]);
+
+    auto rtsp = nabto::RtspClient::create("footrack", url);
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
     rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
 
-    rtsp->start([](CURLcode res, uint16_t statuscode) {
-        std::cout << "Returned curlcode: " << res << " statuscode: " << statuscode << std::endl;
+    rtsp->start([](std::optional<std::string> error) {
+        if (error.has_value()) {
+            std::cout << "Returned error string: " << error.value() << std::endl;
+        } else {
+            std::cout << "SUCCESS!" << std::endl;
+        }
     });
 
     terminationWaiter::waitForTermination();
