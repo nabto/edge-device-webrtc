@@ -67,10 +67,10 @@ private:
     void resolveStart(CURLcode res, uint16_t statuscode);
     std::string toHex(uint8_t* data, size_t len);
 
+    bool setDigestHeader(std::string method, std::string url);
+
     std::string trackId_;
     std::string url_;
-    std::string username_;
-    std::string password_;
     uint16_t port_ = 42222;
     bool stopped_ = false;
 
@@ -82,8 +82,15 @@ private:
     std::string contentBase_;
 
     struct curl_slist* curlReqHeaders_ = NULL;
+    bool isDigestAuth_ = false;
+    std::string username_;
+    std::string password_;
+    std::string ha1_;
+    std::string nonce_;
+    std::string realm_;
 
     std::string authHeader_;
+
 
     std::string sessionControlUrl_;
 

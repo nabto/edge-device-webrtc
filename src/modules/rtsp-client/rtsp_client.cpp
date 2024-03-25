@@ -224,6 +224,12 @@ void RtspClient::setupRtsp() {
         std::cout << "Failed to set Curl RTSP Request option" << std::endl;
         return resolveStart(res, 0);
     }
+
+    if (isDigestAuth_ && !setDigestHeader("PLAY", uri)) {
+        std::cout << "Failed to set digest auth header" << std::endl;
+        return resolveStart(CURLE_AUTH_ERROR, 0);
+    }
+
     res = curl_->reinvoke();
     if (res != CURLE_OK) {
         std::cout << "Failed to perform RTSP PLAY request" << std::endl;
@@ -367,19 +373,31 @@ bool RtspClient::performSetupReq(const std::string& url, const std::string& tran
         std::cout << "Failed to set Curl RTSP stream URI option" << std::endl;
         return false;
     }
-    res = curl_easy_setopt(curl, CURLOPT_RTSP_TRANSPORT, transport.c_str());
-    if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl RTSP Transport option" << std::endl;
-        return false;
-    }
+
     res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_SETUP);
     if (res != CURLE_OK) {
         std::cout << "Failed to set Curl RTSP Request option" << std::endl;
         return false;
     }
+
+    if (isDigestAuth_) {
+        std::cout << "indeed" << std::endl;
+        if (!setDigestHeader("SETUP", url)) {
+            std::cout << "Failed to set digest auth header" << std::endl;
+            return false;
+        }
+    }
+
+    res = curl_easy_setopt(curl, CURLOPT_RTSP_TRANSPORT, transport.c_str());
+    if (res != CURLE_OK) {
+        std::cout << "Failed to set Curl RTSP Transport option" << std::endl;
+        return false;
+    }
+
+
     res = curl_->reinvoke();
     if (res != CURLE_OK) {
-        std::cout << "Failed to perform RTSP SETUP request" << std::endl;
+        std::cout << "Failed to perform RTSP SETUP request: " << res << std::endl;
         return false;
     }
     return true;
@@ -457,30 +475,47 @@ bool RtspClient::sendDescribe()
         pos = curlHeaders_.find("WWW-Authenticate: Digest");
         if (pos != std::string::npos) {
             std::cout << "Got digest header" << std::endl;
+            isDigestAuth_ = true;
+
+            auto realmPos = curlHeaders_.find("realm=\"");
+            if (realmPos == std::string::npos) {
+                std::cout << "Could not find realm string" << std::endl;
+                return false;
+            }
+            realmPos += strlen("realm=\"");
+            auto realm = curlHeaders_.substr(realmPos);
+            realmPos = realm.find("\"");
+            if (realmPos == std::string::npos) {
+                std::cout << "Could not find realm trailing \"" << std::endl;
+                return false;
+            }
+            realm_ = realm.substr(0, realmPos);
+            std::cout << "Found Realm: " << realm_ << std::endl;
+
+            auto noncePos = curlHeaders_.find("nonce=\"");
+            if (noncePos == std::string::npos) {
+                std::cout << "Could not find nonce string" << std::endl;
+                return false;
+            }
+            noncePos += strlen("nonce=\"");
+            auto nonce = curlHeaders_.substr(noncePos);
+            noncePos = nonce.find("\"");
+            if (noncePos == std::string::npos) {
+                std::cout << "Could not find nonce trailing \"" << std::endl;
+                return false;
+            }
+            nonce_ = nonce.substr(0, noncePos);
+            std::cout << "Found nonce: " << nonce_ << std::endl;
 
             // HA1
-            std::string str1 = username_ + ":GStreamer RTSP Server:" + password_;
+            std::string str1 = username_ + ":" + realm_ +":" + password_;
             unsigned char ha1[MD5_DIGEST_LENGTH];
             MD5((unsigned char*)str1.c_str(), str1.size(), ha1);
-            std::cout << "HA1: " << toHex(ha1, MD5_DIGEST_LENGTH) << std::endl;
+            ha1_ = toHex(ha1, MD5_DIGEST_LENGTH);
+            std::cout << "HA1: " << ha1_ << std::endl;
 
-            // HA2
-            std::string str2 = "DESCRIBE:rtsp://127.0.0.1:8554/video";
-            std::cout << "str2: " << str2 << std::endl;
-            unsigned char ha2[MD5_DIGEST_LENGTH];
-            MD5((unsigned char*)str2.c_str(), str2.size(), ha2);
-            std::cout << "HA2: " << toHex(ha2, MD5_DIGEST_LENGTH) << std::endl;
-
-            // RESPONSE
-            std::string nonce = "7371e33d8a68df2e";
-            std::string strResp = toHex(ha1, MD5_DIGEST_LENGTH) + ":" + nonce + ":" + toHex(ha2, MD5_DIGEST_LENGTH);
-
-            unsigned char response[MD5_DIGEST_LENGTH];
-            MD5((unsigned char*)strResp.c_str(), strResp.size(), response);
-
-            std::cout << "response: " << toHex(response, MD5_DIGEST_LENGTH) << std::endl;
-
-            return false;
+            setDigestHeader("DESCRIBE", "rtsp://127.0.0.1:8554/video");
+            return sendDescribe();
         }
 
         std::cout << "WWW-Authenticate header missing from 401 response" << std::endl;
@@ -494,6 +529,39 @@ bool RtspClient::sendDescribe()
     return true;
 }
 
+bool RtspClient::setDigestHeader(std::string method, std::string url)
+{
+    // HA2
+    std::string str2 = method + ":" + url;
+    std::cout << "str2: " << str2 << std::endl;
+    unsigned char ha2[MD5_DIGEST_LENGTH];
+    MD5((unsigned char*)str2.c_str(), str2.size(), ha2);
+    std::cout << "HA2: " << toHex(ha2, MD5_DIGEST_LENGTH) << std::endl;
+
+    // RESPONSE
+    std::string strResp = ha1_ + ":" + nonce_ + ":" + toHex(ha2, MD5_DIGEST_LENGTH);
+
+    unsigned char response[MD5_DIGEST_LENGTH];
+    MD5((unsigned char*)strResp.c_str(), strResp.size(), response);
+
+    std::cout << "response: " << toHex(response, MD5_DIGEST_LENGTH) << std::endl;
+
+    authHeader_ = "Authorization: Digest username=\"" + username_ +
+        "\", realm=\"" + realm_ +
+        "\", nonce=\"" + nonce_ +
+        "\", uri=\"" + url +
+        "\", response=\"" + toHex(response, MD5_DIGEST_LENGTH) + "\"";
+
+    if (curlReqHeaders_ != NULL) {
+        curl_slist_free_all(curlReqHeaders_);
+        curlReqHeaders_ = NULL;
+    }
+    curlReqHeaders_ = curl_slist_append(curlReqHeaders_, authHeader_.c_str());
+    CURL* curl = curl_->getCurl();
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curlReqHeaders_);
+
+    return true;
+}
 
 void RtspClient::resolveStart(CURLcode res, uint16_t statuscode)
 {
