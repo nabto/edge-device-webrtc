@@ -61,7 +61,7 @@ private:
 
 
 
-    bool performSetupReq(const std::string& url, const std::string& transport);
+    std::optional<std::string> performSetupReq(const std::string& url, const std::string& transport);
     bool parseSdpDescription(const std::string& desc);
     std::string parseControlAttribute(const std::string& att);
 
