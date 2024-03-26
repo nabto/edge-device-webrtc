@@ -25,6 +25,7 @@ target_link_libraries(webrtc_unit_test
     nabto_device_webrtc_static
     event_queue_impl
     datachannel-static
+    rtsp_client
 )
 
 if (HAS_GST)
