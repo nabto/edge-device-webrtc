@@ -42,21 +42,21 @@ public:
         loop_ = g_main_loop_new(NULL, FALSE);
         server_ = gst_rtsp_server_new();
         gst_rtsp_server_set_service(server_, "0");
-        mounts = gst_rtsp_server_get_mount_points(server_);
-        factory_ = gst_rtsp_media_factory_new();
+        auto mounts = gst_rtsp_server_get_mount_points(server_);
+        auto factory = gst_rtsp_media_factory_new();
 
-        gst_rtsp_media_factory_set_launch(factory_, pipeline.c_str());
-        gst_rtsp_media_factory_set_shared(factory_, TRUE);
+        gst_rtsp_media_factory_set_launch(factory, pipeline.c_str());
+        gst_rtsp_media_factory_set_shared(factory, TRUE);
         std::string mount = "/video";
-        gst_rtsp_mount_points_add_factory(mounts, mount.c_str(), factory_);
+        gst_rtsp_mount_points_add_factory(mounts, mount.c_str(), factory);
 
         if (authType_ == BASIC) {
             gchar* basic;
             /* allow user and admin to access this resource */
-            gst_rtsp_media_factory_add_role(factory_, "user",
+            gst_rtsp_media_factory_add_role(factory, "user",
                 GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
                 GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE, NULL);
-            gst_rtsp_media_factory_add_role(factory_, "anonymous",
+            gst_rtsp_media_factory_add_role(factory, "anonymous",
                 GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
                 GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, FALSE, NULL);
 
@@ -87,10 +87,10 @@ public:
             g_object_unref(auth);
 
         } else if (authType_ == DIGEST) {
-            gst_rtsp_media_factory_add_role(factory_, "user",
+            gst_rtsp_media_factory_add_role(factory, "user",
                 GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
                 GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE, NULL);
-            gst_rtsp_media_factory_add_role(factory_, "anonymous",
+            gst_rtsp_media_factory_add_role(factory, "anonymous",
                 GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
                 GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, FALSE, NULL);
 
@@ -147,19 +147,37 @@ public:
         return servicePort_;
     }
 
+    void runRtspTest(std::string& url, bool shouldFail = false) {
+        auto rtsp = nabto::RtspClient::create("footrack", url);
+        auto rtpVideoNegotiator = nabto::H264Negotiator::create();
+        auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
+        rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
+
+        std::promise<void> promise;
+
+
+        rtsp->start([&promise, rtsp, shouldFail](std::optional<std::string> error) {
+            BOOST_TEST(error.has_value() == shouldFail);
+            auto ret = rtsp->close([&promise, rtsp]() {
+                promise.set_value();
+                });
+            BOOST_TEST(ret);
+            });
+
+        std::future<void> f = promise.get_future();
+        f.get();
+        rtsp->stop();
+    }
+
 private:
     enum AUTH_TYPE authType_ = NONE;
     std::string username_;
     std::string password_;
 
-    GstRTSPMountPoints* mounts;
     GMainLoop* loop_;
     GstRTSPServer* server_;
-    GstRTSPMediaFactory* factory_;
     guint sourceId_ = 0;
     gint servicePort_ = 0;
-    // GstRTSPAuth* auth_;
-    // GstRTSPToken* token_;
 
     std::thread thread_;
     std::mutex mutex_;
@@ -167,10 +185,6 @@ private:
     static void threadRunner(RtspTestServer* self)
     {
         g_main_loop_run(self->loop_);
-        // g_source_remove(self->sourceId_);
-        // g_object_unref(self->factory_);
-        // g_object_unref(self->server_);
-        // g_main_loop_unref(self->loop_);
     }
 
 };
@@ -197,32 +211,7 @@ BOOST_AUTO_TEST_CASE(can_negotiate_rtsp, *boost::unit_test::timeout(180))
 
     std::string url = "rtsp://127.0.0.1:" + std::to_string(server.getPort()) + "/video";
     // std::string url = "rtsp://127.0.0.1:8554/video";
-    auto rtsp = nabto::RtspClient::create("footrack", url);
-    auto rtpVideoNegotiator = nabto::H264Negotiator::create();
-    auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
-    rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
-
-    std::promise<void> promise;
-
-
-    rtsp->start([&promise, rtsp](std::optional<std::string> error) {
-        if (error.has_value()) {
-            std::cout << "Returned error string: " << error.value() << std::endl;
-            BOOST_TEST(false);
-        }
-        else {
-            std::cout << "SUCCESS!" << std::endl;
-            BOOST_TEST(true);
-        }
-        auto ret = rtsp->close([&promise, rtsp]() {
-            promise.set_value();
-            });
-        BOOST_TEST(ret);
-        });
-
-    std::future<void> f = promise.get_future();
-    f.get();
-    rtsp->stop();
+    server.runRtspTest(url);
     server.stop();
 }
 
@@ -240,16 +229,8 @@ BOOST_AUTO_TEST_CASE(rtsp_client_no_close, *boost::unit_test::timeout(180))
 
     std::promise<void> promise;
 
-
     rtsp->start([&promise, rtsp](std::optional<std::string> error) {
-        if (error.has_value()) {
-            std::cout << "Returned error string: " << error.value() << std::endl;
-            BOOST_TEST(false);
-        }
-        else {
-            std::cout << "SUCCESS!" << std::endl;
-            BOOST_TEST(true);
-        }
+        BOOST_TEST(!error.has_value());
         promise.set_value();
     });
 
@@ -266,32 +247,7 @@ BOOST_AUTO_TEST_CASE(can_digest_auth, *boost::unit_test::timeout(180))
 
     std::string url = "rtsp://username:password@127.0.0.1:" + std::to_string(server.getPort()) + "/video";
     // std::string url = "rtsp://127.0.0.1:8554/video";
-    auto rtsp = nabto::RtspClient::create("footrack", url);
-    auto rtpVideoNegotiator = nabto::H264Negotiator::create();
-    auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
-    rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
-
-    std::promise<void> promise;
-
-
-    rtsp->start([&promise, rtsp](std::optional<std::string> error) {
-        if (error.has_value()) {
-            std::cout << "Returned error string: " << error.value() << std::endl;
-            BOOST_TEST(false);
-        }
-        else {
-            std::cout << "SUCCESS!" << std::endl;
-            BOOST_TEST(true);
-        }
-        auto ret = rtsp->close([&promise, rtsp]() {
-            promise.set_value();
-            });
-        BOOST_TEST(ret);
-        });
-
-    std::future<void> f = promise.get_future();
-    f.get();
-    rtsp->stop();
+    server.runRtspTest(url);
     server.stop();
 }
 
@@ -302,32 +258,29 @@ BOOST_AUTO_TEST_CASE(can_basic_auth, *boost::unit_test::timeout(180))
 
     std::string url = "rtsp://username:password@127.0.0.1:" + std::to_string(server.getPort()) + "/video";
     // std::string url = "rtsp://127.0.0.1:8554/video";
-    auto rtsp = nabto::RtspClient::create("footrack", url);
-    auto rtpVideoNegotiator = nabto::H264Negotiator::create();
-    auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
-    rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
+    server.runRtspTest(url);
+    server.stop();
+}
 
-    std::promise<void> promise;
+BOOST_AUTO_TEST_CASE(can_enforce_digest_auth, *boost::unit_test::timeout(180))
+{
+    nabto::test::RtspTestServer server("username", "password", nabto::test::RtspTestServer::DIGEST);
+    BOOST_TEST(server.run());
 
+    std::string url = "rtsp://usere:passd@127.0.0.1:" + std::to_string(server.getPort()) + "/video";
+    // std::string url = "rtsp://127.0.0.1:8554/video";
+    server.runRtspTest(url, true);
+    server.stop();
+}
 
-    rtsp->start([&promise, rtsp](std::optional<std::string> error) {
-        if (error.has_value()) {
-            std::cout << "Returned error string: " << error.value() << std::endl;
-            BOOST_TEST(false);
-        }
-        else {
-            std::cout << "SUCCESS!" << std::endl;
-            BOOST_TEST(true);
-        }
-        auto ret = rtsp->close([&promise, rtsp]() {
-            promise.set_value();
-            });
-        BOOST_TEST(ret);
-        });
+BOOST_AUTO_TEST_CASE(can_enforce_basic_auth, *boost::unit_test::timeout(180))
+{
+    nabto::test::RtspTestServer server("username", "password", nabto::test::RtspTestServer::BASIC);
+    BOOST_TEST(server.run());
 
-    std::future<void> f = promise.get_future();
-    f.get();
-    rtsp->stop();
+    std::string url = "rtsp://useme:passd@127.0.0.1:" + std::to_string(server.getPort()) + "/video";
+    // std::string url = "rtsp://127.0.0.1:8554/video";
+    server.runRtspTest(url, true);
     server.stop();
 }
 
