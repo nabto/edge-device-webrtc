@@ -31,6 +31,7 @@ public:
     ~RtspClient();
 
     bool start(std::function<void(std::optional<std::string> error)> cb);
+    bool close(std::function<void()> cb);
     void stop();
 
     RtpClientPtr getVideoStream();
@@ -54,7 +55,7 @@ public:
 
 private:
     void setupRtsp();
-    void teardown();
+    bool teardown(std::function<void()> cb);
 
     std::optional<std::string> sendDescribe();
     bool parseDescribeHeaders();

@@ -60,7 +60,13 @@ void RtspClient::stop()
     if (audioRtcp_ != nullptr) {
         audioRtcp_->stop();
     }
-    teardown();
+    curl_->stop();
+    // teardown();
+}
+
+bool RtspClient::close(std::function<void()> cb)
+{
+    return teardown(cb);
 }
 
 RtpClientPtr RtspClient::getVideoStream()
@@ -171,9 +177,8 @@ void RtspClient::setupRtsp() {
     }
 
     const char* range = "npt=now-";
-    std::string uri = sessionControlUrl_;
 
-    if ((res = curl_easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, uri.c_str())) != CURLE_OK ||
+    if ((res = curl_easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, sessionControlUrl_.c_str())) != CURLE_OK ||
         (res = curl_easy_setopt(curl, CURLOPT_RANGE, range)) != CURLE_OK ||
         (res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_PLAY)) != CURLE_OK
     ) {
@@ -181,7 +186,7 @@ void RtspClient::setupRtsp() {
         resolveStart("Failed to create PLAY request");
     }
 
-    if (isDigestAuth_ && !setDigestHeader("PLAY", uri)) {
+    if (isDigestAuth_ && !setDigestHeader("PLAY", sessionControlUrl_)) {
         std::cout << "Failed to set digest auth header" << std::endl;
         return resolveStart("Failed to set Authorization Digest header");
     }
@@ -204,7 +209,7 @@ void RtspClient::setupRtsp() {
     return resolveStart();
 }
 
-void RtspClient::teardown()
+bool RtspClient::teardown(std::function<void()> cb)
 {
     // SENDING TEARDOWN REQ
     CURL* curl = curl_->getCurl();
@@ -214,16 +219,17 @@ void RtspClient::teardown()
     if ((res = curl_easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, sessionControlUrl_.c_str())) != CURLE_OK ||
         (res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_TEARDOWN)) != CURLE_OK) {
         std::cout << "Failed to create RTSP Teardown request" << std::endl;
-        return;
+        return false;
     }
 
     auto self = shared_from_this();
-    curl_->asyncInvoke([self](CURLcode res, uint16_t statusCode) {
+    return curl_->asyncInvoke([self, cb](CURLcode res, uint16_t statusCode) {
         if (res != CURLE_OK) {
             std::cout << "Failed to perform RTSP TEARDOWN request" << std::endl;
-            return;
+        } else {
+            std::cout << "Teardown request complete" << std::endl;
         }
-        std::cout << "Teardown request complete" << std::endl;
+        cb();
     });
 }
 
