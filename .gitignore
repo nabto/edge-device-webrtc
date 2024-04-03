@@ -15,3 +15,4 @@ nabtoBundle.js
 
 /src/library/api/version.cpp
 /examples/simple-webrtc/web-client/nabto_bundle.js
+/test-apps/rtsp-server/build

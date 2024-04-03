@@ -4,6 +4,16 @@ set(src
     rtsp_stream.cpp
 )
 
+option(RTSP_HAS_BASIC_AUTH "disable RTSP client basic auth" ON)
+option(RTSP_HAS_DIGEST_AUTH "disable RTSP client digest auth" ON)
+
+if (RTSP_HAS_BASIC_AUTH)
+    add_definitions(-DNABTO_RTSP_HAS_BASIC_AUTH)
+endif()
+if (RTSP_HAS_DIGEST_AUTH)
+    add_definitions(-DNABTO_RTSP_HAS_DIGEST_AUTH)
+endif()
+
 add_library( rtsp_client "${src}")
 
 find_package(CURL REQUIRED)
@@ -16,3 +26,8 @@ target_link_libraries(rtsp_client
     CURL::libcurl
     webrtc_util
 )
+if (RTSP_HAS_BASIC_AUTH)
+    target_link_libraries(rtsp_client
+    jwt-cpp::jwt-cpp
+    )
+endif()

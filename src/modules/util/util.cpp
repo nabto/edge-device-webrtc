@@ -74,12 +74,17 @@ void CurlAsync::stop()
 bool CurlAsync::asyncInvoke(std::function<void(CURLcode res, uint16_t statusCode)> callback)
 {
     std::cout << "CurlAsync asyncInvoke" << std::endl;
+    bool shouldReinvoke = false;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (!(thread_.get_id() == std::thread::id())) {
             // Thread is already running
-            return false;
+            shouldReinvoke = true;
         }
+    }
+    if (shouldReinvoke) {
+        asyncReinvoke(callback);
+        return true;
     }
     // Thread is not running, no concurrency issues
     callback_ = callback;
@@ -100,6 +105,15 @@ void CurlAsync::asyncReinvoke(std::function<void(CURLcode res, uint16_t statusCo
 CURLcode CurlAsync::reinvoke()
 {
     return curl_easy_perform(curl_);
+}
+
+void CurlAsync::reinvokeStatus(CURLcode* code, uint16_t* status)
+{
+    CURLcode res = curl_easy_perform(curl_);
+    *code = res;
+    if (res == CURLE_OK) {
+        curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, status);
+    }
 }
 
 

@@ -427,7 +427,7 @@ void NabtoDeviceApp::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
 
     NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_, caBundle_);
 
-    oauth->validateToken(token, [self, coap](bool valid, std::string subject) {
+    if (!oauth->validateToken(token, [self, coap](bool valid, std::string subject) {
         if (valid) {
             NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
@@ -446,7 +446,10 @@ void NabtoDeviceApp::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
             nabto_device_coap_error_response(coap, 401, "Invalid token");
         }
         nabto_device_coap_request_free(coap);
-    });
+    })) {
+        nabto_device_coap_error_response(coap, 500, "Internal Error");
+        nabto_device_coap_request_free(coap);
+    }
 
 }
 
