@@ -1,8 +1,12 @@
 #include "rtsp_client.hpp"
 
+#ifdef NABTO_RTSP_HAS_BASIC_AUTH
 #include <jwt-cpp/jwt.h>
+#endif
 
+#ifdef NABTO_RTSP_HAS_DIGEST_AUTH
 #include <openssl/md5.h>
+#endif
 
 #include <sstream>
 #include <cstring>
@@ -392,6 +396,7 @@ std::optional<std::string> RtspClient::sendDescribe()
         std::cout << "Got 401 trying to authenticate" << std::endl;
         size_t pos = curlHeaders_.find("WWW-Authenticate: Basic");
         if (pos != std::string::npos) {
+#ifdef NABTO_RTSP_HAS_BASIC_AUTH
             std::string credStr = username_ + ":" + password_;
             std::cout << "Trying Basic auth with: " << credStr << std::endl;
             auto creds = jwt::base::encode<jwt::alphabet::base64>(credStr);
@@ -399,10 +404,15 @@ std::optional<std::string> RtspClient::sendDescribe()
             curlReqHeaders_ = curl_slist_append(curlReqHeaders_, authHeader_.c_str());
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curlReqHeaders_);
             return sendDescribe();
+#else
+            std::cout << "Server requires Basic Auth, but Basic Auth is disabled" << std::endl;
+            return "Unsupported basic auth required";
+#endif
         }
 
         pos = curlHeaders_.find("WWW-Authenticate: Digest");
         if (pos != std::string::npos) {
+#ifdef NABTO_RTSP_HAS_DIGEST_AUTH
             std::cout << "Trying Digest auth" << std::endl;
             isDigestAuth_ = true;
 
@@ -445,6 +455,10 @@ std::optional<std::string> RtspClient::sendDescribe()
 
             setDigestHeader("DESCRIBE", "rtsp://127.0.0.1:8554/video");
             return sendDescribe();
+#else
+            std::cout << "Server requires Digest Auth, but Digest Auth is disabled" << std::endl;
+            return "Unsupported digest auth required";
+#endif
         }
 
         std::cout << "WWW-Authenticate header missing from 401 response" << std::endl;
@@ -459,6 +473,7 @@ std::optional<std::string> RtspClient::sendDescribe()
 
 bool RtspClient::setDigestHeader(std::string method, std::string url)
 {
+#ifdef NABTO_RTSP_HAS_DIGEST_AUTH
     // HA2
     std::string str2 = method + ":" + url;
     std::cout << "str2: " << str2 << std::endl;
@@ -489,6 +504,9 @@ bool RtspClient::setDigestHeader(std::string method, std::string url)
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curlReqHeaders_);
 
     return true;
+#else
+    return true;
+#endif
 }
 
 void RtspClient::resolveStart(std::optional<std::string> error)

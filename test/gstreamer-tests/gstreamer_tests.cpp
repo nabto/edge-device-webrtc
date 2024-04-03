@@ -240,6 +240,7 @@ BOOST_AUTO_TEST_CASE(rtsp_client_no_close, *boost::unit_test::timeout(180))
     server.stop();
 }
 
+#ifdef NABTO_RTSP_HAS_DIGEST_AUTH
 BOOST_AUTO_TEST_CASE(can_digest_auth, *boost::unit_test::timeout(180))
 {
     nabto::test::RtspTestServer server("username", "password", nabto::test::RtspTestServer::DIGEST);
@@ -250,7 +251,9 @@ BOOST_AUTO_TEST_CASE(can_digest_auth, *boost::unit_test::timeout(180))
     server.runRtspTest(url);
     server.stop();
 }
+#endif
 
+#ifdef NABTO_RTSP_HAS_BASIC_AUTH
 BOOST_AUTO_TEST_CASE(can_basic_auth, *boost::unit_test::timeout(180))
 {
     nabto::test::RtspTestServer server("username", "password", nabto::test::RtspTestServer::BASIC);
@@ -261,6 +264,7 @@ BOOST_AUTO_TEST_CASE(can_basic_auth, *boost::unit_test::timeout(180))
     server.runRtspTest(url);
     server.stop();
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(can_enforce_digest_auth, *boost::unit_test::timeout(180))
 {
