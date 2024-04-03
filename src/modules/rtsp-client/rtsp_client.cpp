@@ -18,6 +18,51 @@ using std::holds_alternative;
 
 namespace nabto {
 
+std::string toHex(uint8_t* data, size_t len)
+{
+    std::stringstream stream;
+    for (size_t i = 0; i < len; i++) {
+        stream << std::setfill('0') << std::setw(2) << std::hex << (int)data[i];
+    }
+    std::string result(stream.str());
+    return result;
+}
+
+
+
+#ifdef NABTO_RTSP_HAS_DIGEST_AUTH
+std::string md5(std::string& message) {
+    EVP_MD_CTX* mdctx;
+    unsigned char md_value[MD5_DIGEST_LENGTH];
+    const EVP_MD* md = EVP_get_digestbyname("MD5");
+    unsigned int md_len;
+
+    if (md == NULL) {
+        std::cout << "Failed to get MD5 digest" << std::endl;
+        return "";
+    }
+
+    mdctx = EVP_MD_CTX_new();
+    if (!EVP_DigestInit_ex2(mdctx, md, NULL)) {
+        std::cout << "Message digest initialization failed." << std::endl;;
+        EVP_MD_CTX_free(mdctx);
+        return "";
+    }
+    if (!EVP_DigestUpdate(mdctx, message.c_str(), message.size())) {
+        std::cout << "Message digest update failed." << std::endl;;
+        EVP_MD_CTX_free(mdctx);
+        return "";
+    }
+    if (!EVP_DigestFinal_ex(mdctx, md_value, &md_len)) {
+        std::cout << "Message digest finalization failed." << std::endl;;
+        EVP_MD_CTX_free(mdctx);
+        return "";
+    }
+    EVP_MD_CTX_free(mdctx);
+    return toHex(md_value, MD5_DIGEST_LENGTH);
+}
+#endif
+
 RtspClientPtr RtspClient::create(const std::string& trackId, const std::string& url)
 {
     return std::make_shared<RtspClient>(trackId, url);
@@ -448,9 +493,7 @@ std::optional<std::string> RtspClient::sendDescribe()
 
             // HA1
             std::string str1 = username_ + ":" + realm_ +":" + password_;
-            unsigned char ha1[MD5_DIGEST_LENGTH];
-            MD5((unsigned char*)str1.c_str(), str1.size(), ha1);
-            ha1_ = toHex(ha1, MD5_DIGEST_LENGTH);
+            ha1_ = md5(str1);
             std::cout << "HA1: " << ha1_ << std::endl;
 
             setDigestHeader("DESCRIBE", "rtsp://127.0.0.1:8554/video");
@@ -477,23 +520,26 @@ bool RtspClient::setDigestHeader(std::string method, std::string url)
     // HA2
     std::string str2 = method + ":" + url;
     std::cout << "str2: " << str2 << std::endl;
-    unsigned char ha2[MD5_DIGEST_LENGTH];
-    MD5((unsigned char*)str2.c_str(), str2.size(), ha2);
-    std::cout << "HA2: " << toHex(ha2, MD5_DIGEST_LENGTH) << std::endl;
+
+    std::string ha2Hex = md5(str2);
+    if (ha2Hex.empty()) {
+        std::cout << "Failed to create MD5 hash" << std::endl;
+        return false;
+    }
+    std::cout << "HA2: " << ha2Hex << std::endl;
 
     // RESPONSE
-    std::string strResp = ha1_ + ":" + nonce_ + ":" + toHex(ha2, MD5_DIGEST_LENGTH);
+    std::string strResp = ha1_ + ":" + nonce_ + ":" + ha2Hex;
 
-    unsigned char response[MD5_DIGEST_LENGTH];
-    MD5((unsigned char*)strResp.c_str(), strResp.size(), response);
+    std::string response = md5(strResp);
 
-    std::cout << "response: " << toHex(response, MD5_DIGEST_LENGTH) << std::endl;
+    std::cout << "response: " << response << std::endl;
 
     authHeader_ = "Authorization: Digest username=\"" + username_ +
         "\", realm=\"" + realm_ +
         "\", nonce=\"" + nonce_ +
         "\", uri=\"" + url +
-        "\", response=\"" + toHex(response, MD5_DIGEST_LENGTH) + "\"";
+        "\", response=\"" + response + "\"";
 
     if (curlReqHeaders_ != NULL) {
         curl_slist_free_all(curlReqHeaders_);
@@ -517,16 +563,6 @@ void RtspClient::resolveStart(std::optional<std::string> error)
         startCb_ = nullptr;
         cb(error);
     }
-}
-
-std::string RtspClient::toHex(uint8_t* data, size_t len)
-{
-    std::stringstream stream;
-    for (size_t i = 0; i < len; i++) {
-        stream << std::setfill('0') << std::setw(2) << std::hex << (int)data[i];
-    }
-    std::string result(stream.str());
-    return result;
 }
 
 bool RtspClient::parseDescribeHeaders()

@@ -69,7 +69,6 @@ private:
     static size_t writeFunc(void* ptr, size_t size, size_t nmemb, void* self);
 
     void resolveStart(std::optional<std::string> error = std::nullopt);
-    std::string toHex(uint8_t* data, size_t len);
 
     bool setDigestHeader(std::string method, std::string url);
 
