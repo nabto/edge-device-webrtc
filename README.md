@@ -186,6 +186,16 @@ The device can also be accessed through Android/iOS Apps, Google Home, and Alexa
 
 ## Advanced build topics
 
+### Testing the RTSP client
+When building with unit tests, CMake will look for GStreamer dependencies. If it finds all required dependencies, it will include the RTSP client tests in the unit test executable. If any dependency is missing, these tests will simply not be included in the unit test executable. On Debian, the dependencies are installed with these apt packages:
+
+* `libgstrtspserver-1.0-dev`
+* `libglib2.0-dev`
+* `libgstreamer1.0-dev`
+* `gstreamer1.0-plugins-ugly`
+
+Additionally, the RTSP client supports both Basic and Digest authentication. These features can be disabled with the CMake options `-DRTSP_HAS_BASIC_AUTH=OFF` and `-DRTSP_HAS_DIGEST_AUTH=OFF`.
+
 ### Building without vcpkg
 
 Vcpkg is great when used to build standard software for common platforms such as
@@ -213,6 +223,11 @@ libcurl being present. It is possible to build a binary which does not depend on
 libcurl. e.g. a binary which does not validate oauth tokens or use the rtsp
 client.
 
+### Building without JWT
+JWT-cpp is used when validating OAuth tokens in the `edge_device_webrtc` example. It is currently not configurable to build the project without this dependency.
+
+The RTSP client module also depends on JWT-cpp for base64 encoding in Basic authentication. This can be disabled with the CMake option `-DRTSP_HAS_BASIC_AUTH=OFF`
+
 ### Building without OpenSSL
 
 OpenSSL is used when validating OAuth tokens, when challenge response validating
@@ -220,6 +235,8 @@ device fingerprints and in libdatachannels dependencies. It is currently not
 configurable to build the project without OpenSSL. The components defined inside
 `nabto/nabto_device_webrtc.hpp` does not directly depend on OpenSSL only
 through dependencies which can be configured to use e.g. MbedTLS instead.
+
+The RTSP client module depends on OpenSSL for digest authentication. This can be disabled with the CMake option `-DRTSP_HAS_DIGEST_AUTH=OFF`
 
 ### Building without CMake
 
