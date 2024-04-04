@@ -1,5 +1,8 @@
 #include "nabto_device.hpp"
 
+#include <plog/Formatters/TxtFormatter.h>
+#include <plog/Appenders/ColorConsoleAppender.h>
+
 #include <event-queue/event_queue_impl.hpp>
 #include <util/util.hpp>
 #include <media-streams/media_stream.hpp>
@@ -53,6 +56,7 @@ void signal_handler(int s)
 }
 
 bool parse_options(int argc, char** argv, json& opts);
+enum plog::Severity plogSeverity(std::string& level);
 
 int main(int argc, char** argv) {
     json opts;
@@ -60,6 +64,14 @@ int main(int argc, char** argv) {
     if (shouldExit) {
         return 0;
     }
+    static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
+
+    auto logLevel = opts["logLevel"].get<std::string>();
+    char* envLvl = std::getenv("NABTO_WEBRTC_LOG_LEVEL");
+    if (envLvl != NULL) {
+        logLevel = std::string(envLvl);
+    }
+    nabto::initLogger(plogSeverity(logLevel), &consoleAppender);
 
     auto eventQueue = nabto::EventQueueImpl::create();
     auto device = example::NabtoDeviceApp::create(opts, eventQueue);
@@ -126,7 +138,6 @@ int main(int argc, char** argv) {
     });
 
     webrtc->setTrackEventCallback([device, medias, rtsp](NabtoDeviceConnectionRef connRef, nabto::MediaTrackPtr track) {
-        std::cout << "Track event for track: " << track->getTrackId() << std::endl;
         if (!nm_iam_check_access(device->getIam(), connRef, "Webrtc:VideoStream", NULL)) {
             track->setErrorState(nabto::MediaTrack::ErrorState::ACCESS_DENIED);
             return;
@@ -161,8 +172,6 @@ int main(int argc, char** argv) {
     auto coapTracksListener = example::NabtoDeviceCoapListener::create(device, NABTO_DEVICE_COAP_POST, coapTracksPath, eventQueue);
 
     coapTracksListener->setCoapCallback([webrtc, device, medias](NabtoDeviceCoapRequest* coap) {
-        std::cout << "POST /webrtc/tracks" << std::endl;
-
         NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
         if (nm_iam_check_access(device->getIam(), ref, "Webrtc:VideoStream", NULL)) {
@@ -193,7 +202,6 @@ int main(int argc, char** argv) {
 
                 for (auto m : medias) {
                     for (auto feed : tracks) {
-                        std::cout << "checking feed: " << feed << std::endl;
                         if (m->isTrack(feed)) {
                             found = true;
                             auto media = m->createMedia(feed);
@@ -214,7 +222,6 @@ int main(int argc, char** argv) {
                 }
 
                 if (found) {
-                    std::cout << "found track ID in feeds returning 201" << std::endl;
                     nabto_device_coap_response_set_code(coap, 201);
                     nabto_device_coap_response_ready(coap);
                 }
@@ -229,7 +236,6 @@ int main(int argc, char** argv) {
             nabto_device_coap_error_response(coap, 401, NULL);
         }
 
-        std::cout << "Freeing coap request" << std::endl;
         nabto_device_coap_request_free(coap);
 
         });
@@ -238,7 +244,6 @@ int main(int argc, char** argv) {
     auto coapTracksDefListener = example::NabtoDeviceCoapListener::create(device, NABTO_DEVICE_COAP_GET, coapTracksDefaultPath, eventQueue);
 
     coapTracksDefListener->setCoapCallback([device](NabtoDeviceCoapRequest* coap) {
-        std::cout << "GET /webrtc/tracks/default" << std::endl;
         NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
         if (nm_iam_check_access(device->getIam(), ref, "Webrtc:VideoStream", NULL)) {
@@ -260,12 +265,10 @@ int main(int argc, char** argv) {
     auto coapVideoListener = example::NabtoDeviceCoapListener::create(device, NABTO_DEVICE_COAP_GET, coapVideoPath, eventQueue);
 
     coapVideoListener->setCoapCallback([webrtc, device, medias](NabtoDeviceCoapRequest* coap) {
-        std::cout << "Got new coap request" << std::endl;
 
         NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
         if (nm_iam_check_access(device->getIam(), ref, "Webrtc:VideoStream", NULL)) {
-            std::cout << "Handling legacy video coap request" << std::endl;
 
             bool found = false;
             std::vector<nabto::MediaTrackPtr> list;
@@ -292,7 +295,6 @@ int main(int argc, char** argv) {
                 std::cout << "Failed to add medias to connection" << std::endl;
                 nabto_device_coap_error_response(coap, 500, "Internal Server Error");
             } else if (found) {
-                std::cout << "found track ID in feeds returning 201" << std::endl;
                 nabto_device_coap_response_set_code(coap, 201);
                 nabto_device_coap_response_ready(coap);
             } else {
@@ -304,7 +306,6 @@ int main(int argc, char** argv) {
             nabto_device_coap_error_response(coap, 401, NULL);
         }
 
-        std::cout << "Freeing coap request" << std::endl;
         nabto_device_coap_request_free(coap);
 
         });
@@ -336,7 +337,7 @@ bool parse_options(int argc, char** argv, json& opts)
             ("s,serverurl", "Optional. Server URL for the Nabto basestation", cxxopts::value<std::string>())
             ("d,deviceid", "Device ID to connect to", cxxopts::value<std::string>())
             ("p,productid", "Product ID to use", cxxopts::value<std::string>())
-            ("log-level", "Optional. The log level (error|info|trace)", cxxopts::value<std::string>()->default_value("info"))
+            ("log-level", "Optional. The log level (error|info|trace)", cxxopts::value<std::string>()->default_value("error"))
             ("k,privatekey", "Raw private key to use", cxxopts::value<std::string>())
             ("r,rtsp", "Use RTSP at the provided url instead of RTP (eg. rtsp://127.0.0.l:8554/video)", cxxopts::value<std::string>())
             ("rtp-port", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
@@ -379,7 +380,14 @@ bool parse_options(int argc, char** argv, json& opts)
             opts["homeDir"] = result["home-dir"].as<std::string>();
         }
 
-        opts["logLevel"] = result["log-level"].as<std::string>();
+        std::string ll = result["log-level"].as<std::string>();
+        if (ll == "error" || ll == "info" || ll == "trace") {
+            opts["logLevel"] = ll;
+        } else {
+            std::cout << "Invalid log level specified. expected: error|info|trace got: " << ll << std::endl;
+            return true;
+        }
+
         if (result.count("rtsp")) {
             opts["rtspUrl"] = result["rtsp"].as<std::string>();
         }
@@ -422,4 +430,21 @@ bool parse_options(int argc, char** argv, json& opts)
     return false;
 }
 
+enum plog::Severity plogSeverity(std::string& logLevel)
+{
+    if (logLevel == "trace") {
+        return plog::Severity::debug;
+    }
+    else if (logLevel == "warn") {
+        return plog::Severity::warning;
+    }
+    else if (logLevel == "info") {
+        return plog::Severity::info;
+    }
+    else if (logLevel == "error") {
+        return plog::Severity::error;
+    }
+    return plog::Severity::none;
+
+}
 

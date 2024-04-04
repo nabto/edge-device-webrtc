@@ -1,10 +1,23 @@
 #pragma once
 
 #include <nabto/nabto_device.h>
+#include <plog/Log.h>
+#include <plog/Init.h>
+#include <plog/Appenders/ColorConsoleAppender.h>
 
 #include <memory>
 #include <functional>
 #include <string>
+
+#define NABTO_LOG_ID 42
+
+#define NPLOGV PLOGV_(NABTO_LOG_ID)
+#define NPLOGD PLOGD_(NABTO_LOG_ID)
+#define NPLOGI PLOGI_(NABTO_LOG_ID)
+#define NPLOGW PLOGW_(NABTO_LOG_ID)
+#define NPLOGE PLOGE_(NABTO_LOG_ID)
+#define NPLOGF PLOGF_(NABTO_LOG_ID)
+#define NPLOGN PLOGN_(NABTO_LOG_ID)
 
 namespace nabto {
 
@@ -63,6 +76,12 @@ struct NabtoDeviceDeleter {
 static NabtoDevicePtr makeNabtoDevice() {
     return std::shared_ptr<NabtoDevice>(nabto_device_new(),
         NabtoDeviceDeleter<NabtoDevice>());
+}
+
+
+static void initLogger(enum plog::Severity severity = plog::Severity::none, plog::IAppender* appender = NULL) {
+    plog::init<NABTO_LOG_ID>(severity, appender);
+    return;
 }
 
 /**

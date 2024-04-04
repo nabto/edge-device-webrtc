@@ -9,6 +9,8 @@ add_custom_target(GENERATE_WEBRTC_VERSION ALL
 
 include_directories(.)
 
+find_package(plog REQUIRED)
+
 set(src
     nabto-listeners/nabto_listeners.cpp
     signaling-stream/signaling_stream.cpp
@@ -28,11 +30,13 @@ add_library( nabto_device_webrtc_static STATIC "${src}")
 target_link_libraries(nabto_device_webrtc
     nabto_device_static
     datachannel-static
+    plog::plog
 )
 
 target_link_libraries(nabto_device_webrtc_static
     nabto_device_static
     datachannel-static
+    plog::plog
 )
 
 set_target_properties(nabto_device_webrtc PROPERTIES PUBLIC_HEADER "../../include/nabto/nabto_device_webrtc.hpp")

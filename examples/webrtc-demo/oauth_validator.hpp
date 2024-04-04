@@ -38,21 +38,21 @@ public:
         auto self = shared_from_this();
         curl_ = nabto::CurlAsync::create();
         if (!curl_) {
-            std::cout << "Failed to create CurlAsync object" << std::endl;
+            NPLOGE << "Failed to create CurlAsync object";
             return false;
         }
         if (!setupJwks()) {
-            std::cout << "Failed to setup JWKS request" << std::endl;
+            NPLOGE << "Failed to setup JWKS request";
             return false;
         }
 
         curl_->asyncInvoke([self, token, cb](CURLcode res, uint16_t statusCode) {
 
-            std::cout << "    JWKS server returned status: " << statusCode << std::endl;
-            std::cout << "    Try parsing jwks_: " << self->jwks_ << std::endl;
+            NPLOGD << "    JWKS server returned status: " << statusCode;
+            NPLOGD << "    Try parsing jwks_: " << self->jwks_;
 
             if (res != CURLE_OK || statusCode > 299 || statusCode < 200) {
-                std::cout << "Curl failed with CURLcode: " << res << " statusCode: " << statusCode << std::endl;
+                NPLOGE << "Curl failed with CURLcode: " << res << " statusCode: " << statusCode;
                 cb(false, "");
                 return;
             }
@@ -64,7 +64,7 @@ public:
                 auto jwks = jwt::parse_jwks(self->jwks_);
                 auto jwk = jwks.get_jwk(decoded_jwt.get_key_id());
 
-                std::cout << "    decoded JWT: " << decoded_jwt.get_payload() << std::endl;
+                NPLOGD << "    decoded JWT: " << decoded_jwt.get_payload();
 
                 std::stringstream aud;
                 aud << "nabto://device?productId=" << self->productId_ << "&deviceId=" << self->deviceId_;
@@ -81,28 +81,28 @@ public:
                     verifier.verify(decoded);
                 } catch (jwt::error::token_verification_exception& ex) {
                     cb(false, "");
-                    std::cout << "Verification failed: " << ex.what() << std::endl;
+                    NPLOGE << "Verification failed: " << ex.what();
                     return;
                 }
 
                 try {
-                    std::cout << "    decoded again sub claim: " << decoded.get_payload_claim("sub") << std::endl;
+                    NPLOGD << "    decoded again sub claim: " << decoded.get_payload_claim("sub").as_string();
                     subject = decoded.get_payload_claim("sub").as_string();
                 } catch (std::exception& ex) {
-                    std::cout << "    decoded claim did not contain a subject" << decoded.get_payload() << std::endl;
+                    NPLOGD << "    decoded claim did not contain a subject" << decoded.get_payload();
                     cb(false, "");
                     return;
                 }
             } catch (std::invalid_argument& ex) {
-                std::cout << "Invalid JWT format" << std::endl;
+                NPLOGE << "Invalid JWT format";
                 cb(false, "");
                 return;
             } catch (std::runtime_error& ex) {
-                std::cout << "Invalid JWK/JSON format" << std::endl;
+                NPLOGE << "Invalid JWK/JSON format";
                 cb(false, "");
                 return;
             }
-            std::cout << "Token valid!" << std::endl;
+            NPLOGD << "Token valid!";
             // TODO: succeed
             cb(true, subject);
         });
@@ -117,12 +117,6 @@ public:
         uint8_t decodedKey[32];
 
         fromHex(rawPrivateKey, decodedKey);
-        std::cout << "Decoded rawKey: " << rawPrivateKey << " to: ";
-
-        for (int i = 0; i < 32; i++) {
-            std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)decodedKey[i];
-        }
-        std::cout << std::dec << std::endl;
 
         BIGNUM* k = BN_bin2bn(reinterpret_cast<const uint8_t*>(decodedKey), 32, NULL);
 
@@ -140,7 +134,7 @@ public:
         ctx = EVP_PKEY_CTX_new_from_name(NULL, "EC", NULL);
         EVP_PKEY_fromdata_init(ctx);
         auto i = EVP_PKEY_fromdata(ctx, &pkey, EVP_PKEY_KEYPAIR, params);
-        std::cout << "EVP_PKEY_fromdata returned: " << i << std::endl;
+        NPLOGD << "EVP_PKEY_fromdata returned: " << i;
 
         std::string privateKey;
         std::string publicKey;
@@ -151,7 +145,7 @@ public:
         char* data;
         long dataLength = BIO_get_mem_data(bio.get(), &data);
         privateKey = std::string(data, dataLength);
-        std::cout << "PrivateKey: " << privateKey << std::endl;
+        NPLOGD << "PrivateKey: " << privateKey;
 
         // const EC_KEY* ecPubKey = EVP_PKEY_get0_EC_KEY(pkey);
         // const EC_POINT* ecPubPoint = EC_KEY_get0_public_key(ecPubKey);
@@ -164,31 +158,31 @@ public:
 
         EC_POINT* ecPubPoint = EC_POINT_new(group);
         i = EC_POINT_mul(group, ecPubPoint, k, nullptr, nullptr, nullptr);
-        std::cout << "EC_POINT_mul returned: " << i << std::endl;
+        NPLOGD << "EC_POINT_mul returned: " << i;
 
 
         i = EC_POINT_get_affine_coordinates(group, ecPubPoint, x, y, bnCtx);
-        std::cout << "Get affine coordinates returned: " << i << std::endl;
+        NPLOGD << "Get affine coordinates returned: " << i;
 
         uint8_t xBin[32];
         i = BN_bn2bin(x, xBin);
-        std::cout << "x bn2bin returned: " << i << std::endl;
+        NPLOGD << "x bn2bin returned: " << i;
 
         uint8_t yBin[32];
         i = BN_bn2bin(y, yBin);
-        std::cout << "y bn2bin returned: " << i << std::endl;
+        NPLOGD << "y bn2bin returned: " << i;
 
         for (int i = 0; i < 32; i++) {
-            std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)yBin[i];
+            NPLOGD << std::setfill('0') << std::setw(2) << std::hex << (int)yBin[i];
         }
 
         const std::string xStr = std::string((char*)xBin, 32);
         auto xEncoded = jwt::base::trim<jwt::alphabet::base64url>(jwt::base::encode<jwt::alphabet::base64url>(xStr));
-        std::cout << "Base64 x: " << xEncoded << std::endl;
+        NPLOGD << "Base64 x: " << xEncoded;
 
         const std::string yStr = std::string((char*)yBin, 32);
         auto yEncoded = jwt::base::trim<jwt::alphabet::base64url>(jwt::base::encode<jwt::alphabet::base64url>(yStr));
-        std::cout << "Base64 y: " << yEncoded << std::endl;
+        NPLOGD << "Base64 y: " << yEncoded;
 
         jwt::algorithm::es256 alg = jwt::algorithm::es256("", privateKey, "", "");
 
@@ -230,29 +224,29 @@ private:
         CURLcode res = CURLE_OK;
         CURL* c = curl_->getCurl();
 
-        std::cout << "Setting URL in curl: " << url_ << std::endl;
+        NPLOGD << "Setting URL in curl: " << url_;
         res = curl_easy_setopt(c, CURLOPT_URL, url_.c_str());
         if (res != CURLE_OK) {
-            std::cout << "Failed to set Curl URL option" << std::endl;
+            NPLOGE << "Failed to set Curl URL option";
             return false;
         }
 
         res = curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, writeFunc);
         if (res != CURLE_OK) {
-            std::cout << "Failed to set Curl write function option" << std::endl;
+            NPLOGE << "Failed to set Curl write function option";
             return false;
         }
 
         res = curl_easy_setopt(c, CURLOPT_WRITEDATA, (void*)&jwks_);
         if (res != CURLE_OK) {
-            std::cout << "Failed to set Curl write function option" << std::endl;
+            NPLOGE << "Failed to set Curl write function option";
             return false;
         }
 
         if (caBundle_.has_value()) {
             res = curl_easy_setopt(c, CURLOPT_CAINFO, caBundle_.value().c_str());
             if (res != CURLE_OK) {
-                std::cout << "Failed to set CA bundle" << std::endl;
+                NPLOGE << "Failed to set CA bundle";
                 return false;
             }
         }
@@ -264,10 +258,10 @@ private:
     jwt::verifier<jwt::default_clock, jwt::traits::kazuho_picojson>& getAllowedAlg(jwt::verifier<jwt::default_clock, jwt::traits::kazuho_picojson>& verifier, const jwt::jwk<json_traits>& jwk)
     {
         if (jwk.get_key_type() == "RSA") {
-            std::cout << "JWK key type was RSA" << std::endl;
+            NPLOGD << "JWK key type was RSA";
             std::string rsaKey;
             if (!keyToRsa(jwk, rsaKey)) {
-                std::cout << "keyToRsa failed" << std::endl;
+                NPLOGE << "keyToRsa failed";
                 // cb(false, "");
                 // TODO: fail
                 return verifier;
@@ -275,17 +269,17 @@ private:
             return verifier.allow_algorithm(jwt::algorithm::rs256(rsaKey, "", "", ""));
         }
         else if (jwk.get_key_type() == "EC") {
-            std::cout << "JWK key type was EC" << std::endl;
+            NPLOGD << "JWK key type was EC";
 
             std::string pubKey;
             if (!keyToEcdsa(jwk, pubKey)) {
-                std::cout << "keyToEcdsa failed" << std::endl;
+                NPLOGE << "keyToEcdsa failed";
                 // cb(false, "");
                 // TODO: fail
                 return verifier;
             }
 
-            std::cout << "Got pubkey: " << pubKey << std::endl;
+            NPLOGD << "Got pubkey: " << pubKey;
 
             return verifier.allow_algorithm(jwt::algorithm::es256(pubKey, "", "", ""));
         }
@@ -380,14 +374,14 @@ private:
         ctx = EVP_PKEY_CTX_new_from_name(NULL, "EC", NULL);
         EVP_PKEY_fromdata_init(ctx);
         auto i = EVP_PKEY_fromdata(ctx, &pkey, EVP_PKEY_KEYPAIR, params);
-        std::cout << "EVP_PKEY_fromdata returned: " << i << std::endl;
+        NPLOGD << "EVP_PKEY_fromdata returned: " << i;
 
         // TODO test status
         BIOPtr bio(BIO_new(BIO_s_mem()));
 
 
         i = PEM_write_bio_PUBKEY(bio.get(), pkey);
-        std::cout << "PEM_write_bio_PUBKEY returned: " << i << std::endl;
+        NPLOGD << "PEM_write_bio_PUBKEY returned: " << i;
 
         EVP_PKEY_free(pkey);
         EVP_PKEY_CTX_free(ctx);
@@ -405,16 +399,16 @@ private:
     static size_t writeFunc(void* ptr, size_t size, size_t nmemb, void* s)
     {
         if (s == stdout) {
-            std::cout << "s was stdout, this is header data";
+            NPLOGD << "s was stdout, this is header data";
             std::string data((char*)ptr, size * nmemb);
-            std::cout << data;
+            NPLOGD << data;
             return size * nmemb;
         }
         try {
             ((std::string*)s)->append((char*)ptr, size * nmemb);
         }
         catch (std::exception& ex) {
-            std::cout << "WriteFunc failure" << std::endl;
+            NPLOGE << "WriteFunc failure";
             return size * nmemb;
         }
         return size * nmemb;
