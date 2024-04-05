@@ -15,12 +15,11 @@ public:
 
     ~VirtualCoapRequest()
     {
-        std::cout << "VirtualCoapRequest Destructor" << std::endl;
     }
 
     bool createRequest(nlohmann::json& request, std::function<void (const nlohmann::json& response)> responeReady)
     {
-        std::cout << "parsed json: " << request.dump() << std::endl;
+        NPLOGD << "parsed json: " << request.dump();
         try {
             coapRequestId_ = request["requestId"].get<std::string>();
             std::string methodStr = request["method"].get<std::string>();
@@ -38,7 +37,7 @@ public:
                 method_ = NABTO_DEVICE_COAP_DELETE;
             }
             else {
-                std::cout << "Invalid coap method string: " << methodStr << std::endl << "Expected one of: GET, POST, PUT, DELETE" << std::endl;
+                NPLOGE << "Invalid coap method string: " << methodStr << "Expected one of: GET, POST, PUT, DELETE";
                 errorResponse_ = "Invalid method";
                 return false;
             }
@@ -49,7 +48,7 @@ public:
             coap_ = nabto_device_virtual_coap_request_new(nabtoConnection_, method_, path.c_str());
 
             if (!payload_.empty()) {
-                std::cout << "Setting payload with content format: " << contentType_ << std::endl;
+                NPLOGD << "Setting payload with content format: " << contentType_;
                 nabto_device_virtual_coap_request_set_payload(coap_, payload_.data(), payload_.size());
                 nabto_device_virtual_coap_request_set_content_format(coap_, contentType_);
             }
@@ -62,7 +61,7 @@ public:
             nabto_device_future_set_callback(fut, coapCallback, this);
         }
         catch (nlohmann::json::exception& ex) {
-            std::cout << "coap createRequest json exception: " << ex.what() << std::endl;
+            NPLOGE << "coap createRequest json exception: " << ex.what();
             return false;
         }
         return true;
@@ -83,18 +82,18 @@ private:
     {
         try {
             payload_ = request["payload"]["data"].get<std::vector<uint8_t>>();
-            std::cout << "Got payload of size " << payload_.size() << std::endl;
+            NPLOGD << "Got payload of size " << payload_.size();
 
-            for (auto i : payload_) {
-                std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)i;
-            }
-            std::cout << std::dec << std::endl;
+            // for (auto i : payload_) {
+            //     std::cout << std::setfill('0') << std::setw(2) << std::hex << (int)i;
+            // }
+            // std::cout << std::dec << std::endl;
             contentType_ = request["contentType"].get<uint16_t>();
 
         }
         catch (std::exception& ec) {
             // there was no payload
-            std::cout << "Failed to get payload" << std::endl;
+            NPLOGD << "Failed to get payload";
 
         }
     }
@@ -173,13 +172,13 @@ void WebrtcCoapChannel::init()
     auto remoteDescription = pc_->remoteDescription();
     auto localDescription = pc_->localDescription();
     if (!remoteDescription || !localDescription) {
-        std::cout << "Missing local or remote description" << std::endl;
+        NPLOGE << "Missing local or remote description";
         return;
     }
     auto remoteFingerprint = pc_->remoteDescription()->fingerprint();
     auto localFingerprint = pc_->localDescription()->fingerprint();
     if (!remoteFingerprint || !localFingerprint) {
-        std::cout << "Missing local or remote fingerprint" << std::endl;
+        NPLOGE << "Missing local or remote fingerprint";
         return;
     }
     std::string cliFp = remoteFingerprint->value;
@@ -187,25 +186,25 @@ void WebrtcCoapChannel::init()
     cliFp.erase(std::remove(cliFp.begin(), cliFp.end(), ':'), cliFp.end());
     devFp.erase(std::remove(devFp.begin(), devFp.end(), ':'), devFp.end());
 
-    std::cout << "Client FP: " << cliFp << std::endl;
-    std::cout << "Device FP: " << devFp << std::endl;
+    NPLOGD << "Client FP: " << cliFp;
+    NPLOGD << "Device FP: " << devFp;
 
     nabto_device_virtual_connection_set_client_fingerprint(nabtoConnection_, cliFp.c_str());
     nabto_device_virtual_connection_set_device_fingerprint(nabtoConnection_, devFp.c_str());
 
     channel_->onMessage([self](rtc::binary data) {
-        std::cout << "Got Data channel binary data"
-            << std::endl;
+        NPLOGD << "Got Data channel binary data"
+           ;
 
         },
         [self](std::string data) {
-            std::cout
+            NPLOGD
                 << "Got data channel string data: " << data
-                << std::endl;
+               ;
             self->handleStringMessage(data);
         });
     channel_->onClosed([self]() {
-        std::cout << "Coap Channel Closed" << std::endl;
+        NPLOGD << "Coap Channel Closed";
         self->channel_ = nullptr;
     });
 }
@@ -225,11 +224,11 @@ void WebrtcCoapChannel::handleStringMessage(const std::string& data)
             }
         }
         else {
-            std::cout << "unhandled message type: " << type << std::endl;
+            NPLOGE << "unhandled message type: " << type;
         }
     }
     catch (nlohmann::json::exception& ex) {
-        std::cout << "coapChannel handleStringmessage json exception: " << ex.what() << std::endl;
+        NPLOGE << "coapChannel handleStringmessage json exception: " << ex.what();
     }
 }
 
@@ -238,7 +237,7 @@ void WebrtcCoapChannel::sendResponse(const nlohmann::json& response)
     try {
         channel_->send(response.dump());
     } catch(std::exception& ex) {
-        std::cout << "Failed to send Coap Response to data channel: " << ex.what() << std::endl;
+        NPLOGE << "Failed to send Coap Response to data channel: " << ex.what();
     }
 }
 

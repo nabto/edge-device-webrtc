@@ -23,7 +23,7 @@ bool parseTurnServers(rtc::Configuration& conf, std::vector<WebrtcConnection::Tu
             host = t.hostname.substr(5);
             proto = "stun:";
         } else {
-            std::cout << "unknown url scheme: " << t.hostname << std::endl;
+            NPLOGE << "unknown url scheme: " << t.hostname;
             return false;
         }
         auto n = host.find("?");
@@ -53,22 +53,22 @@ bool parseTurnServers(rtc::Configuration& conf, std::vector<WebrtcConnection::Tu
         ss << query;
 
         auto server = rtc::IceServer(ss.str());
-        std::cout << "Created server with hostname: " << server.hostname << std::endl
+        NPLOGD << "Created server with hostname: " << server.hostname << std::endl
             << "    port: " << server.port << std::endl
             << "    username: " << server.username << std::endl
             << "    password: " << server.password << std::endl
             << "    type: " << (server.type == rtc::IceServer::Type::Turn ? "TURN" : "STUN") << std::endl
-            << "    RelayType: " << (server.relayType == rtc::IceServer::RelayType::TurnUdp ? "TurnUdp" : (server.relayType == rtc::IceServer::RelayType::TurnTcp ? "TurnTcp" : "TurnTls")) << std::endl;
+            << "    RelayType: " << (server.relayType == rtc::IceServer::RelayType::TurnUdp ? "TurnUdp" : (server.relayType == rtc::IceServer::RelayType::TurnTcp ? "TurnTcp" : "TurnTls"));
         conf.iceServers.push_back(server);
     }
 
     auto server = rtc::IceServer("stun:stun.nabto.net");
-    std::cout << "Created server with hostname: " << server.hostname << std::endl
+    NPLOGD << "Created server with hostname: " << server.hostname << std::endl
         << "    port: " << server.port << std::endl
         << "    username: " << server.username << std::endl
         << "    password: " << server.password << std::endl
         << "    type: " << (server.type == rtc::IceServer::Type::Turn ? "TURN" : "STUN") << std::endl
-        << "    RelayType: " << (server.relayType == rtc::IceServer::RelayType::TurnUdp ? "TurnUdp" : (server.relayType == rtc::IceServer::RelayType::TurnTcp ? "TurnTcp" : "TurnTls")) << std::endl;
+        << "    RelayType: " << (server.relayType == rtc::IceServer::RelayType::TurnUdp ? "TurnUdp" : (server.relayType == rtc::IceServer::RelayType::TurnTcp ? "TurnTcp" : "TurnTls"));
     conf.iceServers.push_back(server);
     return true;
 }

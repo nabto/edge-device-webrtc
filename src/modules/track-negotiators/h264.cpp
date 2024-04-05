@@ -8,7 +8,7 @@ int H264Negotiator::match(MediaTrackPtr track)
     // We must go through all codecs in the Media Description and remove all codecs other than the one we support.
     // We start by getting and parsing the SDP
     auto sdp = track->getSdp();
-    std::cout << "    Got offer SDP: " << sdp << std::endl;
+    NPLOGD << "    Got offer SDP: " << sdp;
     // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
     if (sdp[0] == 'm' && sdp[1] == '=') {
         sdp = sdp.substr(2);
@@ -25,7 +25,7 @@ int H264Negotiator::match(MediaTrackPtr track)
             r = media.rtpMap(pt);
         } catch (std::exception& ex) {
             // Since we are getting the description based on the list of payload types this should never fail, but just in case.
-            std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+            NPLOGE << "Bad rtpMap for pt: " << pt;
             continue;
         }
         // If this payload type is H264/90000
@@ -48,22 +48,22 @@ int H264Negotiator::match(MediaTrackPtr track)
                 // Found better match use this
                 media.removeRtpMap(rtp->payloadType);
                 rtp = r;
-                std::cout << "FOUND RTP BETTER codec match!!! " << pt << std::endl;
+                NPLOGD << "FOUND RTP BETTER codec match!!! " << pt;
             }
             else if (found) {
-                std::cout << "h264 pt: " << pt << " no match, removing" << std::endl;
+                NPLOGD << "h264 pt: " << pt << " no match, removing";
                 media.removeRtpMap(pt);
                 continue;
             }
             else {
-                std::cout << "FOUND RTP codec match!!! " << pt << std::endl;
+                NPLOGD << "FOUND RTP codec match!!! " << pt;
             }
             found = true; // found a match, just remove any remaining rtpMaps
             rtp = r;
-            std::cout << "Format: " << rtp->format << " clockRate: " << rtp->clockRate << " encParams: " << rtp->encParams << std::endl;
-            std::cout << "rtcp fbs:" << std::endl;
+            NPLOGD << "Format: " << rtp->format << " clockRate: " << rtp->clockRate << " encParams: " << rtp->encParams;
+            NPLOGD << "rtcp fbs:";
             for (auto s : rtp->rtcpFbs) {
-                std::cout << "   " << s << std::endl;
+                NPLOGD << "   " << s;
             }
 
             // Our implementation does not support these feedback extensions, so we remove them (if they exist)
@@ -75,7 +75,7 @@ int H264Negotiator::match(MediaTrackPtr track)
         }
         else {
             // We remove any payload type not matching our codec
-            std::cout << "pt: " << pt << " no match, removing" << std::endl;
+            NPLOGD << "pt: " << pt << " no match, removing";
             media.removeRtpMap(pt);
         }
     }
@@ -87,7 +87,7 @@ int H264Negotiator::match(MediaTrackPtr track)
     media.addSSRC(ssrc(), trackId);
     // Generate the SDP string of the updated Media Description
     auto newSdp = media.generateSdp();
-    std::cout << "    Setting new SDP: " << newSdp << std::endl;
+    NPLOGD << "    Setting new SDP: " << newSdp;
     // and set the new SDP on the track
     track->setSdp(newSdp);
     return rtp->payloadType;

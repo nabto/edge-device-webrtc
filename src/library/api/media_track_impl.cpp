@@ -10,7 +10,6 @@ MediaTrackImpl::MediaTrackImpl(const std::string& trackId, const std::string& sd
 
 MediaTrackImpl::~MediaTrackImpl()
 {
-    std::cout << "MediaTrackImpl destructor" << std::endl;
 }
 
 

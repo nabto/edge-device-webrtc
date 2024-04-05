@@ -1,6 +1,7 @@
 #pragma once
 #include <nabto/nabto_device.h>
 #include <nabto/nabto_device_experimental.h>
+#include <nabto/nabto_device_webrtc.hpp>
 
 #include <curl/curl.h>
 
@@ -84,17 +85,17 @@ private:
 
         dev_ = nabto_device_new();
         if (dev_ == NULL) {
-            std::cout << "Failed to create device context" << std::endl;
+            NPLOGE << "Failed to create device context";
             return;
         }
 
         if ((ec = nabto_device_set_private_key_secp256r1(dev_, key, 32)) != NABTO_DEVICE_EC_OK) {
-            std::cout << "Failed to set private key, ec=" << nabto_device_error_get_message(ec) << std::endl;
+            NPLOGE << "Failed to set private key, ec=" << nabto_device_error_get_message(ec);
             return;
         }
 
         if ((ec = nabto_device_get_device_fingerprint(dev_, &fp_)) != NABTO_DEVICE_EC_OK) {
-            std::cout << "Failed to get fingerprint, ec=" << nabto_device_error_get_message(ec) << std::endl;
+            NPLOGE << "Failed to get fingerprint, ec=" << nabto_device_error_get_message(ec);
             return;
         }
 

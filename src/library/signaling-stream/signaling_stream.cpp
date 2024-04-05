@@ -19,7 +19,6 @@ SignalingStream::SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* strea
 
 SignalingStream::~SignalingStream()
 {
-    std::cout << "SignalingStream Destructor" << std::endl;
     nabto_device_stream_free(stream_);
     nabto_device_future_free(future_);
     nabto_device_future_free(writeFuture_);
@@ -58,7 +57,7 @@ void SignalingStream::streamAccepted(NabtoDeviceFuture* future, NabtoDeviceError
         self->accepted_ = true;
         if (self->webrtcConnection_) {
             // If ice servers request returned first we start reading here
-            std::cout << "Stream accepted after ICE servers. Start reading" << std::endl;
+            NPLOGD << "Stream accepted after ICE servers. Start reading";
             self->readObjLength();
         }
     });
@@ -81,14 +80,14 @@ void SignalingStream::iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceE
     self->queue_->post([self, ec]() {
         if (ec == NABTO_DEVICE_EC_OK) {
             self->parseIceServers();
-            std::cout << "Got ICE servers, creating channel" << std::endl;
+            NPLOGD << "Got ICE servers, creating channel";
         } else {
-            std::cout << "Failed to get ICE servers. Continuing without TURN" << std::endl;
+            NPLOGE << "Failed to get ICE servers. Continuing without TURN";
         }
         self->createWebrtcConnection();
         if (self->accepted_) {
             // If accepted returned first we start reading here
-            std::cout << "Ice servers after stream accept. Start reading" << std::endl;
+            NPLOGD << "Ice servers after stream accept. Start reading";
             self->readObjLength();
         }
         nabto_device_ice_servers_request_free(self->iceReq_);
@@ -134,7 +133,7 @@ void SignalingStream::createWebrtcConnection() {
 
 void SignalingStream::sendSignalligObject(const std::string& data)
 {
-    std::cout << "Sending signaling object " << data << std::endl;
+    NPLOGD << "Sending signaling object " << data;
     writeBuffers_.push(data);
 
     tryWriteStream();
@@ -148,7 +147,7 @@ void SignalingStream::tryWriteStream()
         return;
     }
     if (writeBuf_ != NULL) {
-        std::cout << "Write while writing" << std::endl;
+        NPLOGD << "Write while writing";
         return;
     }
 
@@ -182,7 +181,7 @@ void SignalingStream::streamWriteCallback(NabtoDeviceFuture* future, NabtoDevice
 void SignalingStream::readObjLength()
 {
     if (closed_) {
-        std::cout << "Read after closed. Self destruct" << std::endl;
+        NPLOGD << "Read after closed. Self destruct";
         return cleanup();
     }
     reading_ = true;
@@ -206,7 +205,7 @@ void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError 
         return;
     }
     if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
+        NPLOGI << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up";
         self->queue_->post([self]() {
             self->reading_ = false;
             self->cleanup();
@@ -222,7 +221,7 @@ void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError 
 void SignalingStream::handleReadObjLen()
 {
     if (readLength_ < 4 || objectLength_ < 1) {
-        std::cout << "Bad Length read: " << objectLength_ << std::endl;
+        NPLOGE << "Bad Length read: " << objectLength_;
         return readObjLength();
     }
     return readObject(objectLength_);
@@ -231,7 +230,7 @@ void SignalingStream::handleReadObjLen()
 void SignalingStream::readObject(uint32_t len)
 {
     if (closed_) {
-        std::cout << "Read after closed. Self destruct" << std::endl;
+        NPLOGD << "Read after closed. Self destruct";
         return cleanup();
     }
     reading_ = true;
@@ -255,7 +254,7 @@ void SignalingStream::hasReadObject(NabtoDeviceFuture* future, NabtoDeviceError 
         return;
     }
     if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up" << std::endl;
+        NPLOGE << "Read failed with " << nabto_device_error_get_message(ec) << " cleaning up";
         self->queue_->post([self]() {
             self->reading_ = false;
             self->cleanup();
@@ -292,12 +291,12 @@ void SignalingStream::handleReadObject()
             sendTurnServers();
         }
         else {
-            std::cout << "Unknown object type: " << type << std::endl;
+            NPLOGE << "Unknown object type: " << type;
         }
     }
     catch (nlohmann::json::parse_error& ex) {
-        std::cout << "Failed to parse JSON: " << ex.what() << std::endl;
-        std::cout << "parsing: " << std::string((char*)objectBuffer_, objectLength_) << std::endl;
+        NPLOGE << "Failed to parse JSON: " << ex.what();
+        NPLOGE << "parsing: " << std::string((char*)objectBuffer_, objectLength_);
         free(objectBuffer_);
         objectBuffer_ = NULL;
         return readObjLength();
@@ -367,7 +366,7 @@ void SignalingStream::closeStream()
 {
     if (closed_) {
         if (!closing_ && !reading_ && writeBuf_ == NULL) {
-            std::cout << "Got close when closed. Not reading not writing not closing. cleaning up" << std::endl;
+            NPLOGD << "Got close when closed. Not reading not writing not closing. cleaning up";
             cleanup();
         }
         return;
@@ -375,7 +374,6 @@ void SignalingStream::closeStream()
     closed_ = true;
     closing_ = true;
     if (webrtcConnection_ != nullptr) {
-        std::cout << "   with webrtcConnection stop()" << std::endl;
         webrtcConnection_->stop();
         webrtcConnection_ = nullptr;
     }
@@ -386,17 +384,17 @@ void SignalingStream::closeStream()
 
 void SignalingStream::streamClosed(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
 {
-    std::cout << "stream closed" << std::endl;
+    NPLOGD << "stream closed";
     (void)ec;
     nabto_device_future_free(future);
     SignalingStream* self = (SignalingStream*)userData;
     self->queue_->post([self]() {
         self->closing_ = false;
         if (!self->reading_ && self->writeBuf_ == NULL) {
-            std::cout << "Not reading && writeBuf is NULL" << std::endl;
+            NPLOGD << "Not reading && writeBuf is NULL";
             self->cleanup();
         } else {
-            std::cout << "reading or writing on closed. Awaiting self destuct" << std::endl;
+            NPLOGD << "reading or writing on closed. Awaiting self destuct";
         }
     });
 }

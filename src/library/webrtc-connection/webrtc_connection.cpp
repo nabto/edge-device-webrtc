@@ -23,7 +23,6 @@ WebrtcConnection::WebrtcConnection(SignalingStreamPtr sigStream, NabtoDevicePtr 
 
 WebrtcConnection::~WebrtcConnection()
 {
-    std::cout << "WebrtcConnection Destructor" << std::endl;
     if (nabtoConnection_) {
         nabto_device_virtual_connection_free(nabtoConnection_);
     }
@@ -38,7 +37,7 @@ void WebrtcConnection::stop()
 }
 
 void WebrtcConnection::handleOfferAnswer(const std::string& data, const nlohmann::json& metadata) {
-    std::cout << "Got Offer/Answer: " << data << std::endl;
+    NPLOGD << "Got Offer/Answer: " << data;
      if (!pc_) {
         createPeerConnection();
     }
@@ -48,27 +47,27 @@ void WebrtcConnection::handleOfferAnswer(const std::string& data, const nlohmann
 
         handleSignalingMessage(remDesc, metadata);
     } catch (std::invalid_argument& ex) {
-        std::cout << "GOT INVALID ARGUMENT: " << ex.what() << std::endl;
+        NPLOGE << "Got invalid argument: " << ex.what();
     }
     catch (nlohmann::json::exception& ex) {
-        std::cout << "handleOffer json exception: " << ex.what() << std::endl;
+        NPLOGE << "handleOffer json exception: " << ex.what();
     }
 
 }
 
 void WebrtcConnection::handleIce(const std::string& data)
 {
-    std::cout << "Got ICE: " << data << std::endl;
+    NPLOGD << "Got ICE: " << data;
     try {
         nlohmann::json candidate = nlohmann::json::parse(data);
         rtc::Candidate cand(candidate["candidate"].get<std::string>(), candidate["sdpMid"].get<std::string>());
         pc_->addRemoteCandidate(cand);
     }
     catch (nlohmann::json::exception& ex) {
-        std::cout << "handleIce json exception: " << ex.what() << std::endl;
+        NPLOGE << "handleIce json exception: " << ex.what();
     } catch (std::logic_error& ex) {
         if (!this->ignoreOffer_) {
-           std::cout << "Failed to add remote ICE candidate with logic error: " << ex.what() << std::endl;
+           NPLOGE << "Failed to add remote ICE candidate with logic error: " << ex.what();
         }
     }
 }
@@ -79,7 +78,7 @@ void WebrtcConnection::createPeerConnection()
     rtc::Configuration conf;
 
     if (!webrtc_util::parseTurnServers(conf, turnServers_)) {
-        std::cout << "Failed to parce TURN server configurations" << std::endl;
+        NPLOGE << "Failed to parce TURN server configurations";
         state_ = FAILED;
         if (self->eventHandler_) {
             self->eventHandler_(self->state_);
@@ -92,7 +91,7 @@ void WebrtcConnection::createPeerConnection()
     pc_ = std::make_shared<rtc::PeerConnection>(conf);
 
     pc_->onStateChange([self](rtc::PeerConnection::State state) {
-        std::cout << "State: " << state << std::endl;
+        NPLOGD << "State: " << state;
         self->queue_->post([self, state]() {
             if (state == rtc::PeerConnection::State::Connected) {
                 self->state_ = CONNECTED;
@@ -123,14 +122,14 @@ void WebrtcConnection::createPeerConnection()
 
     pc_->onSignalingStateChange(
         [self](rtc::PeerConnection::SignalingState state) {
-            std::cout << "Signalling State: " << state << std::endl;
+            NPLOGD << "Signalling State: " << state;
             self->queue_->post([self, state]() {
                 self->handleSignalingStateChange(state);
             });
         });
 
     pc_->onLocalCandidate([self](rtc::Candidate cand) {
-        std::cout << "Got local candidate: " << cand << std::endl;
+        NPLOGD << "Got local candidate: " << cand;
         self->queue_->post([self, cand]() {
             if (self->canTrickle_) {
                 nlohmann::json candidate;
@@ -144,13 +143,13 @@ void WebrtcConnection::createPeerConnection()
     });
 
     pc_->onTrack([self](std::shared_ptr<rtc::Track> track) {
-        std::cout << "Got Track event" << std::endl;
+        NPLOGD << "Got Track event";
         // Track events are triggered by setRemoteDescription, so they are already running on the event queue. This is likely the same for datachannels, however, tracks must be handled synchronously since they must remove all unacceptable codecs from the SDP.
         self->handleTrackEvent(track);
     });
 
     pc_->onDataChannel([self](std::shared_ptr<rtc::DataChannel> incoming) {
-        std::cout << "Got new datachannel: " << incoming->label() << std::endl;
+        NPLOGD << "Got new datachannel: " << incoming->label();
         self->queue_->post([self, incoming]() {
             self->handleDatachannelEvent(incoming);
         });
@@ -158,7 +157,7 @@ void WebrtcConnection::createPeerConnection()
 
     pc_->onGatheringStateChange(
         [self](rtc::PeerConnection::GatheringState state) {
-            std::cout << "Gathering State: " << state << std::endl;
+            NPLOGD << "Gathering State: " << state;
             self->queue_->post([self, state]() {
                 if (state == rtc::PeerConnection::GatheringState::Complete && !self->canTrickle_) {
                     auto description = self->pc_->localDescription();
@@ -168,11 +167,11 @@ void WebrtcConnection::createPeerConnection()
                     auto data = message.dump();
                     self->updateMetaTracks();
                     if (description->type() == rtc::Description::Type::Offer) {
-                        std::cout << "Sending offer: " << std::string(description.value()) << std::endl;
+                        NPLOGD << "Sending offer: " << std::string(description.value());
                         self->sigStream_->signalingSendOffer(data, self->metadata_);
                     }
                     else {
-                        std::cout << "Sending answer: " << std::string(description.value()) << std::endl;
+                        NPLOGD << "Sending answer: " << std::string(description.value());
                         self->sigStream_->signalingSendAnswer(data, self->metadata_);
                     }
                 }
@@ -187,7 +186,7 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
         rtc::PeerConnection::SignalingState::HaveLocalOffer) {
     } else if (state == rtc::PeerConnection::SignalingState::HaveRemoteOffer) {
     } else {
-        std::cout << "Got unhandled signaling state: " << state << std::endl;
+        NPLOGD << "Got unhandled signaling state: " << state;
         return;
     }
     if (canTrickle_ || pc_->gatheringState() == rtc::PeerConnection::GatheringState::Complete) {
@@ -199,7 +198,7 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
 
 void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
 {
-    std::cout << "Track event metadata: " << metadata_.dump() << std::endl;
+    NPLOGD << "Track event metadata: " << metadata_.dump();
     auto media = createMediaTrack(track);
     mediaTracks_.push_back(media);
     acceptTrack(media);
@@ -207,14 +206,14 @@ void WebrtcConnection::handleTrackEvent(std::shared_ptr<rtc::Track> track)
 
 MediaTrackPtr WebrtcConnection::createMediaTrack(std::shared_ptr<rtc::Track> track)
 {
-    std::cout << "createMediaTrack metadata: " << metadata_.dump() << std::endl;
+    NPLOGD << "createMediaTrack metadata: " << metadata_.dump();
     auto mid = track->mid();
     auto sdp = track->description().generateSdp();
     try {
         auto metaTracks = metadata_["tracks"].get<std::vector<nlohmann::json>>();
         for (auto mt : metaTracks) {
             if (mt["mid"].get<std::string>() == mid) {
-                std::cout << "Found metaTrack: " << mt.dump() << std::endl;
+                NPLOGD << "Found metaTrack: " << mt.dump();
                 auto trackId = mt["trackId"].get<std::string>();
                 auto media = MediaTrack::create(trackId, sdp);
                 media->getImpl()->setRtcTrack(track);
@@ -222,9 +221,9 @@ MediaTrackPtr WebrtcConnection::createMediaTrack(std::shared_ptr<rtc::Track> tra
             }
         }
     } catch (nlohmann::json::exception& ex) {
-        std::cout << "createMediaTrack json exception: " << ex.what() << std::endl;
+        NPLOGE << "createMediaTrack json exception: " << ex.what();
     } catch (std::runtime_error& ex) {
-        std::cout << "createMediaTrack runtime error: " << ex.what() << std::endl;
+        NPLOGE << "createMediaTrack runtime error: " << ex.what();
     }
     std::string noTrack;
     auto media = MediaTrack::create(noTrack, sdp);
@@ -234,10 +233,10 @@ MediaTrackPtr WebrtcConnection::createMediaTrack(std::shared_ptr<rtc::Track> tra
 void WebrtcConnection::acceptTrack(MediaTrackPtr track)
 {
     if (trackCb_) {
-        std::cout << "accepttrack with callback" << std::endl;
+        NPLOGD << "accepttrack with callback";
         trackCb_(getConnectionRef(), track);
         if (track->getImpl()->getErrorState() != MediaTrack::ErrorState::OK) {
-            std::cout << "track callback set a track error, not listening for messages" << std::endl;
+            NPLOGD << "track callback set a track error, not listening for messages";
             return;
         }
         auto self = shared_from_this();
@@ -248,7 +247,7 @@ void WebrtcConnection::acceptTrack(MediaTrackPtr track)
             });
         });
     } else {
-        std::cout << "acceptTrack WITHOUT CALLBACK" << std::endl;
+        NPLOGE << "acceptTrack without callback";
         track->setErrorState(MediaTrack::ErrorState::UNKNOWN_ERROR);
     }
 }
@@ -263,11 +262,11 @@ void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> 
         coapChannel_ = WebrtcCoapChannel::create(pc_, incoming, device_, nabtoConnection_, queue_);
     }
     else if (incoming->label().find("stream-") == 0) {
-        std::cout << "Stream channel opened: " << incoming->label() << std::endl;
-        std::cout << "Stream port: " << incoming->label().substr(7) << std::endl;
+        NPLOGD << "Stream channel opened: " << incoming->label();
+        NPLOGD << "Stream port: " << incoming->label().substr(7);
         try {
         uint32_t port = std::stoul(incoming->label().substr(7));
-        std::cout << "Stream port: " << port << std::endl;
+        NPLOGD << "Stream port: " << port;
 
         if (nabtoConnection_ == NULL) {
             nabtoConnection_ = nabto_device_virtual_connection_new(device_.get());
@@ -275,7 +274,7 @@ void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> 
         }
         streamChannel_ = WebrtcFileStreamChannel::create(incoming, device_, nabtoConnection_, port, queue_);
         } catch (std::exception &e) {
-            std::cout << "error " << e.what() << std::endl;
+            NPLOGE << "error " << e.what();
         }
     }
 
@@ -319,7 +318,7 @@ void WebrtcConnection::createTracks(const std::vector<MediaTrackPtr>& tracks)
                 });
             });
     }
-    std::cout << "createTracks Set local description" << std::endl;
+    NPLOGD << "createTracks Set local description";
     pc_->setLocalDescription();
 }
 
@@ -351,7 +350,7 @@ void WebrtcConnection::updateMetaTracks() {
                 }
             }
         } catch (nlohmann::json::exception& ex) {
-            std::cout << "Update metadata json exception: " << ex.what() << std::endl;
+            NPLOGE << "Update metadata json exception: " << ex.what();
             continue;
         }
         if (!found) {
@@ -391,7 +390,7 @@ void WebrtcConnection::handleSignalingMessage(rtc::optional<rtc::Description> de
 
         ignoreOffer_ = !polite_ && offerCollision;
         if (ignoreOffer_) {
-            std::cout << "The device is impolite and there is a collision so we are discarding the received offer" << std::endl;
+            NPLOGD << "The device is impolite and there is a collision so we are discarding the received offer";
             return;
         }
 
@@ -402,7 +401,7 @@ void WebrtcConnection::handleSignalingMessage(rtc::optional<rtc::Description> de
         }
       }
     } catch (std::exception& err) {
-        std::cout << err.what() << std::endl;
+        NPLOGE << "Failed to handle signaling message:" << err.what();
     }
 }
 
@@ -425,7 +424,7 @@ void WebrtcConnection::sendDescription(rtc::optional<rtc::Description> descripti
         }
         else
         {
-            std::cout << "Something happened which should not happen, please debug the code." << std::endl;
+            NPLOGE << "Something happened which should not happen, please debug the code.";
         }
     }
 }

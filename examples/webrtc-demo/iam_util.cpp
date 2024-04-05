@@ -101,7 +101,7 @@ bool NabtoDeviceApp::createDefaultIamState()
         stateFile << stateStr;
     }
     catch (std::exception& ex) {
-        std::cout << "Failed to write to state file: " << iamStatePath_ << " exception: " << ex.what() << std::endl;
+        NPLOGE << "Failed to write to state file: " << iamStatePath_ << " exception: " << ex.what();
         nm_iam_state_free(state);
         return false;
     }
@@ -207,7 +207,7 @@ bool NabtoDeviceApp::createDefaultIamConfig()
     char* jsonConfig = NULL;
     if (!nm_iam_serializer_configuration_dump_json(conf, &jsonConfig)) {
         nm_iam_configuration_free(conf);
-        std::cout << "Failed to serialize IAM config" << std::endl;
+        NPLOGE << "Failed to serialize IAM config";
         return false;
     }
     try {
@@ -215,7 +215,7 @@ bool NabtoDeviceApp::createDefaultIamConfig()
         configFile << jsonConfig;
     }
     catch (std::exception& ex) {
-        std::cout << "Failed to write to IAM config file: " << iamConfPath_ << " exception: " << ex.what() << std::endl;
+        NPLOGE << "Failed to write to IAM config file: " << iamConfPath_ << " exception: " << ex.what();
         nm_iam_serializer_string_free(jsonConfig);
         nm_iam_configuration_free(conf);
         return false;
