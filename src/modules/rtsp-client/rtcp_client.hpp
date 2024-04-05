@@ -47,7 +47,7 @@ public:
 
     void start()
     {
-        std::cout << "Starting RTP Client listen on port " << port_ << std::endl;
+        NPLOGI << "Starting RTCP Client listen on port " << port_;
         stopped_ = false;
         rtcpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
         struct sockaddr_in addr = {};
@@ -57,7 +57,7 @@ public:
         if (bind(rtcpSock_, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0) {
             std::string err = "Failed to bind UDP socket on 0.0.0.0:";
             err += std::to_string(port_);
-            std::cout << err << std::endl;
+            NPLOGE << "Failed to bind RCTP socket: " << err;
             throw std::runtime_error(err);
         }
 
@@ -69,14 +69,14 @@ public:
 
     void stop()
     {
-        std::cout << "RtcpClient stopped" << std::endl;
+        NPLOGD << "RtcpClient stopped";
         stopped_ = true;
         if (rtcpSock_ != 0) {
             shutdown(rtcpSock_, SHUT_RDWR);
             close(rtcpSock_);
         }
         rtcpThread_.join();
-        std::cout << "RtcpClient thread joined" << std::endl;
+        NPLOGD << "RtcpClient thread joined";
     }
 
 private:
@@ -101,7 +101,7 @@ private:
             }
 
             if (len < 28) {
-                std::cout << "too small: " << len << "<" << 28 << std::endl;
+                // std::cout << "too small: " << len << "<" << 28 << std::endl;
                 continue;
             }
             auto sr = reinterpret_cast<rtc::RtcpSr*>(buffer);

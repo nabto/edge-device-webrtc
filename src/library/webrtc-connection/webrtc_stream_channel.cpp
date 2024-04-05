@@ -20,21 +20,21 @@ void WebrtcFileStreamChannel::init()
 {
     auto self = shared_from_this();
     channel_->onMessage([self](rtc::binary data) {
-        std::cout << "Got stream Data channel binary data"
-            << std::endl;
+        NPLOGD << "Got stream Data channel binary data"
+           ;
         },
         [self](std::string data) {
-            std::cout
+            NPLOGD
                 << "Got stream data channel string data: " << data
-                << std::endl;
+               ;
     });
 
     channel_->onClosed([self]() {
-        std::cout << "Stream Channel Closed" << std::endl;
+        NPLOGD << "Stream Channel Closed";
         self->channel_ = nullptr;
     });
 
-    std::cout << "Stream channel created, opening nabto stream" << std::endl;
+    NPLOGD << "Stream channel created, opening nabto stream";
 
     future_ = nabto_device_future_new(device_.get());
     nabtoStream_= nabto_device_virtual_stream_new(nabtoConnection_);
@@ -46,11 +46,11 @@ void WebrtcFileStreamChannel::streamOpened(NabtoDeviceFuture* fut, NabtoDeviceEr
 {
     WebrtcFileStreamChannel* self = (WebrtcFileStreamChannel*)data;
     if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "Stream open failed" << std::endl;
+        NPLOGE << "Stream open failed";
         // TODO: handle error
         return;
     }
-    std::cout << "Nabto stream opened" << std::endl;
+    NPLOGD << "Nabto stream opened";
     self->queue_->post([self]() {
         self->startRead();
     });
@@ -66,18 +66,18 @@ void WebrtcFileStreamChannel::streamReadCb(NabtoDeviceFuture* fut, NabtoDeviceEr
 {
     WebrtcFileStreamChannel* self = (WebrtcFileStreamChannel*)data;
     if (ec == NABTO_DEVICE_EC_EOF) {
-        std::cout << "Reached EOF" << std::endl;
+        NPLOGD << "Reached EOF";
         self->queue_->post([self]() {
             self->channel_->close();
             self->channel_ = nullptr;
         });
         return;
     } else if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "Stream read failed with: " << nabto_device_error_get_message(ec) << std::endl;
+        NPLOGE << "Stream read failed with: " << nabto_device_error_get_message(ec);
         // TODO: handle error
         return;
     }
-    std::cout << "Read " << self->readLen_ << "bytes from nabto stream" << std::endl;
+    NPLOGD << "Read " << self->readLen_ << "bytes from nabto stream";
     // TODO: consider handling return value and react to buffered messages
     self->queue_->post([self]() {
         self->channel_->send((rtc::byte*)self->readBuffer_, self->readLen_);

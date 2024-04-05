@@ -15,17 +15,15 @@ CurlAsyncPtr CurlAsync::create()
 
 CurlAsync::CurlAsync()
 {
-    std::cout << "CurlAsync constructor" << std::endl;
 
 }
 
 CurlAsync::~CurlAsync()
 {
-    std::cout << "CurlAsync destructor" << std::endl;
     try {
         thread_ = std::thread();
     } catch (std::exception& ex) {
-        std::cout << "~CurlAsync exception " << ex.what() << std::endl;
+        NPLOGE << "~CurlAsync exception " << ex.what();
     }
     curl_easy_cleanup(curl_);
     curl_global_cleanup();
@@ -36,23 +34,23 @@ bool CurlAsync::init()
     CURLcode res;
     res = curl_global_init(CURL_GLOBAL_ALL);
     if (res != CURLE_OK) {
-        std::cout << "Failed to initialize Curl global" << std::endl;
+        NPLOGE << "Failed to initialize Curl global";
         return false;
     }
     curl_ = curl_easy_init();
     if (!curl_) {
-        std::cout << "Failed to initialize Curl easy" << std::endl;
+        NPLOGE << "Failed to initialize Curl easy";
         return false;
     }
 
     res = curl_easy_setopt(curl_, CURLOPT_VERBOSE, 0L);
     if (res != CURLE_OK) {
-        std::cout << "Failed to set curl logging option" << std::endl;
+        NPLOGE << "Failed to set curl logging option";
         return false;
     }
     res = curl_easy_setopt(curl_, CURLOPT_NOPROGRESS, 1L);
     if (res != CURLE_OK) {
-        std::cout << "Failed to set Curl progress option" << std::endl;
+        NPLOGE << "Failed to set Curl progress option";
         return false;
     }
     return true;
@@ -60,7 +58,7 @@ bool CurlAsync::init()
 
 void CurlAsync::stop()
 {
-    std::cout << "CurlAsync stopped" << std::endl;
+    NPLOGD << "CurlAsync stopped";
     {
         std::lock_guard<std::mutex> lock(mutex_);
         stopped_ = true;
@@ -68,12 +66,12 @@ void CurlAsync::stop()
     if (thread_.joinable()) {
         thread_.join();
     }
-    std::cout << "CurlAsync stop joined" << std::endl;
+    NPLOGD << "CurlAsync stop joined";
 }
 
 bool CurlAsync::asyncInvoke(std::function<void(CURLcode res, uint16_t statusCode)> callback)
 {
-    std::cout << "CurlAsync asyncInvoke" << std::endl;
+    NPLOGD << "CurlAsync asyncInvoke";
     bool shouldReinvoke = false;
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -96,7 +94,7 @@ bool CurlAsync::asyncInvoke(std::function<void(CURLcode res, uint16_t statusCode
 
 void CurlAsync::asyncReinvoke(std::function<void(CURLcode res, uint16_t statusCode)> callback)
 {
-    std::cout << "CurlAsync asyncReinvoke" << std::endl;
+    NPLOGD << "CurlAsync asyncReinvoke";
     std::lock_guard<std::mutex> lock(mutex_);
     callback_ = callback;
     reinvoke_ = true;

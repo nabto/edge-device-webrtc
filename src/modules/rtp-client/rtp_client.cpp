@@ -25,7 +25,6 @@ RtpClient::RtpClient(const std::string& trackId)
 
 RtpClient::~RtpClient()
 {
-    std::cout << "RtpClient destructor" << std::endl;
 }
 
 
@@ -46,7 +45,7 @@ bool RtpClient::matchMedia(MediaTrackPtr media)
 {
     int pt = negotiator_->match(media);
     if (pt == 0) {
-        std::cout << "    CODEC MATCHING FAILED!!! " << std::endl;
+        NPLOGE << "    CODEC MATCHING FAILED!!! ";
         return false;
     }
     return true;
@@ -83,21 +82,20 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     mediaTracks_[ref] = track;
-    std::cout << "Adding RTP connection pt " << track.srcPayloadType << "->" << track.dstPayloadType << std::endl;
+    NPLOGD << "Adding RTP connection pt " << track.srcPayloadType << "->" << track.dstPayloadType;
     if (stopped_) {
         start();
     }
 
     if (negotiator_->direction() != TrackNegotiator::SEND_ONLY) {
         // We are also gonna receive data
-        std::cout << "    adding Track receiver" << std::endl;
+        NPLOGD << "    adding Track receiver";
        auto self = shared_from_this();
        track.track->setReceiveCallback([self, track](uint8_t* buffer, size_t length) {
             auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
 
             uint8_t pt = rtp->payloadType();
             if (pt != track.dstPayloadType) {
-                // std::cout << "INVALID PT: " << (int)pt << " != " << track.dstPayloadType << std::endl;
                 return;
             }
 
@@ -115,7 +113,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
 
 void RtpClient::removeConnection(NabtoDeviceConnectionRef ref)
 {
-    std::cout << "Removing Nabto Connection from RTP" << std::endl;
+    NPLOGD << "Removing Nabto Connection from RTP";
     size_t mediaTracksSize = 0;
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -124,23 +122,23 @@ void RtpClient::removeConnection(NabtoDeviceConnectionRef ref)
             mediaTracks_.erase(ref);
         }
         catch (std::out_of_range& ex) {
-            std::cout << "Tried to remove non-existing connection" << std::endl;
+            NPLOGE << "Tried to remove non-existing connection";
         }
         mediaTracksSize = mediaTracks_.size();
     }
     if (mediaTracksSize == 0) {
-        std::cout << "Connection was last one. Stopping" << std::endl;
+        NPLOGD << "Connection was last one. Stopping";
         stop();
     }
     else {
-        std::cout << "Still " << mediaTracksSize << " Connections. Not stopping" << std::endl;
+        NPLOGD << "Still " << mediaTracksSize << " Connections. Not stopping";
     }
 
 }
 
 void RtpClient::start()
 {
-    std::cout << "Starting RTP Client listen on port " << videoPort_ << std::endl;
+    NPLOGI << "Starting RTP Client listen on port " << videoPort_;
     stopped_ = false;
     videoRtpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in addr = {};
@@ -150,7 +148,7 @@ void RtpClient::start()
     if (bind(videoRtpSock_, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) < 0) {
         std::string err = "Failed to bind UDP socket on 0.0.0.0:";
         err += std::to_string(videoPort_);
-        std::cout << err << std::endl;
+        NPLOGE << "Failed to bind RTP socket: " << err;
         throw std::runtime_error(err);
     }
 
@@ -162,7 +160,7 @@ void RtpClient::start()
 
 void RtpClient::stop()
 {
-    std::cout << "RtpClient stopped" << std::endl;
+    NPLOGD << "RtpClient stopped";
     bool stopped = false;
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -180,7 +178,7 @@ void RtpClient::stop()
         videoThread_.join();
     }
     mediaTracks_.clear();
-    std::cout << "RtpClient thread joined" << std::endl;
+    NPLOGD << "RtpClient thread joined";
 }
 
 void RtpClient::rtpVideoRunner(RtpClient* self)
@@ -227,7 +225,7 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
                 try {
                     value.track->send((uint8_t*)buffer, len);
                 } catch (std::runtime_error& ex) {
-                    std::cout << "Failed to send on track: " << ex.what() << std::endl;
+                    NPLOGE << "Failed to send on track: " << ex.what();
                 }
             }
         }

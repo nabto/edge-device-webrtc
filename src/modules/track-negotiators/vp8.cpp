@@ -7,7 +7,7 @@ int VP8Negotiator::match(MediaTrackPtr track)
     // We must go through all codecs in the Media Description and remove all codecs other than the one we support.
     // We start by getting and parsing the SDP
     auto sdp = track->getSdp();
-    std::cout << "    Got offer SDP: " << sdp << std::endl;
+    NPLOGD << "    Got offer SDP: " << sdp;
     // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
     if (sdp[0] == 'm' && sdp[1] == '=') {
         sdp = sdp.substr(2);
@@ -23,12 +23,12 @@ int VP8Negotiator::match(MediaTrackPtr track)
             r = media.rtpMap(pt);
         } catch (std::exception& ex) {
             // Since we are getting the description based on the list of payload types this should never fail, but just in case.
-            std::cout << "Bad rtpMap for pt: " << pt << std::endl;
+            NPLOGE << "Bad rtpMap for pt: " << pt;
             continue;
         }
         // If this payload type is vp8/90000 we found a match
         if (r != NULL && r->format == "vp8" && r->clockRate == 90000) {
-            std::cout << "Found RTP codec for audio! pt: " << r->payloadType << std::endl;
+            NPLOGD << "Found RTP codec for audio! pt: " << r->payloadType;
             // Our implementation does not support these feedback extensions, so we remove them (if they exist)
             // Though the technically correct way to do it, trial and error has shown this has no practial effect.
             rtp = r;
@@ -50,7 +50,7 @@ int VP8Negotiator::match(MediaTrackPtr track)
     media.addSSRC(ssrc(), trackId);
     // Generate the SDP string of the updated Media Description
     auto newSdp = media.generateSdp();
-    std::cout << "    Setting new SDP: " << newSdp << std::endl;
+    NPLOGD << "    Setting new SDP: " << newSdp;
     // and set the new SDP on the track
     track->setSdp(newSdp);
     return rtp->payloadType;
