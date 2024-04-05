@@ -3,7 +3,6 @@
 #include <nabto/nabto_device.h>
 #include <plog/Log.h>
 #include <plog/Init.h>
-#include <plog/Appenders/ColorConsoleAppender.h>
 
 #include <memory>
 #include <functional>
