@@ -17,7 +17,7 @@ Below, 3 different approaches to building the example application are shown:
 
 You can see how to run the resulting executable from approaches 2 and 3 in the [Running](#running-the-example) section.
 
-For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html)).
+For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html).
 
 
 ## Obtaining the Source
