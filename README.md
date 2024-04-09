@@ -1,10 +1,8 @@
 # Edge Device Webrtc
 
-This WebRTC example implementation for Nabto Embedded SDK allows clients to establish WebRTC connections to the device using Nabto. This WebRTC connection can then be used to stream one-way video and two-way audio feeds from either RTP or RTSP. WebRTC data channels can also be used to invoke CoAP endpoint in the device as well as streaming data through Nabto Streaming.
+This WebRTC example implementation for Nabto Embedded SDK allows clients to establish WebRTC connections to a target device using Nabto. This WebRTC connection can then be used to stream one-way video and two-way audio feeds from either RTP or RTSP. WebRTC data channels can also be used to invoke CoAP endpoints in the device as well as streaming data through Nabto Streaming.
 
 In addition to WebRTC, this example also implements OAuth to authenticate connections in the IAM module.
-
-Note that Firefox' WebRTC support is limited and is not currently supported by the example application.
 
 Note that the example applications use the RTP client in `./src/modules/rtp-client`. This is used to relay RTP packets between a UDP socket and WebRTC. This implementation is based on Unix sockets, and will not work on Windows.
 
@@ -14,9 +12,13 @@ Below, 3 different approaches to building the example application are shown:
 2. [Cross building the example for a Linux based camera](#cross-building-the-example-for-a-linux-based-camera): Cross build the example application for Linux based camera using a Docker based build container you can customize with your own specific toolchain
 3. [Building the example for desktop](#building-the-example-for-desktop): Build the example application using build tools in your development environment
 
-> :bulb: **To build a binary to be installed on a camera, pick [approach 2](#cross-building-the-example-for-a-linux-based-camera)**.
+> [!TIP]
+> **To build a binary to be installed on a camera, pick [approach 2](#cross-building-the-example-for-a-linux-based-camera)**.
 
 You can see how to run the resulting executable from approaches 2 and 3 in the [Running](#running-the-example) section.
+
+For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html)).
+
 
 ## Obtaining the Source
 
@@ -63,16 +65,16 @@ The software is meant to be run on embedded systems such as Linux based cameras,
 these cameras often come with their own toolchains and libraries tailored to
 the platform.
 
-A Dockerfile is provided in `./cross_build` that demonstrates how to cross compile the example application and all dependencies. The example build is for `aarch64`. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image by modifying the Dockerfile as follows:
+Dockerfiles are provided in `./cross_build` that demonstrate how to cross compile the example application and all dependencies. For instance, see `Dockerfile.aarch64` for an arm64 cross build that works with e.g. Raspberry Pi. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image as follows (similar to the `Dockerfile.sigmastar` example):
 
 ```
-RUN apt-get update && apt-get install git build-essential cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu curl file tar -y
+RUN apt-get update && apt-get install git build-essential cmake curl file tar -y
 COPY camera-toolchain.tar.gz /opt/
 RUN tar xfz /opt/camera-toolchain.tar.gz -C /opt/
 
 ENV CC=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
 ENV CXX=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++
-ARG OPENSSL_TARGET=linux-aarch64
+ARG OPENSSL_TARGET=linux-armv4
 ```
 The `OPENSSL_TARGET` is typically `linux-aarch64` for 64-bit ARM based targets and `linux-armv4` for 32-bit.
 
@@ -82,18 +84,33 @@ build the individual dependency libraries and then builds it into a binary.
 The build can be run as follows:
 
 ```
-docker build -f cross_build/Dockerfile --progress plain -t edge_device_webrtc_aarch64 .
+docker build -f cross_build/Dockerfile.sigmastar --progress plain -t edge_device_webrtc_sigmastar .
 ```
 
-> :heavy_exclamation_mark: You need to call the command from this directory such that the correct context is provided for docker.
+> [!IMPORTANT]
+> You need to call the command from this directory to ensure the correct context is provided for docker.
 
-The default Dockerfile has a commented out section at the bottom that shows how to run the resulting default aarch64 binary through qemu such that it is indeed possible to show that the compiled binary works on something else than the system used to compile the binary.
+To access the build output, create an instance of the container and copy the binary to the current directory on the host machine:
 
-If enabling the qemu section at the bottom of the default Dockerfile, the resulting default aarch64 binary can be run by starting and interactive session with `docker run --rm -it edge_device_webrtc_aarch64`. Then the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
+```
+$ docker create --name tmp_container edge_device_webrtc_sigmastar
+$ docker cp tmp_container:/tmp/install/bin/edge_device_webrtc .
+$ file edge_device_webrtc
+edge_device_webrtc: ELF 32-bit LSB executable, ARM, EABI5 version 1 (GNU/Linux), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, BuildID[sha1]=c85e0ee63d691499630efeae4e2b00e22068cc22, for GNU/Linux 3.2.0, with debug_info, not stripped
+```
+
+#### Testing the cross build without a physical target
+
+The aarch64 Dockerfile (`Dockerfile.aarch64`) has a commented out section at the bottom that shows how to run the resulting aarch64 binary through qemu; this demonstrates that the compiled binary works on something else than the system used to compile the binary.
+
+If enabling the qemu section at the bottom of `Dockerfile.aarch64`, the resulting aarch64 binary can be run by starting and interactive session with `docker run --rm -it edge_device_webrtc_aarch64`. Then the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
 
 ## Building the example for desktop
 
-If building for the desktop, e.g. for development or testing without Docker, build scripts are provided that build dependencies through [vcpkg](https://vcpkg.io/en/). For embedded systems, it is simpler to build using a Docker container as outlined above. The default vcpkg build will fail for embedded systems and is not supported.
+If building for the desktop, e.g. for development or testing without Docker, build scripts are provided that build dependencies through [vcpkg](https://vcpkg.io/en/).
+
+> [!IMPORTANT]
+> For embedded systems, it is simpler to build using a Docker container as outlined above. The default vcpkg build will fail for embedded systems and is not supported.
 
 ### Tools
 You need the following tools to build the example:
@@ -121,7 +138,8 @@ cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
 make -j16 install
 ```
 
-> :heavy_exclamation_mark: If your build host has limited resources and you try to limit the build concurrency using e.g. `make -j1`, you also need to explicitly limit the vcpkg build concurrency using `export VCPKG_MAX_CONCURRENCY=1` prior to running cmake.
+> [!IMPORTANT]
+> If your build host has limited resources and you try to limit the build concurrency using e.g. `make -j1`, you also need to explicitly limit the vcpkg build concurrency using `export VCPKG_MAX_CONCURRENCY=1` prior to running cmake.
 
 
 ## Running the example
