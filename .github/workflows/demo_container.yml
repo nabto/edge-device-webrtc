@@ -45,3 +45,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=public.ecr.aws/u3v4y4v4/nabto-edge-device-webrtc
+          cache-to: type=inline
