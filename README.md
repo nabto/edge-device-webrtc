@@ -17,6 +17,9 @@ Below, 3 different approaches to building the example application are shown:
 
 You can see how to run the resulting executable from approaches 2 and 3 in the [Running](#running-the-example) section.
 
+For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html)).
+
+
 ## Obtaining the Source
 
 This Github repo references various 3rd party components as submodules. So remember to clone recursively:
@@ -62,7 +65,7 @@ The software is meant to be run on embedded systems such as Linux based cameras,
 these cameras often come with their own toolchains and libraries tailored to
 the platform.
 
-Dockerfiles are provided in `./cross_build` that demonstrate how to cross compile the example application and all dependencies. For instance, see `Dockerfile.aarch64` for an arm64 cross build that works with e.g. Raspberry Pi. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image as follows (as seen in `Dockerfile.sigmastar`)
+Dockerfiles are provided in `./cross_build` that demonstrate how to cross compile the example application and all dependencies. For instance, see `Dockerfile.aarch64` for an arm64 cross build that works with e.g. Raspberry Pi. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image as follows (similar to the `Dockerfile.sigmastar` example):
 
 ```
 RUN apt-get update && apt-get install git build-essential cmake curl file tar -y
