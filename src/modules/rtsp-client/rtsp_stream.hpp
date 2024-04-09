@@ -64,7 +64,7 @@ public:
             return MediaTrack::create(trackId, sdp);
         }
         else {
-            std::cout << "crateMedia called with invalid track ID" << std::endl;
+            NPLOGE << "crateMedia called with invalid track ID";
             return nullptr;
         }
 

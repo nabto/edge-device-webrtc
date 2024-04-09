@@ -56,9 +56,6 @@ QueueEvent EventQueueImpl::pop()
         }
         // work was removed which broke the wait, however, it was not the last work, and there was no events to handle, going back to wait
     }
-    // // This should not happen!
-    // std::cout << "THIS SHOULD NOT HAPPEN! Wait done queue empty, workCount: " << workCount_ << std::endl;
-    // return nullptr;
 }
 
 

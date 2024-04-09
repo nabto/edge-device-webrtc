@@ -46,7 +46,7 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
             caBundle_ = opts["caBundle"].get<std::string>();
         }
     } catch (std::exception& e ) {
-        std::cout << "Missing input option. Options must include: productId, deviceId, rawPrivateKey" << std::endl;
+        NPLOGE << "Missing input option. Options must include: productId, deviceId, rawPrivateKey";
         return false;
     }
 
@@ -78,6 +78,10 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
 
     try {
         logLevel_ = opts["logLevel"].get<std::string>();
+        char* envLvl = std::getenv("NABTO_LOG_LEVEL");
+        if (envLvl != NULL) {
+            logLevel_ = std::string(envLvl);
+        }
         if (logLevel_ == "trace") {
             iamLogLevel_ = NN_LOG_SEVERITY_TRACE;
         }
@@ -98,7 +102,7 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
     if (nabto_device_set_log_std_out_callback(NULL) != NABTO_DEVICE_EC_OK ||
         nabto_device_set_log_level(NULL, logLevel_.c_str()) != NABTO_DEVICE_EC_OK)
     {
-        std::cout << "failed to set loglevel or logger" << std::endl;
+        NPLOGE << "failed to set loglevel or logger";
         return false;
     }
 
@@ -106,7 +110,7 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
     iamLog_.userData = this;
 
     if (!nm_iam_init(&iam_, device_.get(), &iamLog_)) {
-        std::cout << "Failed to initialize IAM module" << std::endl;
+        NPLOGE << "Failed to initialize IAM module";
         return false;
     }
     return true;
@@ -125,7 +129,7 @@ bool NabtoDeviceApp::start()
     }
 
     if ((ec = nabto_device_set_private_key_secp256r1(device_.get(), key, 32)) != NABTO_DEVICE_EC_OK) {
-        std::cout << "Failed to set private key, ec=" << nabto_device_error_get_message(ec) << std::endl;
+        NPLOGE << "Failed to set private key, ec=" << nabto_device_error_get_message(ec);
         return false;
     }
 
@@ -134,13 +138,13 @@ bool NabtoDeviceApp::start()
     }
 
     if (!setupIam(fp)) {
-        std::cout << "Failed to initialize IAM module" << std::endl;
+        NPLOGE << "Failed to initialize IAM module";
         return false;
     }
 
-    std::cout << "Nabto Embedded SDK version: " << nabto_device_version() << std::endl;
+    NPLOGI << "Nabto Embedded SDK version: " << nabto_device_version();
 
-    std::cout << "Device: " << productId_ << "." << deviceId_ << " with fingerprint: [" << fp << "]" << std::endl;;
+    NPLOGI << "Device: " << productId_ << "." << deviceId_ << " with fingerprint: [" << fp << "]";
     nabto_device_string_free(fp);
 
     if (nabto_device_set_product_id(device_.get(), productId_.c_str()) != NABTO_DEVICE_EC_OK ||
@@ -160,7 +164,7 @@ bool NabtoDeviceApp::start()
     ec = nabto_device_future_wait(fut);
     nabto_device_future_free(fut);
     if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "Failed to start device, ec=" << nabto_device_error_get_message(ec) << std::endl;
+        NPLOGE << "Failed to start device, ec=" << nabto_device_error_get_message(ec);
         return false;
     }
 
@@ -182,16 +186,16 @@ bool NabtoDeviceApp::start()
 
 bool NabtoDeviceApp::resetIam()
 {
-    std::cout << "Resetting IAM to default configuration and state" << std::endl;
+    NPLOGI << "Resetting IAM to default configuration and state";
     if (!createDefaultIamConfig()) {
-        std::cout << "Failed to create IAM config file" << std::endl;
+        NPLOGE << "Failed to create IAM config file";
         return false;
     }
     if (!createDefaultIamState()) {
-        std::cout << "Failed to create IAM state file" << std::endl;
+        NPLOGE << "Failed to create IAM state file";
         return false;
     }
-    std::cout << "Reset successfull" << std::endl;
+    NPLOGI << "Reset successfull";
     return true;
 }
 
@@ -201,9 +205,10 @@ bool NabtoDeviceApp::setupIam(const char* fp)
         auto configFile = std::ifstream(iamConfPath_);
         if (iamReset_ || !configFile.good()) {
             // file does not exist
-            std::cout << "IAM was reset or config file does not exist at: " << iamConfPath_ << std::endl << "  Creating one with default values" << std::endl;
+            NPLOGI << "IAM was reset or config file does not exist at: " << iamConfPath_;
+            NPLOGI << "  Creating one with default values";
             if (!createDefaultIamConfig()) {
-                std::cout << "Failed to create IAM config file" << std::endl;
+                NPLOGE << "Failed to create IAM config file";
                 return false;
             }
             configFile = std::ifstream(iamConfPath_);
@@ -213,13 +218,13 @@ bool NabtoDeviceApp::setupIam(const char* fp)
         struct nm_iam_configuration* conf = nm_iam_configuration_new();
         nm_iam_serializer_configuration_load_json(conf, confStr.c_str(), NULL);
         if (!nm_iam_load_configuration(&iam_, conf)) {
-            std::cout << "Failed to load IAM configuration" << std::endl;
+            NPLOGE << "Failed to load IAM configuration";
             nm_iam_configuration_free(conf);
             return false;
         }
     }
     catch (std::exception& ex) {
-        std::cout << "Failed to load IAM config" << std::endl;
+        NPLOGE << "Failed to load IAM config";
         return false;
     }
 
@@ -227,9 +232,10 @@ bool NabtoDeviceApp::setupIam(const char* fp)
         auto stateFile = std::ifstream(iamStatePath_);
         if (iamReset_ || !stateFile.good()) {
             // file does not exist
-            std::cout << "IAM was reset or state file does not exist at: " << iamStatePath_ << std::endl << "  Creating one with default values" << std::endl;
+            NPLOGI << "IAM was reset or state file does not exist at: " << iamStatePath_;
+            NPLOGI << "  Creating one with default values";
             if (!createDefaultIamState()) {
-                std::cout << "Failed to create IAM state file" << std::endl;
+                NPLOGE << "Failed to create IAM state file";
                 return false;
             }
             stateFile = std::ifstream(iamStatePath_);
@@ -242,7 +248,7 @@ bool NabtoDeviceApp::setupIam(const char* fp)
         try {
             auto initialUsername = iamState["InitialPairingUsername"].get<std::string>();
             auto user = nm_iam_state_find_user_by_username(state, initialUsername.c_str());
-            if (user && (user->fingerprint == NULL && user->oauthSubject == NULL)) {
+            if (user && (nn_llist_empty(&user->fingerprints) && user->oauthSubject == NULL)) {
                 // We have an initial user and it is unpaired
                 // Creating invite link
                 std::cout << "################################################################" << std::endl << "# Initial user pairing link:    " << std::endl << "# " << frontendUrl_ << "?p=" << productId_ << "&d=" << deviceId_ << "&u=" << initialUsername;
@@ -262,14 +268,14 @@ bool NabtoDeviceApp::setupIam(const char* fp)
         }
 
         if (!nm_iam_load_state(&iam_, state)) {
-            std::cout << "Failed to load IAM state" << std::endl;
+            NPLOGE << "Failed to load IAM state";
             nm_iam_state_free(state);
             return false;
         }
 
     }
     catch (std::exception& ex) {
-        std::cout << "Failed to load IAM state" << ex.what() << std::endl;
+        NPLOGE << "Failed to load IAM state" << ex.what();
         return false;
     }
 
@@ -280,12 +286,10 @@ bool NabtoDeviceApp::setupIam(const char* fp)
 
 void NabtoDeviceApp::iamStateChanged(struct nm_iam* iam, void* userdata)
 {
-    std::cout << "IAM state changed callback" << std::endl;
     NabtoDeviceApp* self = (NabtoDeviceApp*)userdata;
     char* stateCStr;
     if (nm_iam_serializer_state_dump_json(nm_iam_dump_state(iam), &stateCStr)) {
         std::string state(stateCStr);
-        std::cout << "    Writing state: " << state << std::endl;
         std::ofstream stateFile(self->iamStatePath_);
         stateFile << state;
     }
@@ -304,14 +308,13 @@ bool NabtoDeviceApp::setupFileStream()
         {
             // if we don't already have an open file stream
             // and IAM allowed the stream
-            std::cout << "Got new file stream" << std::endl;
             self->fileStream_ = stream;
             self->me_ = self; // keep self alive until stream is closed
             nabto_device_stream_accept(self->fileStream_, self->fileStreamFut_);
             nabto_device_future_set_callback(self->fileStreamFut_, fileStreamAccepted, self.get());
         }
         else {
-            std::cout << "FileStream opened, but " << (self->fileStream_ == NULL ? "IAM rejected it" : "another is already opened") << std::endl;
+            NPLOGI << "FileStream opened, but " << (self->fileStream_ == NULL ? "IAM rejected it" : "another is already opened");
             nabto_device_stream_free(stream);
         }
 
@@ -325,14 +328,13 @@ void NabtoDeviceApp::fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceEr
 {
     NabtoDeviceApp* self = (NabtoDeviceApp*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "file stream accept failed" << std::endl;
+        NPLOGE << "file stream accept failed";
         self->evQueue_->post([self]() {
             self->fileStream_ = NULL;
             self->me_ = nullptr;
         });
         return;
     }
-    std::cout << "File stream accepted" << std::endl;
     self->evQueue_->post([self]() {
         self->inputFile_ = std::ifstream("nabto.png", std::ifstream::binary);
         self->doStreamFile();
@@ -342,14 +344,13 @@ void NabtoDeviceApp::fileStreamAccepted(NabtoDeviceFuture* future, NabtoDeviceEr
 void NabtoDeviceApp::doStreamFile()
 {
     if (!inputFile_.eof()) {
-        std::cout << "Input not EOF, reading file" << std::endl;
         inputFile_.read(fileBuffer_.data(), fileBuffer_.size());
         std::streamsize s = inputFile_.gcount();
-        std::cout << "Read " << s << "bytes, writing to nabto stream" << std::endl;
+        NPLOGD << "Read " << s << "bytes, writing to nabto stream";
         nabto_device_stream_write(fileStream_, fileStreamFut_, fileBuffer_.data(), s);
         nabto_device_future_set_callback(fileStreamFut_, writeFileStreamCb, this);
     } else {
-        std::cout << "File reached EOF, closing nabto stream" << std::endl;
+        NPLOGD << "File reached EOF, closing nabto stream";
         nabto_device_stream_close(fileStream_, fileStreamFut_);
         nabto_device_future_set_callback(fileStreamFut_, closeFileStreamCb, this);
     }
@@ -360,14 +361,13 @@ void NabtoDeviceApp::writeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceErr
 {
     NabtoDeviceApp* self = (NabtoDeviceApp*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "file stream write failed" << std::endl;
+        NPLOGD << "file stream write failed";
         self->evQueue_->post([self]() {
             self->fileStream_ = NULL;
             self->me_ = nullptr;
         });
         return;
     }
-    std::cout << "nabto stream write callback" << std::endl;
     self->evQueue_->post([self]() {
         self->doStreamFile();
     });
@@ -378,14 +378,14 @@ void NabtoDeviceApp::closeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceErr
 {
     NabtoDeviceApp* self = (NabtoDeviceApp*)userData;
     if (ec != NABTO_DEVICE_EC_OK) {
-        std::cout << "file stream close failed" << std::endl;
+        NPLOGI << "file stream close failed";
         self->evQueue_->post([self]() {
             self->fileStream_ = NULL;
             self->me_ = nullptr;
         });
         return;
     }
-    std::cout << "Stream closed" << std::endl;
+    NPLOGD << "Stream closed";
     nabto_device_stream_abort(self->fileStream_);
     // We never read, we are not writing, we are done closeing, so we do not have unresolved futures.
     nabto_device_stream_free(self->fileStream_);
@@ -405,7 +405,7 @@ void NabtoDeviceApp::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
     uint16_t cf; // expect content format text/plain: cf == 0
     NabtoDeviceError ec;
     if ((ec = nabto_device_coap_request_get_content_format(coap, &cf)) != NABTO_DEVICE_EC_OK || cf != 0) {
-        std::cout << "  Invalid content format: " << cf << " ec: " << nabto_device_error_get_message(ec) << std::endl;
+        NPLOGE << "  Invalid content format: " << cf << " ec: " << nabto_device_error_get_message(ec);
         nabto_device_coap_error_response(coap, 400, "invalid content format");
         nabto_device_coap_request_free(coap);
         return;
@@ -427,7 +427,7 @@ void NabtoDeviceApp::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
 
     NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_, caBundle_);
 
-    oauth->validateToken(token, [self, coap](bool valid, std::string subject) {
+    if (!oauth->validateToken(token, [self, coap](bool valid, std::string subject) {
         if (valid) {
             NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
@@ -446,7 +446,10 @@ void NabtoDeviceApp::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
             nabto_device_coap_error_response(coap, 401, "Invalid token");
         }
         nabto_device_coap_request_free(coap);
-    });
+    })) {
+        nabto_device_coap_error_response(coap, 500, "Internal Error");
+        nabto_device_coap_request_free(coap);
+    }
 
 }
 
@@ -455,7 +458,7 @@ void NabtoDeviceApp::handleChallengeRequest(NabtoDeviceCoapRequest* coap) {
     uint16_t cf; // expect content format application/json: cf == 50
     NabtoDeviceError ec;
     if ((ec = nabto_device_coap_request_get_content_format(coap, &cf)) != NABTO_DEVICE_EC_OK || cf != NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON) {
-        std::cout << "  Invalid content format: " << cf << " ec: " << nabto_device_error_get_message(ec) << std::endl;
+        NPLOGE << "  Invalid content format: " << cf << " ec: " << nabto_device_error_get_message(ec);
         nabto_device_coap_error_response(coap, 400, "invalid content format");
         nabto_device_coap_request_free(coap);
         return;
@@ -476,13 +479,11 @@ void NabtoDeviceApp::handleChallengeRequest(NabtoDeviceCoapRequest* coap) {
         nlohmann::json challenge = nlohmann::json::parse(payloadStr);
         nonce = challenge["challenge"].get<std::string>();
     } catch (std::exception& e ) {
-        std::cout << "Failed to parse json payload: " << payloadStr << std::endl;
+        NPLOGE << "Failed to parse json payload: " << payloadStr;
         nabto_device_coap_error_response(coap, 400, "Invalid JSON");
         nabto_device_coap_request_free(coap);
         return;
     }
-
-    std::cout << "Got challenge nonce from client: " << nonce << std::endl;
 
     char* deviceFp = NULL;
     char* clientFp = NULL;
@@ -490,7 +491,7 @@ void NabtoDeviceApp::handleChallengeRequest(NabtoDeviceCoapRequest* coap) {
     NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
     if (nabto_device_connection_get_client_fingerprint(device_.get(), ref, &clientFp) != NABTO_DEVICE_EC_OK) {
-        std::cout << "Failed to get client fingerprint" << std::endl;
+        NPLOGE << "Failed to get client fingerprint";
         nabto_device_coap_error_response(coap, 400, "Invalid Connection");
         nabto_device_coap_request_free(coap);
         return;
@@ -498,7 +499,7 @@ void NabtoDeviceApp::handleChallengeRequest(NabtoDeviceCoapRequest* coap) {
 
     if (nabto_device_connection_get_device_fingerprint(device_.get(), ref, &deviceFp) != NABTO_DEVICE_EC_OK) {
         nabto_device_string_free(clientFp);
-        std::cout << "Failed to get device fingerprint" << std::endl;
+        NPLOGE << "Failed to get device fingerprint";
         nabto_device_coap_error_response(coap, 400, "Invalid Connection");
         nabto_device_coap_request_free(coap);
         return;
@@ -513,7 +514,7 @@ void NabtoDeviceApp::handleChallengeRequest(NabtoDeviceCoapRequest* coap) {
     auto token = oauth->createChallengeResponse(rawPrivateKey_, cliFp, devFp, nonce);
 
     nlohmann::json resp = {{"response", token}};
-    std::cout << "Sending info response: " << resp.dump() << std::endl;
+    NPLOGD << "Sending info response: " << resp.dump();
     auto respPayload = resp.dump(); //nlohmann::json::to_cbor(resp);
     nabto_device_coap_response_set_code(coap, 205);
     nabto_device_coap_response_set_content_format(coap, NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON);
@@ -601,7 +602,7 @@ bool NabtoDeviceStreamListener::start()
         streamFut_ == NULL ||
         nabto_device_stream_init_listener_ephemeral(device_->getDevice().get(), streamListen_, &streamPort_) != NABTO_DEVICE_EC_OK)
     {
-        std::cout << "Failed to listen for streams" << std::endl;
+        NPLOGE << "Failed to listen for streams";
         return false;
     }
     me_ = shared_from_this();
@@ -621,7 +622,7 @@ void NabtoDeviceStreamListener::newStream(NabtoDeviceFuture* future, NabtoDevice
     NabtoDeviceStreamListener* self = (NabtoDeviceStreamListener*)userData;
     if (ec != NABTO_DEVICE_EC_OK)
     {
-        std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        NPLOGD << "stream future wait failed: " << nabto_device_error_get_message(ec);
         self->queue_->post([self]() {
             self->me_ = nullptr;
             self->streamCb_ = nullptr;
@@ -670,7 +671,7 @@ bool NabtoDeviceCoapListener::start(NabtoDeviceCoapMethod method, const char** p
         future_ == NULL ||
         nabto_device_coap_init_listener(device_->getDevice().get(), listener_, method, path) != NABTO_DEVICE_EC_OK)
     {
-        std::cout << "Failed to listen for CoAP requests" << std::endl;
+        NPLOGE << "Failed to listen for CoAP requests";
         return false;
     }
     me_ = shared_from_this();
@@ -691,7 +692,7 @@ void NabtoDeviceCoapListener::newCoapRequest(NabtoDeviceFuture* future, NabtoDev
     NabtoDeviceCoapListener* self = (NabtoDeviceCoapListener*)userData;
     if (ec != NABTO_DEVICE_EC_OK)
     {
-        std::cout << "Coap listener future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        NPLOGD << "Coap listener future wait failed: " << nabto_device_error_get_message(ec);
         self->queue_->post([self]() {
             self->me_ = nullptr;
             self->coapCb_ = nullptr;

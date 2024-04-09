@@ -19,7 +19,6 @@ SignalingStreamManager::SignalingStreamManager(NabtoDevicePtr device, EventQueue
 
 SignalingStreamManager::~SignalingStreamManager()
 {
-    std::cout << "SignalingStreamManager Destructor" << std::endl;
 }
 
 bool SignalingStreamManager::start()
@@ -31,7 +30,7 @@ bool SignalingStreamManager::start()
         {
             char* fp = NULL;
             nabto_device_connection_get_client_fingerprint(self->device_.get(), ref, &fp);
-            std::cout << "Creating Signaling stream for client fp: " << (fp == NULL ? "NO FP" : fp) << std::endl;
+            NPLOGD << "Creating Signaling stream for client fp: " << (fp == NULL ? "NO FP" : fp);
             nabto_device_string_free(fp);
             SignalingStreamPtr s = SignalingStream::create(self->device_, stream, self, self->queue_,
                 [self](NabtoDeviceConnectionRef connRef, MediaTrackPtr track) {
@@ -44,7 +43,7 @@ bool SignalingStreamManager::start()
             s->start();
         }
         else {
-            std::cout << "New signaling stream opened, but IAM rejected it" << std::endl;
+            NPLOGI << "New signaling stream opened, but IAM rejected it";
             nabto_device_stream_free(stream);
         }
     });
@@ -57,7 +56,7 @@ bool SignalingStreamManager::start()
             nlohmann::json resp = {
                 {"SignalingStreamPort", self->streamListener_->getStreamPort()}
             };
-            std::cout << "Sending info response: " << resp.dump() << std::endl;
+            NPLOGD << "Sending info response: " << resp.dump();
             auto payload = resp.dump();
             nabto_device_coap_response_set_code(coap, 205);
             nabto_device_coap_response_set_content_format(coap, NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON);
@@ -65,7 +64,7 @@ bool SignalingStreamManager::start()
             nabto_device_coap_response_ready(coap);
         }
         else {
-            std::cout << "Got CoAP info request but IAM rejected it" << std::endl;
+            NPLOGI << "Got CoAP info request but IAM rejected it";
             nabto_device_coap_error_response(coap, 401, NULL);
         }
         nabto_device_coap_request_free(coap);

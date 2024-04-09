@@ -23,7 +23,6 @@ public:
     WebrtcFileStreamChannel(std::shared_ptr<rtc::DataChannel> channel, NabtoDevicePtr device, NabtoDeviceVirtualConnection* nabtoConnection, uint32_t streamPort, EventQueuePtr queue);
 
     ~WebrtcFileStreamChannel() {
-        std::cout << "WebrtcFileStreamChannel Destructor" << std::endl;
     }
 
     void init();

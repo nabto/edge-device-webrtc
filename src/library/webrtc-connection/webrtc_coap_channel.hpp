@@ -30,7 +30,6 @@ public:
     WebrtcCoapChannel(std::shared_ptr<rtc::PeerConnection> pc, std::shared_ptr<rtc::DataChannel> channel, NabtoDevicePtr device, NabtoDeviceVirtualConnection* nabtoConnection, EventQueuePtr queue);
 
     ~WebrtcCoapChannel() {
-        std::cout << "WebrtcCoapChannel Destructor" << std::endl;
     }
 
     void init();

@@ -17,7 +17,6 @@ RtspStream::RtspStream(const std::string& trackIdBase, const std::string& url)
 
 RtspStream::~RtspStream()
 {
-    std::cout << "RtspStream destructor" << std::endl;
 }
 
 bool RtspStream::isTrack(const std::string& trackId)
@@ -38,7 +37,7 @@ bool RtspStream::matchMedia(MediaTrackPtr media)
     if (media->getTrackId() == trackIdBase_ + "-audio") {
         int pt = audioNegotiator_->match(media);
         if (pt == 0) {
-            std::cout << "    AUDIO CODEC MATCHING FAILED!!! " << std::endl;
+            NPLOGE << "    Audio codec matching Failed. Audio will not work.";
             // TODO: Fail
             return false;
         }
@@ -47,13 +46,13 @@ bool RtspStream::matchMedia(MediaTrackPtr media)
     else if (media->getTrackId() == trackIdBase_ + "-video") {
         int pt = videoNegotiator_->match(media);
         if (pt == 0) {
-            std::cout << "    VIDEO CODEC MATCHING FAILED!!! " << std::endl;
+            NPLOGE << "    Video codec matching failed. Video will not work";
             // TODO: Fail
             return false;
         }
         return true;
     } else {
-        std::cout << "MatchMedia called with invalid track ID" << std::endl;
+        NPLOGE << "MatchMedia called with invalid track ID";
         return false;
     }
 }
@@ -71,9 +70,9 @@ void RtspStream::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media
         connections_[ref] = rtsp;
         counter_++;
         auto self = shared_from_this();
-        rtsp.client->start([self, ref](CURLcode res) {
-            if (res != CURLE_OK) {
-                std::cout << "Failed to start RTSP client " << res << std::endl;
+        rtsp.client->start([self, ref](std::optional<std::string> error) {
+            if (error.has_value()) {
+                NPLOGE << "Failed to start RTSP client with error: " << error.value();
                 return;
             }
             std::lock_guard<std::mutex> lock(self->mutex_);
@@ -90,7 +89,7 @@ void RtspStream::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media
                     audio->addConnection(ref, conn.audioTrack);
                 }
             } catch (std::out_of_range& ex) {
-                std::cout << "RTSP client start callback received on closed connection" << std::endl;
+                NPLOGE << "RTSP client start callback received on closed connection";
             }
         });
         conn = connections_.find(ref);
@@ -102,7 +101,7 @@ void RtspStream::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media
         conn->second.videoTrack = media;
     }
     else {
-        std::cout << "addConnection called with invalid track ID" << std::endl;
+        NPLOGE << "addConnection called with invalid track ID";
     }
 }
 

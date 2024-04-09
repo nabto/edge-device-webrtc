@@ -54,7 +54,7 @@ public:
                 webrtcConnection_->createTracks(tracks);
                 return true;
             } catch (std::runtime_error& ex) {
-                std::cout << "AcceptTrack runtime error: " << ex.what() << std::endl;
+                NPLOGE << "AcceptTrack runtime error: " << ex.what();
             }
         } else {
             deferredTracks_.insert(deferredTracks_.end(), tracks.begin(), tracks.end());

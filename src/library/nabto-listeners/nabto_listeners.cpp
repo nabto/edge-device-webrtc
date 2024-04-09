@@ -33,7 +33,7 @@ bool NabtoStreamListener::start()
         streamFut_ == NULL ||
         nabto_device_stream_init_listener_ephemeral(device_.get(), streamListen_, &streamPort_) != NABTO_DEVICE_EC_OK)
     {
-        std::cout << "Failed to listen for streams" << std::endl;
+        NPLOGE << "Failed to listen for streams";
         return false;
     }
     me_ = shared_from_this();
@@ -53,7 +53,7 @@ void NabtoStreamListener::newStream(NabtoDeviceFuture* future, NabtoDeviceError 
     NabtoStreamListener* self = (NabtoStreamListener*)userData;
     if (ec != NABTO_DEVICE_EC_OK)
     {
-        std::cout << "stream future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        NPLOGD << "stream future wait failed: " << nabto_device_error_get_message(ec);
         self->queue_->post([self]() {
             self->me_ = nullptr;
             self->streamCb_ = nullptr;
@@ -102,7 +102,7 @@ bool NabtoCoapListener::start(NabtoDeviceCoapMethod method, const char** path)
         future_ == NULL ||
         nabto_device_coap_init_listener(device_.get(), listener_, method, path) != NABTO_DEVICE_EC_OK)
     {
-        std::cout << "Failed to listen for CoAP requests" << std::endl;
+        NPLOGE << "Failed to listen for CoAP requests";
         return false;
     }
     me_ = shared_from_this();
@@ -123,7 +123,7 @@ void NabtoCoapListener::newCoapRequest(NabtoDeviceFuture* future, NabtoDeviceErr
     NabtoCoapListener* self = (NabtoCoapListener*)userData;
     if (ec != NABTO_DEVICE_EC_OK)
     {
-        std::cout << "Coap listener future wait failed: " << nabto_device_error_get_message(ec) << std::endl;
+        NPLOGD << "Coap listener future wait failed: " << nabto_device_error_get_message(ec);
         self->queue_->post([self]() {
             self->device_ = nullptr;
             self->coapCb_ = nullptr;

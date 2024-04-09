@@ -29,7 +29,6 @@ FetchContent_Declare(jwt-cpp GIT_REPOSITORY https://github.com/Thalhammer/jwt-cp
                          GIT_TAG v0.7.0-rc.0)
 FetchContent_MakeAvailable(jwt-cpp)
 
-
 set(DEVICE_BUILD_EXAMPLES OFF)
 set(DEVICE_BUILD_TESTS OFF)
 set(DEVICE_BUILD_APPS OFF)
@@ -39,6 +38,7 @@ add_subdirectory(nabto-embedded-sdk)
 set(NO_TESTS ON CACHE BOOL "disable tests")
 set(NO_EXAMPLES ON CACHE BOOL "disable examples")
 set(USE_SYSTEM_JSON ON CACHE BOOL "system json")
+set(USE_SYSTEM_PLOG ON CACHE BOOL "system plog")
 add_subdirectory(3rdparty/libdatachannel)
 
 include_directories(include)
@@ -67,5 +67,6 @@ if (NABTO_WEBRTC_BUILD_TESTS)
   add_subdirectory(test-apps/simple-webrtc-two-streams)
   add_subdirectory(test-apps/simple-webrtc-send-audio-from-browser)
   add_subdirectory(test-apps/simple-webrtc-race-condition)
+  add_subdirectory(test-apps/rtsp-tester)
   add_subdirectory(test)
 endif()
