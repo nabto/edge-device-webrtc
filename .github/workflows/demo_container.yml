@@ -38,6 +38,14 @@ jobs:
         with:
           images: public.ecr.aws/u3v4y4v4/nabto-edge-device-webrtc
 
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
@@ -47,3 +55,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=public.ecr.aws/u3v4y4v4/nabto-edge-device-webrtc
           cache-to: type=inline
+          build-args: |
+            "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite"
+          secrets: |
+            "ACTIONS_CACHE_URL=${ACTIONS_CACHE_URL}"
+            "ACTIONS_RUNTIME_TOKEN=${ACTIONS_RUNTIME_TOKEN}"

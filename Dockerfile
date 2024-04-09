@@ -22,9 +22,12 @@ COPY test /workspace/device/test
 COPY test-apps /workspace/device/test-apps
 COPY vcpkg.json /workspace/device/vcpkg.json
 
-RUN cmake ..
+ARG VCPKG_BINARY_SOURCES=default
+ENV VCPKG_BINARY_SOURCES=${VCPKG_BINARY_SOURCES}
 
-RUN make -j16 install
+RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL) ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN) cmake ..
+
+RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL) ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN) make -j16 install
 
 WORKDIR /homedir
 COPY demo-scripts/entrypoint.sh /workspace/entrypoint.sh
