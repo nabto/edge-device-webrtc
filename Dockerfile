@@ -25,6 +25,11 @@ COPY vcpkg.json /workspace/device/vcpkg.json
 ARG VCPKG_BINARY_SOURCES=default
 ENV VCPKG_BINARY_SOURCES=${VCPKG_BINARY_SOURCES}
 
+RUN echo "VCPKG_BINARY_SOURCES=${VCPKG_BINARY_SOURCES}"
+
+RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL) ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN) echo "ACTIONS_CACHE_URL=${ACTIONS_CACHE_URL}"
+
+
 RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL) ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN) cmake ..
 
 RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL) ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN) make -j16 install
