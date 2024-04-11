@@ -40,12 +40,20 @@ WORKDIR /tmp/build
 RUN cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=/tmp/install -DOPENSSL_ROOT_DIR=/tmp/dependencies -DOPENSSL_INCLUDE_DIR=/tmp/dependencies/include /tmp/lib
 RUN make -j 16 install
 
+FROM base AS libplog
+
+WORKDIR /tmp/lib
+RUN curl -sSL https://github.com/SergiusTheBest/plog/archive/refs/tags/1.1.10.tar.gz | tar -xzf - --strip-components=1
+WORKDIR /tmp/build
+RUN cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=/tmp/install /tmp/lib
+RUN make -j 16 install
 
 FROM base as example
 
 COPY --from=mbedtls /tmp/install /tmp/dependencies
 COPY --from=openssl /tmp/install /tmp/dependencies
 COPY --from=libcurl /tmp/install /tmp/dependencies
+COPY --from=libplog /tmp/install /tmp/dependencies
 
 COPY ./src /tmp/lib/src
 COPY ./CMakeLists.txt /tmp/lib/
@@ -57,7 +65,7 @@ COPY ./nabto-embedded-sdk /tmp/lib/nabto-embedded-sdk
 COPY ./.git /tmp/lib/.git
 
 WORKDIR /tmp/build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DNABTO_WEBRTC_BUILD_TESTS=OFF -DNABTO_WEBRTC_USE_VCPKG=OFF -DCMAKE_INSTALL_PREFIX=/tmp/install -DMbedTLS_ROOT=/tmp/dependencies -DCURL_ROOT=/tmp/dependencies -DOPENSSL_ROOT_DIR=/tmp/dependencies -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DCMAKE_POLICY_DEFAULT_CMP0135=NEW /tmp/lib
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DNABTO_WEBRTC_BUILD_TESTS=OFF -DNABTO_WEBRTC_USE_VCPKG=OFF -DCMAKE_INSTALL_PREFIX=/tmp/install -DMbedTLS_ROOT=/tmp/dependencies -DCURL_ROOT=/tmp/dependencies -DOPENSSL_ROOT_DIR=/tmp/dependencies -Dplog_ROOT=/tmp/dependencies -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DCMAKE_POLICY_DEFAULT_CMP0135=NEW /tmp/lib
 RUN make -j 16 install
 RUN file /tmp/install/bin/edge_device_webrtc
 #RUN $LDD /tmp/install/bin/edge_device_webrtc
