@@ -63,5 +63,5 @@ jobs:
           build-args: |
             "VCPKG_BINARY_SOURCES=clear;x-aws,s3://edge-device-webrtc-build-cache,readwrite"
           secrets: |
-            "ACTIONS_CACHE_URL=foobar"
+            ACTIONS_CACHE_URL=${{ env.ACTIONS_CACHE_URL }}
             ACTIONS_RUNTIME_TOKEN=baz
