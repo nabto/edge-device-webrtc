@@ -63,4 +63,4 @@ jobs:
           build-args: |
             "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite"
           secrets: |
-            "ACTIONS_CACHE_URL=${{ process.env.ACTIONS_CACHE_URL }}"
+            "ACTIONS_CACHE_URL=${{ env.ACTIONS_CACHE_URL }}"
