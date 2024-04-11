@@ -27,16 +27,15 @@ ENV VCPKG_BINARY_SOURCES=${VCPKG_BINARY_SOURCES}
 
 RUN echo "VCPKG_BINARY_SOURCES=${VCPKG_BINARY_SOURCES}"
 
-RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ls /run/secrets
-RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN  cat /run/secrets/ACTIONS_CACHE_URL
-RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN  cat /run/secrets/ACTIONS_RUNTIME_TOKEN
-
-RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL) ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN) echo "ACTIONS_CACHE_URL=${ACTIONS_CACHE_URL}"
-
-
-RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL) ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN) cmake ..
-
-RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL) ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN) make -j16 install
+RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN <<EOF
+ls /run/secrets
+cat /run/secrets/ACTIONS_CACHE_URL
+cat /run/secrets/ACTIONS_RUNTIME_TOKEN
+export ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL); export ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN);
+printenv
+cmake ..
+make -j16 install
+EOF
 
 WORKDIR /homedir
 COPY demo-scripts/entrypoint.sh /workspace/entrypoint.sh
