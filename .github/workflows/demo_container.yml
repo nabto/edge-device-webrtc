@@ -63,7 +63,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            "VCPKG_BINARY_SOURCES=clear;x-aws,s3://edge-device-webrtc-build-cache,readwrite"
+            "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite"
           secrets: |
             ACTIONS_CACHE_URL=${{ env.ACTIONS_CACHE_URL }}
             ACTIONS_RUNTIME_TOKEN=${{ env.ACTIONS_RUNTIME_TOKEN }}
