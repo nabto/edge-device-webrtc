@@ -27,6 +27,10 @@ ENV VCPKG_BINARY_SOURCES=${VCPKG_BINARY_SOURCES}
 
 RUN echo "VCPKG_BINARY_SOURCES=${VCPKG_BINARY_SOURCES}"
 
+RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ls /run/secrets
+RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN  cat /run/secrets/ACTIONS_CACHE_URL
+RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN  cat /run/secrets/ACTIONS_RUNTIME_TOKEN
+
 RUN --mount=type=secret,id=ACTIONS_CACHE_URL --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN ACTIONS_CACHE_URL=$(cat /run/secrets/ACTIONS_CACHE_URL) ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN) echo "ACTIONS_CACHE_URL=${ACTIONS_CACHE_URL}"
 
 
