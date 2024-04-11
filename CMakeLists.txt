@@ -29,9 +29,9 @@ FetchContent_Declare(jwt-cpp GIT_REPOSITORY https://github.com/Thalhammer/jwt-cp
                          GIT_TAG v0.7.0-rc.0)
 FetchContent_MakeAvailable(jwt-cpp)
 
-set(DEVICE_BUILD_EXAMPLES OFF)
-set(DEVICE_BUILD_TESTS OFF)
-set(DEVICE_BUILD_APPS OFF)
+set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "disable examples")
+set(DEVICE_BUILD_TESTS OFF CACHE BOOL "disable tests")
+set(DEVICE_BUILD_APPS OFF CACHE BOOL "disable apps")
 
 add_subdirectory(nabto-embedded-sdk)
 
