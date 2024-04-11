@@ -58,10 +58,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=s3,region=eu-west-1,bucket=edge-device-webrtc-build-cache
-          cache-to: type=s3,region=eu-west-1,bucket=edge-device-webrtc-build-cache
+          #cache-from: type=s3,region=eu-west-1,bucket=edge-device-webrtc-build-cache
+          #cache-to: type=s3,region=eu-west-1,bucket=edge-device-webrtc-build-cache
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             "VCPKG_BINARY_SOURCES=clear;x-aws,s3://edge-device-webrtc-build-cache,readwrite"
           secrets: |
             ACTIONS_CACHE_URL=${{ env.ACTIONS_CACHE_URL }}
-            ACTIONS_RUNTIME_TOKEN=baz
+            ACTIONS_RUNTIME_TOKEN=${{ env.ACTIONS_RUNTIME_TOKEN }}
