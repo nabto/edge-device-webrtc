@@ -6,6 +6,7 @@ RUN tar xfj /opt/mips-gcc720-glibc229.tar.bz2 -C /opt/
 
 ENV CC=/opt/mips-linux-gnu-ingenic-gcc7.2.0-glibc2.29-fp64/bin/mips-linux-gnu-gcc
 ENV CXX=/opt/mips-linux-gnu-ingenic-gcc7.2.0-glibc2.29-fp64/bin/mips-linux-gnu-g++
+ENV CFLAGS="-mabi=32 -mips32 -Wa,--noexecstack"
 ARG OPENSSL_TARGET=linux-mips32
 
 FROM base as mbedtls
