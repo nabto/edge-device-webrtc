@@ -66,17 +66,6 @@ void SignalingStream::streamAccepted(NabtoDeviceFuture* future, NabtoDeviceError
 void SignalingStream::iceServersResolved(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData) {
     SignalingStream* self = (SignalingStream*)userData;
     nabto_device_future_free(future);
-    if (ec != NABTO_DEVICE_EC_OK && ec != NABTO_DEVICE_EC_NOT_ATTACHED) {
-        self->queue_->post([self]() {
-            if (self->webrtcConnection_ != nullptr) {
-                self->webrtcConnection_->stop();
-            }
-            self->webrtcConnection_ = nullptr;
-            self->self_ = nullptr;
-            nabto_device_ice_servers_request_free(self->iceReq_);
-        });
-        return;
-    }
     self->queue_->post([self, ec]() {
         if (ec == NABTO_DEVICE_EC_OK) {
             self->parseIceServers();
