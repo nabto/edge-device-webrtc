@@ -62,14 +62,6 @@ bool parseTurnServers(rtc::Configuration& conf, std::vector<WebrtcConnection::Tu
         conf.iceServers.push_back(server);
     }
 
-    auto server = rtc::IceServer("stun:stun.nabto.net");
-    NPLOGD << "Created server with hostname: " << server.hostname << std::endl
-        << "    port: " << server.port << std::endl
-        << "    username: " << server.username << std::endl
-        << "    password: " << server.password << std::endl
-        << "    type: " << (server.type == rtc::IceServer::Type::Turn ? "TURN" : "STUN") << std::endl
-        << "    RelayType: " << (server.relayType == rtc::IceServer::RelayType::TurnUdp ? "TurnUdp" : (server.relayType == rtc::IceServer::RelayType::TurnTcp ? "TurnTcp" : "TurnTls"));
-    conf.iceServers.push_back(server);
     return true;
 }
 
