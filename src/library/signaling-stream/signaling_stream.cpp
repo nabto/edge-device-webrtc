@@ -341,13 +341,15 @@ void SignalingStream::sendTurnServers()
     };
     for (auto t : turnServers_) {
         // TODO: remove this deprecated field in the future
-        nlohmann::json turn = {
-            {"hostname", t.urls[0]},
-            {"port", 0},
-            {"username", t.username},
-            {"password", t.credential}
-        };
-        resp["servers"].push_back(turn);
+        if (t.urls.size() > 0){
+            nlohmann::json turn = {
+                {"hostname", t.urls[0]},
+                {"port", 0},
+                {"username", t.username},
+                {"password", t.credential}
+            };
+            resp["servers"].push_back(turn);
+        }
 
         nlohmann::json ice = {
             {"urls", nlohmann::json::array()}
