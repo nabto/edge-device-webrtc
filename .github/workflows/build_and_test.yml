@@ -5,6 +5,9 @@ on:
   release:
     types: [published]
 
+env:
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
 jobs:
   build-and-test:
     timeout-minutes: 30
@@ -23,10 +26,16 @@ jobs:
             build_command: cd build-dir && make -j 1 install
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Configure cmake
         run: mkdir build-dir && cd build-dir && cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts -Dsctp_werror=OFF ..
@@ -38,7 +47,7 @@ jobs:
         run: ${{ github.workspace }}/artifacts/bin/webrtc_unit_test --log_level=all
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts_${{matrix.os}}
           path: ${{ github.workspace }}/artifacts
