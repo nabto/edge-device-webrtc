@@ -438,6 +438,9 @@ BOOST_AUTO_TEST_CASE(get_turn_servers, *boost::unit_test::timeout(180))
                     auto servs = resp["servers"].get<std::vector<nlohmann::json> >();
                     BOOST_TEST(servs.size() == 0);
 
+                    auto iceservs = resp["iceServers"].get<std::vector<nlohmann::json> >();
+                    BOOST_TEST(iceservs.size() == 0);
+
                     stream->abort();
                     td->close([conn]() {
                         nabto_device_virtual_connection_free(conn);

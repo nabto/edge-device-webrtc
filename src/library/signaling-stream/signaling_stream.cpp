@@ -89,19 +89,20 @@ void SignalingStream::parseIceServers() {
         const char* username = nabto_device_ice_servers_request_get_username(iceReq_, i);
         const char* cred = nabto_device_ice_servers_request_get_credential(iceReq_, i);
         size_t urlCount = nabto_device_ice_servers_request_get_urls_count(iceReq_, i);
+        WebrtcConnection::TurnServer turn;
+        memset(&turn, 0, sizeof(turn));
+        if (username != NULL) {
+            turn.username = std::string(username);
+        }
+        if (cred != NULL) {
+            turn.credential = std::string(cred);
+        }
 
         for (size_t u = 0; u < urlCount; u++) {
-            WebrtcConnection::TurnServer turn;
-            memset(&turn, 0, sizeof(turn));
-            if (username != NULL) {
-                turn.username = std::string(username);
-            }
-            if (cred != NULL) {
-                turn.password = std::string(cred);
-            }
-            turn.hostname = std::string(nabto_device_ice_servers_request_get_url(iceReq_, i, u));
-            turnServers_.push_back(turn);
+            std::string url = std::string(nabto_device_ice_servers_request_get_url(iceReq_, i, u));
+            turn.urls.push_back(url);
         }
+        turnServers_.push_back(turn);
     }
 }
 
@@ -335,16 +336,32 @@ void SignalingStream::sendTurnServers()
 {
     nlohmann::json resp = {
         {"type", ObjectType::TURN_RESPONSE},
-        {"servers", nlohmann::json::array()}
+        {"servers", nlohmann::json::array()},
+        {"iceServers", nlohmann::json::array()}
     };
     for (auto t : turnServers_) {
+        // TODO: remove this deprecated field in the future
         nlohmann::json turn = {
-            {"hostname", t.hostname},
-            {"port", t.port},
+            {"hostname", t.urls[0]},
+            {"port", 0},
             {"username", t.username},
-            {"password", t.password}
+            {"password", t.credential}
         };
         resp["servers"].push_back(turn);
+
+        nlohmann::json ice = {
+            {"urls", nlohmann::json::array()}
+        };
+        if (!t.username.empty()) {
+            ice["username"] = t.username;
+        }
+        if (!t.credential.empty()) {
+            ice["credential"] = t.credential;
+        }
+        for (auto u : t.urls) {
+            ice["urls"].push_back(u);
+        }
+        resp["iceServers"].push_back(ice);
     }
     auto str = resp.dump();
     sendSignalligObject(str);
