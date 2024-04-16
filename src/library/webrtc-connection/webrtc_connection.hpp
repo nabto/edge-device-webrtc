@@ -23,10 +23,9 @@ class WebrtcConnection : public std::enable_shared_from_this<WebrtcConnection>
 {
 public:
     struct TurnServer {
-        std::string hostname;
-        uint16_t port;
+        std::vector<std::string> urls;
         std::string username;
-        std::string password;
+        std::string credential;
     };
 
     enum ConnectionState {
