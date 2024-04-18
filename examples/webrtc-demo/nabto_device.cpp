@@ -34,7 +34,9 @@ NabtoDeviceApp::NabtoDeviceApp(nabto::EventQueuePtr queue) : evQueue_(queue), fi
 
 NabtoDeviceApp::~NabtoDeviceApp()
 {
-    nm_iam_deinit(&iam_);
+    if (iamLog_.userData != NULL) {
+        nm_iam_deinit(&iam_);
+    }
     fileStreamListener_.reset();
     if (fileStreamFut_ != NULL) {
         nabto_device_future_free(fileStreamFut_);
@@ -45,7 +47,7 @@ NabtoDeviceApp::~NabtoDeviceApp()
 
 bool NabtoDeviceApp::init(nlohmann::json& opts)
 {
-
+    memset(&iamLog_, 0, sizeof(struct nn_log));
     try {
         productId_ = opts["productId"].get<std::string>();
         deviceId_ = opts["deviceId"].get<std::string>();
@@ -55,6 +57,11 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
         }
     } catch (std::exception& e ) {
         NPLOGE << "Missing input option. Options must include: productId, deviceId, rawPrivateKey";
+        return false;
+    }
+
+    if (rawPrivateKey_.size() != 64) {
+        NPLOGE << "Invalid private key length " << rawPrivateKey_.size() << " != 64";
         return false;
     }
 
