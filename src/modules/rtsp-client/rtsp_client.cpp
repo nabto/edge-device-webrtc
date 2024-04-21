@@ -1,5 +1,9 @@
 #include "rtsp_client.hpp"
 
+namespace std {
+  double round(double number);
+}
+
 #ifdef NABTO_RTSP_HAS_BASIC_AUTH
 #include <jwt-cpp/jwt.h>
 #endif

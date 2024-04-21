@@ -1,4 +1,12 @@
+#include <cmath>
+
+namespace std {
+  double round(double number) { return ::round(number); }
+}
+
 #include "nabto_device.hpp"
+
+#include <cinttypes>
 
 #include "oauth_validator.hpp"
 
