@@ -24,14 +24,16 @@ FetchContent_Declare(nlohmann_json
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+set(JWT_BUILD_EXAMPLES OFF CACHE BOOL "build jwt cpp examples")
+
 include(FetchContent)
 FetchContent_Declare(jwt-cpp GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
                          GIT_TAG v0.7.0-rc.0)
 FetchContent_MakeAvailable(jwt-cpp)
 
-set(DEVICE_BUILD_EXAMPLES OFF)
-set(DEVICE_BUILD_TESTS OFF)
-set(DEVICE_BUILD_APPS OFF)
+set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "build nabto embedded sdk examples")
+set(DEVICE_BUILD_TESTS OFF CACHE BOOL "build nabto embedded sdk tests")
+set(DEVICE_BUILD_APPS OFF CACHE BOOL "build nabto embedded sdk apps")
 
 add_subdirectory(nabto-embedded-sdk)
 
@@ -39,6 +41,7 @@ set(NO_TESTS ON CACHE BOOL "disable tests")
 set(NO_EXAMPLES ON CACHE BOOL "disable examples")
 set(USE_SYSTEM_JSON ON CACHE BOOL "system json")
 set(USE_SYSTEM_PLOG ON CACHE BOOL "system plog")
+set(NO_WEBSOCKET ON CACHE BOOL "Disable WebSocket support")
 add_subdirectory(3rdparty/libdatachannel)
 
 include_directories(include)
