@@ -1,17 +1,17 @@
 FROM debian:bookworm as base
 
 RUN apt-get update && apt-get install git build-essential cmake curl file tar bzip2 -y
-COPY mips-gcc720-glibc226.tar.bz2 /opt/
-RUN tar xfj /opt/mips-gcc720-glibc226.tar.bz2 -C /opt/
+COPY mips-gcc720-glibc226.tar.gz /opt/
+RUN tar xf /opt/mips-gcc720-glibc226.tar.gz -C /opt/
 
 ENV CC=/opt/mips-gcc720-glibc226/bin/mips-linux-uclibc-gnu-gcc
 ENV CXX="/opt/mips-gcc720-glibc226/bin/mips-linux-uclibc-gnu-g++ -std=c++17 "
-ENV CFLAGS="-latomic"
+ENV CFLAGS="-march=mips32r2 -mfp64 -mhard-float"
 ENV CXXFLAGS="-D__STDC_FORMAT_MACROS"
 #ENV CFLAGS="-mabi=32 -mgp32"
 #ENV CFLAGS="-mabi=32 -mips32 -mgp32 -Wa,--noexecstack"
-ARG OPENSSL_TARGET=linux-generic64
-ARG CMAKE_FIND_ROOT_PATH=/opt/mips-gcc720-glibc226/mips-linux-gnu/libc/uclibc 
+ARG OPENSSL_TARGET=linux-mips32
+ARG CMAKE_FIND_ROOT_PATH=/opt/mips-gcc720-glibc226/mips-linux-gnu/libc/uclibc
 
 FROM base as mbedtls
 
@@ -30,7 +30,7 @@ WORKDIR /tmp/lib
 RUN curl -sSL https://github.com/openssl/openssl/releases/download/openssl-3.2.1/openssl-3.2.1.tar.gz | tar -xzf - --strip-components=1
 WORKDIR /tmp/build
 RUN /tmp/lib/Configure --prefix=/tmp/install ${OPENSSL_TARGET} no-async
-RUN make -j 16 
+RUN make -j 16
 RUN make -j 16 install_sw
 
 FROM base as libcurl
@@ -79,4 +79,3 @@ RUN make -j 16 install VERBOSE=1
 #RUN $LDD /tmp/install/bin/edge_device_webrtc
 
 #CMD ["sh", "-c", "while true; do sleep 30; done"]
-
