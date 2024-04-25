@@ -202,6 +202,7 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
             break;
         }
 
+        NPLOGD << "Received RTP packet of size: " << len;
         count++;
         if (count % 100 == 0) {
             std::cout << ".";
