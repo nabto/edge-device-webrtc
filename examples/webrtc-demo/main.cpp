@@ -345,6 +345,12 @@ bool parse_options(int argc, char** argv, json& opts)
             ("H,home-dir", "Set which dir to store IAM data", cxxopts::value<std::string>())
             ("iam-reset", "If set, will reset the IAM state and exit")
             ("create-key", "If set, will create and print a raw private key and its fingerprint. Then exit")
+            /*
+            * The cacert option adds an additioanl cacert file to the set of
+            * files used by curl. Setting the CURLOPT_CAINFO does not override
+            * CURLOPT_CAPATH. The combined set of certificates in use will be
+            * both the certificates in CAPATH and the certificates in CAINFO.
+            */
             ("cacert", "Optional. Path to a CA certificate file; overrides CURL_CA_BUNDLE env var if set.", cxxopts::value<std::string>())
 
             ("h,help", "Shows this help text");
@@ -447,4 +453,3 @@ enum plog::Severity plogSeverity(std::string& logLevel)
     return plog::Severity::none;
 
 }
-
