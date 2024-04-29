@@ -1,0 +1,15 @@
+{
+    "build": {
+        "dockerfile": "../build-scripts/Dockerfile"
+    },
+    "mounts": [
+      "source=${localEnv:HOME}${localEnv:USERPROFILE}/.cache/vcpkg,target=/home/vscode/.cache/vcpkg,type=bind,consistency=cached"
+    ],
+    "customizations": {
+      // Configure properties specific to VS Code.
+      "vscode": {
+        // Add the IDs of extensions you want installed when the container is created.
+        "extensions": []
+      }
+    }
+}
