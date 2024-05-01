@@ -230,12 +230,7 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
         if (vec.size() > 0) {
             NPLOGE << "NAL-unit complete";
             self->rtpConf_->timestamp = vec[0]->frameInfo->timestamp;
-            self->packet_->outgoing(vec, [self](rtc::message_ptr msg) {
-                NPLOGE << "outgoing cb";
-            });
-            if (vec.size() < 1) {
-                NPLOGE << "packetizer did not return any packets";
-            }
+            self->packet_->outgoing(vec, nullptr);
             size_t i = 0;
             NPLOGE << "sending " << vec.size() << " packets. First size: " << vec[0]->size();
             for (auto m : vec) {
