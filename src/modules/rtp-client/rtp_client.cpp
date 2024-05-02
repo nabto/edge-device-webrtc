@@ -68,7 +68,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
     const rtc::SSRC ssrc = negotiator_->ssrc();
     RtpTrack track = {
         media,
-        negotiator_->createPacketizer(media),
+        negotiator_->createPacketizer(media, ssrc, pt),
         ssrc,
         negotiator_->payloadType(),
         pt
@@ -215,15 +215,12 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
         if (len < sizeof(rtc::RtpHeader)) {
             continue;
         }
-        auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
 
         {
             std::lock_guard<std::mutex> lock(self->mutex_);
             for (const auto& [key, value] : self->mediaTracks_) {
-                rtp->setSsrc(value.ssrc);
-                rtp->setPayloadType(value.dstPayloadType);
                 try {
-                    value.repacketizer->handlePacket((const uint8_t*)buffer, len);
+                    value.repacketizer->handlePacket((uint8_t*)buffer, len);
                 } catch (std::runtime_error& ex) {
                     NPLOGE << "Failed to send on track: " << ex.what();
                 }
