@@ -217,6 +217,7 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
         auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
 
         {
+            std::lock_guard<std::mutex> lock(self->mutex_);
             for (const auto& [key, value] : self->mediaTracks_) {
                 rtp->setSsrc(value.ssrc);
                 rtp->setPayloadType(value.dstPayloadType);
