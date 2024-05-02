@@ -34,23 +34,23 @@ bool CurlAsync::init()
     CURLcode res;
     res = curl_global_init(CURL_GLOBAL_ALL);
     if (res != CURLE_OK) {
-        NPLOGE << "Failed to initialize Curl global";
+        NPLOGE << "Failed to initialize Curl global with: " << curl_easy_strerror(res);
         return false;
     }
     curl_ = curl_easy_init();
     if (!curl_) {
-        NPLOGE << "Failed to initialize Curl easy";
+        NPLOGE << "Failed to initialize Curl easy with: " << curl_easy_strerror(res);
         return false;
     }
 
     res = curl_easy_setopt(curl_, CURLOPT_VERBOSE, 0L);
     if (res != CURLE_OK) {
-        NPLOGE << "Failed to set curl logging option";
+        NPLOGE << "Failed to set curl logging option with: " << curl_easy_strerror(res);
         return false;
     }
     res = curl_easy_setopt(curl_, CURLOPT_NOPROGRESS, 1L);
     if (res != CURLE_OK) {
-        NPLOGE << "Failed to set Curl progress option";
+        NPLOGE << "Failed to set Curl progress option with: " << curl_easy_strerror(res);
         return false;
     }
     return true;

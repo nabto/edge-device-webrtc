@@ -150,18 +150,18 @@ bool RtspClient::start(std::function<void(std::optional<std::string> error)> cb)
         (res = curl_easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, url_.c_str())) != CURLE_OK ||
         (res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_OPTIONS)) != CURLE_OK
     ) {
-        NPLOGE << "Failed to initialize Curl OPTIONS request with CURLE: " << res;
+        NPLOGE << "Failed to initialize Curl OPTIONS request with CURLE: " << curl_easy_strerror(res);
         return false;
     }
 
     auto self = shared_from_this();
     return curl_->asyncInvoke([self](CURLcode res, uint16_t statusCode) {
         if (res != CURLE_OK || statusCode > 299) {
-            NPLOGE << "Failed to perform RTSP OPTIONS request: " << res;
+            NPLOGE << "Failed to perform RTSP OPTIONS request: " << curl_easy_strerror(res);
             std::string msg = res != CURLE_OK ? "Failed to send Options Request" : ("RTSP OPTIONS request failed with status code: " + statusCode);
             return self->resolveStart(msg);
         }
-        NPLOGD << "Options request complete " << res << " " << statusCode;
+        NPLOGD << "Options request complete " << curl_easy_strerror(res) << " " << statusCode;
         self->setupRtsp();
     });
 }
@@ -230,7 +230,7 @@ void RtspClient::setupRtsp() {
         (res = curl_easy_setopt(curl, CURLOPT_RANGE, range)) != CURLE_OK ||
         (res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_PLAY)) != CURLE_OK
     ) {
-        NPLOGE << "Failed to create PLAY request";
+        NPLOGE << "Failed to create PLAY request with: " << curl_easy_strerror(res);
         resolveStart("Failed to create PLAY request");
     }
 
@@ -242,7 +242,7 @@ void RtspClient::setupRtsp() {
     uint16_t status = 0;
     curl_->reinvokeStatus(&res, &status);
     if (res != CURLE_OK || status > 299) {
-        NPLOGE << "Failed to perform RTSP PLAY request";
+        NPLOGE << "Failed to perform RTSP PLAY request with: " << curl_easy_strerror(res);
         std::string msg = res != CURLE_OK ? "Failed to send PLAY Request" : ("RTSP PLAY request failed with status code: " + status);
         return resolveStart(msg);
     }
@@ -250,7 +250,7 @@ void RtspClient::setupRtsp() {
     // switch off using range again
     res = curl_easy_setopt(curl, CURLOPT_RANGE, NULL);
     if (res != CURLE_OK) {
-        NPLOGE << "Failed to reset Curl RTSP Range option";
+        NPLOGE << "Failed to reset Curl RTSP Range option with: " << curl_easy_strerror(res);
         return resolveStart("Failed to reset Curl RTSP range option");
     }
 
@@ -273,7 +273,7 @@ bool RtspClient::teardown(std::function<void()> cb)
     auto self = shared_from_this();
     return curl_->asyncInvoke([self, cb](CURLcode res, uint16_t statusCode) {
         if (res != CURLE_OK) {
-            NPLOGE << "Failed to perform RTSP TEARDOWN request";
+            NPLOGE << "Failed to perform RTSP TEARDOWN request with: " << curl_easy_strerror(res);
         } else {
             NPLOGD << "Teardown request complete";
         }
@@ -381,8 +381,8 @@ std::optional<std::string> RtspClient::performSetupReq(const std::string& url, c
 
     if ((res = curl_easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, url.c_str())) != CURLE_OK ||
         (res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_SETUP)) != CURLE_OK) {
-            NPLOGE << "Failed to create SETUP request with error: " << res;
-            return "Failed to create SETUP request";
+        NPLOGE << "Failed to create SETUP request with error: " << curl_easy_strerror(res);
+        return "Failed to create SETUP request";
     }
 
     if (isDigestAuth_) {
@@ -394,14 +394,14 @@ std::optional<std::string> RtspClient::performSetupReq(const std::string& url, c
 
     res = curl_easy_setopt(curl, CURLOPT_RTSP_TRANSPORT, transport.c_str());
     if (res != CURLE_OK) {
-        NPLOGE << "Failed to set Curl RTSP Transport option: " << res;
+        NPLOGE << "Failed to set Curl RTSP Transport option: " << curl_easy_strerror(res);
         return "Failed to set Transport header";
     }
 
 
     res = curl_->reinvoke();
     if (res != CURLE_OK) {
-        NPLOGE << "Failed to perform RTSP SETUP request: " << res;
+        NPLOGE << "Failed to perform RTSP SETUP request: " << curl_easy_strerror(res);
         return "Failed to perform RTSP SETUP request";
     }
     return std::nullopt;
@@ -424,6 +424,7 @@ std::optional<std::string> RtspClient::sendDescribe()
         (res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&readBuffer_)) != CURLE_OK ||
         (res = curl_easy_setopt(curl, CURLOPT_RTSP_REQUEST, (long)CURL_RTSPREQ_DESCRIBE)) != CURLE_OK
     ) {
+        NPLOGE << "Failed to create RTSP Describe request. CURLcode: " << curl_easy_strerror(res);
         return "Failed to create RTSP Describe request. CURLcode: " + std::to_string(res);
     }
 
@@ -433,6 +434,7 @@ std::optional<std::string> RtspClient::sendDescribe()
     if ((res = curl_easy_setopt(curl, CURLOPT_HEADERDATA, stdout)) != CURLE_OK ||
         (res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, stdout)) != CURLE_OK ||
         (res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL)) != CURLE_OK) {
+        NPLOGE << "Failed to perform RTSP Describe request. CURLcode: " << curl_easy_strerror(res);
         return "Failed to perform RTSP DESCRIBE request. CURLcode: " + std::to_string(res);
     }
 
