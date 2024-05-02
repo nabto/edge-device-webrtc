@@ -104,7 +104,8 @@ int main(int argc, char** argv) {
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
     nabto::FifoFileClientPtr fifo = nullptr;
-    auto rtpVideoNegotiator = nabto::H264Negotiator::create();
+    bool repacketH264 = opts["repacketH264"].get<bool>();
+    auto rtpVideoNegotiator = nabto::H264Negotiator::create(repacketH264);
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
 
     try {
@@ -368,6 +369,7 @@ bool parse_options(int argc, char** argv, json& opts)
             * both the certificates in CAPATH and the certificates in CAINFO.
             */
             ("cacert", "Optional. Path to a CA certificate file; overrides CURL_CA_BUNDLE env var if set.", cxxopts::value<std::string>())
+            ("disable-h264-repacketizer", "If set, H264 will be forwarded as-is instead of repacketizing to proper MTU")
 
             ("h,help", "Shows this help text");
         auto result = options.parse(argc, argv);
@@ -446,6 +448,13 @@ bool parse_options(int argc, char** argv, json& opts)
                 return true;
             }
         }
+        if (result.count("disable-h264-repacketizer")) {
+            opts["repacketH264"] = false;
+        }
+        else {
+            opts["repacketH264"] = true;
+        }
+
 
     } catch (const cxxopts::OptionException& e)
     {

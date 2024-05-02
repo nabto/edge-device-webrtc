@@ -45,9 +45,13 @@ private:
 
 RepacketizerPtr H264Negotiator::createPacketizer(MediaTrackPtr track)
 {
-    auto rtpConf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc(), track->getTrackId(), payloadType(), 90000);
+    if (repacketize_) {
+        auto rtpConf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc(), track->getTrackId(), payloadType(), 90000);
 
-    return std::make_shared<H264Repacketizer>(track, rtpConf);
+        return std::make_shared<H264Repacketizer>(track, rtpConf);
+    } else {
+        return std::make_shared<Repacketizer>(track);
+    }
 }
 
 int H264Negotiator::match(MediaTrackPtr track)
