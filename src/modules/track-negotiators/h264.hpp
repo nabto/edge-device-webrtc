@@ -13,6 +13,7 @@ public:
     H264Negotiator() : TrackNegotiator(96, SEND_RECV) { }
     int match(MediaTrackPtr media);
     rtc::Description::Media createMedia();
+    RepacketizerPtr createPacketizer(MediaTrackPtr track);
 };
 
 } // namespace

@@ -1,5 +1,6 @@
 
 set(src
+    track_negotiator.cpp
     h264.cpp
     pcmu.cpp
     opus.cpp

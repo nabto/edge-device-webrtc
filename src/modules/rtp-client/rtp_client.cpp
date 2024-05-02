@@ -68,6 +68,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
     const rtc::SSRC ssrc = negotiator_->ssrc();
     RtpTrack track = {
         media,
+        negotiator_->createPacketizer(media),
         ssrc,
         negotiator_->payloadType(),
         pt
@@ -138,10 +139,6 @@ void RtpClient::removeConnection(NabtoDeviceConnectionRef ref)
 void RtpClient::start()
 {
     NPLOGI << "Starting RTP Client listen on port " << videoPort_;
-
-    rtpConf_ = std::make_shared<rtc::RtpPacketizationConfig>(negotiator_->ssrc(), trackId_, negotiator_->payloadType(), 90000);
-    packet_ = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::LongStartSequence, rtpConf_);
-
 
     stopped_ = false;
     videoRtpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
@@ -218,49 +215,13 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
         if (len < sizeof(rtc::RtpHeader)) {
             continue;
         }
-        auto src = reinterpret_cast<std::byte*>(buffer);
-        // rtc::binary msgVec(buffer, buffer+len);
-        rtc::message_ptr msg = std::make_shared<rtc::Message>(src, src+len);
-
-        rtc::message_vector vec;
-        vec.push_back(msg);
-
-        self->depacket_.incoming(vec, nullptr);
-
-        if (vec.size() > 0) {
-            NPLOGE << "NAL-unit complete";
-            self->rtpConf_->timestamp = vec[0]->frameInfo->timestamp;
-            self->packet_->outgoing(vec, nullptr);
-            size_t i = 0;
-            NPLOGE << "sending " << vec.size() << " packets. First size: " << vec[0]->size();
-            for (auto m : vec) {
-                i++;
-                // NPLOGE << "handling packet: " << i;
-                for (const auto& [key, value] : self->mediaTracks_) {
-                    // NPLOGE << "sending to mediatrack";
-                    try {
-                        auto variant = rtc::to_variant(*m.get());
-                        auto bin = std::get<rtc::binary>(variant);
-                        uint8_t* buf = reinterpret_cast<uint8_t*>(bin.data());
-                        value.track->send(buf, bin.size());
-                    } catch (std::runtime_error& ex) {
-                        NPLOGE << "Failed to send on track: " << ex.what();
-                    }
-                }
-                struct sockaddr_in addr = {};
-                addr.sin_family = AF_INET;
-                addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-                addr.sin_port = htons(6006);
-
-                auto variant = rtc::to_variant(*m.get());
-                auto bin = std::get<rtc::binary>(variant);
-                uint8_t* buf = reinterpret_cast<uint8_t*>(bin.data());
-
-                auto ret = sendto(self->videoRtpSock_, buf, bin.size(), 0, (struct sockaddr*)&addr, sizeof(addr));
-
+        for (const auto& [key, value] : self->mediaTracks_) {
+            // NPLOGE << "sending to mediatrack";
+            try {
+                value.repacketizer->handlePacket((const uint8_t*)buffer, len);
+            } catch (std::runtime_error& ex) {
+                NPLOGE << "Failed to send on track: " << ex.what();
             }
-        } else {
-            // NPLOGE << "vec.size < 1, NAL-unit incomplete";
         }
 
 //        self->remotePort_ = ntohs(srcAddr.sin_port);

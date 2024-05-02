@@ -3,6 +3,7 @@
 
 #include <nabto/nabto_device_webrtc.hpp>
 #include <rtc/rtc.hpp>
+#include <track-negotiators/track_negotiator.hpp>
 
 #include <memory>
 
@@ -12,6 +13,7 @@ class RtpTrack
 {
 public:
     MediaTrackPtr track;
+    RepacketizerPtr repacketizer;
     rtc::SSRC ssrc;
     int srcPayloadType = 0;
     int dstPayloadType = 0;
