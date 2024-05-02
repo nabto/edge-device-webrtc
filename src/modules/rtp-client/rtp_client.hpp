@@ -6,8 +6,6 @@
 #include <track-negotiators/track_negotiator.hpp>
 #include <sys/socket.h>
 
-#include <rtc/h264rtppacketizer.hpp>
-#include <rtc/h264rtpdepacketizer.hpp>
 typedef int SOCKET;
 
 #include <memory>
@@ -64,9 +62,6 @@ private:
     std::thread videoThread_;
     TrackNegotiatorPtr negotiator_;
 
-    rtc::H264RtpDepacketizer depacket_;
-    std::shared_ptr<rtc::H264RtpPacketizer> packet_ = nullptr;
-    std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf_ = nullptr;
 };
 
 
