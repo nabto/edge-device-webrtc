@@ -52,7 +52,7 @@ public:
             NPLOGD << "    Try parsing jwks_: " << self->jwks_;
 
             if (res != CURLE_OK || statusCode > 299 || statusCode < 200) {
-                NPLOGE << "Curl failed with CURLcode: " << res << " statusCode: " << statusCode;
+                NPLOGE << "Curl failed with CURLcode: " << curl_easy_strerror(res) << " statusCode: " << statusCode;
                 cb(false, "");
                 return;
             }
@@ -227,26 +227,26 @@ private:
         NPLOGD << "Setting URL in curl: " << url_;
         res = curl_easy_setopt(c, CURLOPT_URL, url_.c_str());
         if (res != CURLE_OK) {
-            NPLOGE << "Failed to set Curl URL option";
+            NPLOGE << "Failed to set Curl URL option with: " << curl_easy_strerror(res);
             return false;
         }
 
         res = curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, writeFunc);
         if (res != CURLE_OK) {
-            NPLOGE << "Failed to set Curl write function option";
+            NPLOGE << "Failed to set Curl write function option with: " << curl_easy_strerror(res);
             return false;
         }
 
         res = curl_easy_setopt(c, CURLOPT_WRITEDATA, (void*)&jwks_);
         if (res != CURLE_OK) {
-            NPLOGE << "Failed to set Curl write function option";
+            NPLOGE << "Failed to set Curl write function option with: " << curl_easy_strerror(res);
             return false;
         }
 
         if (caBundle_.has_value()) {
             res = curl_easy_setopt(c, CURLOPT_CAINFO, caBundle_.value().c_str());
             if (res != CURLE_OK) {
-                NPLOGE << "Failed to set CA bundle";
+                NPLOGE << "Failed to set CA bundle with: " << curl_easy_strerror(res);
                 return false;
             }
         }
