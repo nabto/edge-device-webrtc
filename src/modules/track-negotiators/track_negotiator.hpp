@@ -36,11 +36,13 @@ typedef std::shared_ptr<Repacketizer> RepacketizerPtr;
 
 class Repacketizer {
 public:
-    Repacketizer(MediaTrackPtr track);
-    virtual void handlePacket(const uint8_t* buffer, size_t length);
+    Repacketizer(MediaTrackPtr track, rtc::SSRC ssrc, int dstPayloadType);
+    virtual void handlePacket(uint8_t* buffer, size_t length);
 
 protected:
     MediaTrackPtr track_;
+    rtc::SSRC ssrc_;
+    int dstPayloadType_;
 };
 
 class TrackNegotiator;
@@ -96,8 +98,8 @@ public:
      */
     virtual enum Direction direction() { return dire_; }
 
-    virtual RepacketizerPtr createPacketizer(MediaTrackPtr track) {
-        return std::make_shared<Repacketizer>(track);
+    virtual RepacketizerPtr createPacketizer(MediaTrackPtr track, rtc::SSRC ssrc, int dstPayloadType) {
+        return std::make_shared<Repacketizer>(track, ssrc, dstPayloadType);
     }
 
 protected:

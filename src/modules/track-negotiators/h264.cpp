@@ -9,7 +9,7 @@ namespace nabto {
 class H264Repacketizer: public Repacketizer
 {
 public:
-    H264Repacketizer(MediaTrackPtr track, std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf) : Repacketizer(track), rtpConf_(rtpConf)
+    H264Repacketizer(MediaTrackPtr track, std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf) : Repacketizer(track, rtpConf->ssrc, rtpConf->payloadType), rtpConf_(rtpConf)
     {
         packet_ = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::LongStartSequence, rtpConf_);
 
@@ -43,14 +43,14 @@ private:
 
 };
 
-RepacketizerPtr H264Negotiator::createPacketizer(MediaTrackPtr track)
+RepacketizerPtr H264Negotiator::createPacketizer(MediaTrackPtr track, rtc::SSRC ssrc, int dstPayloadType)
 {
     if (repacketize_) {
-        auto rtpConf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc(), track->getTrackId(), payloadType(), 90000);
+        auto rtpConf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, track->getTrackId(), dstPayloadType, 90000);
 
         return std::make_shared<H264Repacketizer>(track, rtpConf);
     } else {
-        return std::make_shared<Repacketizer>(track);
+        return std::make_shared<Repacketizer>(track, ssrc, dstPayloadType);
     }
 }
 

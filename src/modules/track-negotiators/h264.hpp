@@ -13,7 +13,7 @@ public:
     H264Negotiator(bool repacketize) : TrackNegotiator(96, SEND_RECV), repacketize_(repacketize) { }
     int match(MediaTrackPtr media);
     rtc::Description::Media createMedia();
-    RepacketizerPtr createPacketizer(MediaTrackPtr track);
+    RepacketizerPtr createPacketizer(MediaTrackPtr track, rtc::SSRC ssrc, int dstPayloadType);
 private:
     bool repacketize_;
 };
