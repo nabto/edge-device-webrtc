@@ -215,31 +215,19 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
         if (len < sizeof(rtc::RtpHeader)) {
             continue;
         }
-        for (const auto& [key, value] : self->mediaTracks_) {
-            // NPLOGE << "sending to mediatrack";
-            try {
-                value.repacketizer->handlePacket((const uint8_t*)buffer, len);
-            } catch (std::runtime_error& ex) {
-                NPLOGE << "Failed to send on track: " << ex.what();
+        auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
+
+        {
+            for (const auto& [key, value] : self->mediaTracks_) {
+                rtp->setSsrc(value.ssrc);
+                rtp->setPayloadType(value.dstPayloadType);
+                try {
+                    value.repacketizer->handlePacket((const uint8_t*)buffer, len);
+                } catch (std::runtime_error& ex) {
+                    NPLOGE << "Failed to send on track: " << ex.what();
+                }
             }
         }
-
-//        self->remotePort_ = ntohs(srcAddr.sin_port);
-
-        // auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
-
-        // {
-        //     std::lock_guard<std::mutex> lock(self->mutex_);
-        //     for (const auto& [key, value] : self->mediaTracks_) {
-        //         rtp->setSsrc(value.ssrc);
-        //         rtp->setPayloadType(value.dstPayloadType);
-        //         try {
-        //             value.track->send((uint8_t*)buffer, len);
-        //         } catch (std::runtime_error& ex) {
-        //             NPLOGE << "Failed to send on track: " << ex.what();
-        //         }
-        //     }
-        // }
     }
 }
 
