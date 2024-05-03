@@ -15,7 +15,7 @@ public:
 
     }
 
-    void handlePacket(const uint8_t* buffer, size_t length)
+    void handlePacket(uint8_t* buffer, size_t length) override
     {
         auto src = reinterpret_cast<const std::byte*>(buffer);
         rtc::message_ptr msg = std::make_shared<rtc::Message>(src, src + length);
