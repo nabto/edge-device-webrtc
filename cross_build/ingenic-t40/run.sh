@@ -3,7 +3,7 @@
 WEBRTC_LOG_LEVEL=trace
 DEVICE_ID=de-xxxxxxxx
 PRODUCT_ID=pr-xxxxxxxx
-PRIVATE_KEY=32-byte-valid-eec-private-key
+PRIVATE_KEY=32-byte-valid-ecc-private-key
 
 RTSP_PATH=/second
 RTSP_PORT=8554
