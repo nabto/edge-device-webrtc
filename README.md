@@ -65,7 +65,7 @@ The software is meant to be run on embedded systems such as Linux based cameras,
 these cameras often come with their own toolchains and libraries tailored to
 the platform.
 
-Dockerfiles are provided in `./cross_build` that demonstrate how to cross compile the example application and all dependencies. For instance, see `Dockerfile.aarch64` for an arm64 cross build that works with e.g. Raspberry Pi. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image as follows (similar to the `Dockerfile.sigmastar` example):
+Dockerfiles are provided in `./cross_build` that demonstrate how to cross compile the example application and all dependencies. For instance, see `cross_build/aarch64/Dockerfile` for an arm64 cross build that works with e.g. Raspberry Pi. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image as follows (similar to the `cross_build/sigmastar/Dockerfile` example):
 
 ```
 RUN apt-get update && apt-get install git build-essential cmake curl file tar -y
@@ -84,7 +84,7 @@ build the individual dependency libraries and then builds it into a binary.
 The build can be run as follows:
 
 ```
-docker build -f cross_build/Dockerfile.sigmastar --progress plain -t edge_device_webrtc_sigmastar .
+docker build -f cross_build/sigmastar/Dockerfile --progress plain -t edge_device_webrtc_sigmastar .
 ```
 
 > [!IMPORTANT]
@@ -101,9 +101,9 @@ edge_device_webrtc: ELF 32-bit LSB executable, ARM, EABI5 version 1 (GNU/Linux),
 
 #### Testing the cross build without a physical target
 
-The aarch64 Dockerfile (`Dockerfile.aarch64`) has a commented out section at the bottom that shows how to run the resulting aarch64 binary through qemu; this demonstrates that the compiled binary works on something else than the system used to compile the binary.
+The aarch64 Dockerfile (`cross_build/aarch64/Dockerfile`) has a commented out section at the bottom that shows how to run the resulting aarch64 binary through qemu; this demonstrates that the compiled binary works on something else than the system used to compile the binary.
 
-If enabling the qemu section at the bottom of `Dockerfile.aarch64`, the resulting aarch64 binary can be run by starting and interactive session with `docker run --rm -it edge_device_webrtc_aarch64`. Then the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
+If enabling the qemu section at the bottom of `cross_build/aarch64/Dockerfile`, the resulting aarch64 binary can be run by starting and interactive session with `docker run --rm -it edge_device_webrtc_aarch64`. Then the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
 
 ## Building the example for desktop
 
