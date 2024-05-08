@@ -17,6 +17,10 @@ public:
 
     void handlePacket(uint8_t* buffer, size_t length) override
     {
+        if (length < 2 || buffer[1] == 200) {
+            // ignore RTCP packets for now
+            return;
+        }
         auto src = reinterpret_cast<const std::byte*>(buffer);
         rtc::message_ptr msg = std::make_shared<rtc::Message>(src, src + length);
 
