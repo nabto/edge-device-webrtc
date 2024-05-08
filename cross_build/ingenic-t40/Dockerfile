@@ -81,9 +81,12 @@ RUN make -j 16 install VERBOSE=1
 #CMD ["sh", "-c", "while true; do sleep 30; done"]
 
 FROM example as packaging
+RUN apt-get update && apt-get install zip awscli -y
+
 RUN mkdir -p /tmp/final/lib /tmp/final/bin
 RUN find /tmp/dependencies /tmp/lib /tmp/install -type f -name '*.so*' -exec cp {} /tmp/final/lib/ \;
 COPY --from=example /tmp/install/bin/edge_device_webrtc /tmp/final/bin/
 WORKDIR /tmp/final
 RUN tar -czf /tmp/package.tar.gz ./lib ./bin
+RUN zip -r  /tmp/package lib bin
 
