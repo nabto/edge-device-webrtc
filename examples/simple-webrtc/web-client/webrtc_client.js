@@ -56,4 +56,7 @@ async function createDataChannel()
   channel.addEventListener("message", (event) => {
     console.log("Got datachannel message: ", event.data);
   });
+  channel.addEventListener("open", (event) => {
+    channel.send("HELLO WORLD!!!");
+  })
 }

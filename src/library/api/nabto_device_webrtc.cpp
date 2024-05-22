@@ -121,9 +121,9 @@ Datachannel::~Datachannel()
 {
 }
 
-void Datachannel::setMessageCallback()
+void Datachannel::setMessageCallback(DatachannelMessageCallback cb)
 {
-    return impl_->setMessageCallback();
+    return impl_->setMessageCallback(cb);
 }
 
 void Datachannel::sendMessage(const uint8_t* buffer, size_t length)
