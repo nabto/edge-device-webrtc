@@ -102,6 +102,11 @@ int main(int argc, char** argv) {
         nabto_device_coap_request_free(coap);
     });
 
+    webrtc->setDatachannelEventCallback([](NabtoDeviceConnectionRef ref, nabto::DatachannelPtr channel) {
+        std::string data = "helloWorld";
+        channel->sendMessage((uint8_t*)data.data(), data.size());
+    });
+
 
     sigContext = std::make_shared<SigIntContext>(eventQueue, device);
     signal(SIGINT, &signal_handler);

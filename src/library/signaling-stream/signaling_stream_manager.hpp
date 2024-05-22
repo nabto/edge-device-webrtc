@@ -22,6 +22,7 @@ public:
     bool start();
     bool connectionAddMediaTracks(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks);
     void setTrackEventCallback(TrackEventCallback cb);
+    void setDatachannelEventCallback(DatachannelEventCallback cb);
     void setCheckAccessCallback(CheckAccessCallback cb);
 
 private:
@@ -29,6 +30,7 @@ private:
     EventQueuePtr queue_;
 
     TrackEventCallback trackCb_;
+    DatachannelEventCallback datachannelCb_;
     CheckAccessCallback accessCb_;
 
     NabtoCoapListenerPtr coapInfoListener_ = nullptr;

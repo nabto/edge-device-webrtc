@@ -1,6 +1,7 @@
 #include <nabto/nabto_device_webrtc.hpp>
 #include <api/nabto_device_webrtc_impl.hpp>
 #include <api/media_track_impl.hpp>
+#include <api/datachannel_impl.hpp>
 
 namespace nabto {
 
@@ -40,6 +41,10 @@ void NabtoDeviceWebrtc::setTrackEventCallback(TrackEventCallback cb)
     impl_->setTrackEventCallback(cb);
 }
 
+void NabtoDeviceWebrtc::setDatachannelEventCallback(DatachannelEventCallback cb)
+{
+    impl_->setDatachannelEventCallback(cb);
+}
 
 void NabtoDeviceWebrtc::setCheckAccessCallback(CheckAccessCallback cb)
 {
@@ -100,6 +105,35 @@ void MediaTrack::setCloseCallback(std::function<void()> cb)
 void MediaTrack::setErrorState(enum MediaTrack::ErrorState state)
 {
     return impl_->setErrorState(state);
+}
+
+DatachannelPtr Datachannel::create(const std::string& label)
+{
+    return  std::make_shared<Datachannel>(label);
+}
+
+Datachannel::Datachannel(const std::string& label)
+    : impl_(std::make_shared<DatachannelImpl>(label))
+{
+}
+
+Datachannel::~Datachannel()
+{
+}
+
+void Datachannel::setMessageCallback()
+{
+    return impl_->setMessageCallback();
+}
+
+void Datachannel::sendMessage(const uint8_t* buffer, size_t length)
+{
+    return impl_->sendMessage(buffer, length);
+}
+
+DatachannelImplPtr Datachannel::getImpl()
+{
+    return impl_;
 }
 
 EventQueueWork::EventQueueWork(EventQueuePtr queue) : queue_(queue)

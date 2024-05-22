@@ -21,9 +21,9 @@ public:
         TURN_RESPONSE
     };
 
-    static SignalingStreamPtr create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb);
+    static SignalingStreamPtr create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb);
 
-    SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb);
+    SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb);
 
     ~SignalingStream();
 
@@ -100,6 +100,7 @@ private:
     EventQueuePtr queue_;
     TrackEventCallback trackCb_;
     CheckAccessCallback accessCb_;
+    DatachannelEventCallback datachannelCb_;
     NabtoDeviceFuture* future_;
     NabtoDeviceFuture* writeFuture_;
 

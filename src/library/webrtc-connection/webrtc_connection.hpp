@@ -36,8 +36,8 @@ public:
         FAILED
     };
 
-    static WebrtcConnectionPtr create(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb);
-    WebrtcConnection(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb);
+    static WebrtcConnectionPtr create(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb);
+    WebrtcConnection(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb);
     ~WebrtcConnection();
 
 
@@ -86,6 +86,7 @@ private:
     void handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> incoming);
     void acceptTrack(MediaTrackPtr track);
     MediaTrackPtr createMediaTrack(std::shared_ptr<rtc::Track> track);
+    DatachannelPtr createDatachannel(std::shared_ptr<rtc::DataChannel> channel);
 
     NabtoDeviceConnectionRef getConnectionRef();
     void updateMetaTracks();
@@ -101,6 +102,7 @@ private:
     std::vector<struct TurnServer> turnServers_;
     EventQueuePtr queue_;
     TrackEventCallback trackCb_;
+    DatachannelEventCallback datachannelCb_;
     CheckAccessCallback accessCb_;
     EventQueueWork queueWork_;
     enum ConnectionState state_ = CREATED;
@@ -115,6 +117,7 @@ private:
 
     bool canTrickle_ = true;
     std::vector<MediaTrackPtr> mediaTracks_;
+    std::vector<DatachannelPtr> datachannels_;
 
     // State for Perfect Negotiation
     bool polite_ = false;

@@ -50,3 +50,10 @@ async function disconnect()
 
 }
 
+async function createDataChannel()
+{
+  const channel = webrtcConnection.pc.createDataChannel("foobar");
+  channel.addEventListener("message", (event) => {
+    console.log("Got datachannel message: ", event.data);
+  });
+}

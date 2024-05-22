@@ -4,14 +4,14 @@
 
 namespace nabto {
 
-SignalingStreamPtr SignalingStream::create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb)
+SignalingStreamPtr SignalingStream::create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb)
 {
-    return std::make_shared<SignalingStream>(device, stream, manager, queue, trackCb, accessCb);
+    return std::make_shared<SignalingStream>(device, stream, manager, queue, trackCb, accessCb, datachannelCb);
 
 }
 
-SignalingStream::SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb)
-    :device_(device), stream_(stream), manager_(manager), queue_(queue), trackCb_(trackCb), accessCb_(accessCb)
+SignalingStream::SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb)
+    :device_(device), stream_(stream), manager_(manager), queue_(queue), trackCb_(trackCb), datachannelCb_(datachannelCb), accessCb_(accessCb)
 {
     future_ = nabto_device_future_new(device.get());
     writeFuture_ = nabto_device_future_new(device.get());
@@ -108,7 +108,7 @@ void SignalingStream::parseIceServers() {
 
 void SignalingStream::createWebrtcConnection() {
     auto self = shared_from_this();
-    webrtcConnection_ = WebrtcConnection::create(self, device_, turnServers_, queue_, trackCb_, accessCb_);
+    webrtcConnection_ = WebrtcConnection::create(self, device_, turnServers_, queue_, trackCb_, accessCb_, datachannelCb_);
     webrtcConnection_->setEventHandler([self](WebrtcConnection::ConnectionState state) {
         if (state == WebrtcConnection::ConnectionState::CLOSED ||
             state == WebrtcConnection::ConnectionState::FAILED) {

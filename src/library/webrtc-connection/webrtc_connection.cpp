@@ -3,6 +3,7 @@
 
 #include <signaling-stream/signaling_stream.hpp>
 #include <api/media_track_impl.hpp>
+#include <api/datachannel_impl.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -10,13 +11,13 @@
 
 namespace nabto {
 
-WebrtcConnectionPtr WebrtcConnection::create(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb)
+WebrtcConnectionPtr WebrtcConnection::create(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb)
 {
-    return std::make_shared<WebrtcConnection>(sigStream, device, turnServers, queue, trackCb, accessCb);
+    return std::make_shared<WebrtcConnection>(sigStream, device, turnServers, queue, trackCb, accessCb, datachannelCb);
 }
 
-WebrtcConnection::WebrtcConnection(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb)
-    : sigStream_(sigStream), device_(device), turnServers_(turnServers), queue_(queue), trackCb_(trackCb), accessCb_(accessCb), queueWork_(queue)
+WebrtcConnection::WebrtcConnection(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb)
+    : sigStream_(sigStream), device_(device), turnServers_(turnServers), queue_(queue), trackCb_(trackCb), datachannelCb_(datachannelCb), accessCb_(accessCb), queueWork_(queue)
 {
 
 }
@@ -113,6 +114,10 @@ void WebrtcConnection::createPeerConnection()
                 for (auto m : self->mediaTracks_) {
                     m->getImpl()->connectionClosed();
                 }
+
+                // TODO: maybe inform datachannel users their connection closed
+                self->datachannels_.clear();
+
                 self->coapChannel_ = nullptr;
                 self->pc_->close();
                 self->pc_ = nullptr;
@@ -276,8 +281,19 @@ void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> 
         } catch (std::exception &e) {
             NPLOGE << "error " << e.what();
         }
+    } else {
+        auto chan = createDatachannel(incoming);
+        datachannels_.push_back(chan);
+        datachannelCb_(getConnectionRef(), chan);
     }
 
+}
+
+DatachannelPtr WebrtcConnection::createDatachannel(std::shared_ptr<rtc::DataChannel> channel)
+{
+    auto chan = Datachannel::create(channel->label());
+    chan->getImpl()->setRtcChannel(channel);
+    return chan;
 }
 
 NabtoDeviceConnectionRef WebrtcConnection::getConnectionRef() {

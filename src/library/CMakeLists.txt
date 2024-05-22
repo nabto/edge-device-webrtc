@@ -21,6 +21,7 @@ set(src
     api/nabto_device_webrtc.cpp
     api/nabto_device_webrtc_impl.cpp
     api/media_track_impl.cpp
+    api/datachannel_impl.cpp
     api/version.cpp
 )
 
