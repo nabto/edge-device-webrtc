@@ -311,6 +311,9 @@ bool RtspClient::parseSdpDescription(const std::string& sdp)
             sessionControlUrl_ = parseControlAttribute(a);
         }
     }
+    if (sessionControlUrl_.empty()) {
+        sessionControlUrl_ = contentBase_;
+    }
 
     auto count = desc.mediaCount();
     for (size_t i = 0; i < count; i++) {
