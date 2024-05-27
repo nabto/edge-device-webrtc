@@ -18,6 +18,25 @@ using std::holds_alternative;
 
 namespace nabto {
 
+class MockMediaTrack : public MediaTrack {
+public:
+    static MediaTrackPtr create(const rtc::Description::Media& media)
+    {
+        return std::make_shared<MockMediaTrack>(media);
+    }
+
+    MockMediaTrack(const rtc::Description::Media& media): media_(media), MediaTrack("", media.generateSdp()) { }
+    std::string getTrackId() { return ""; }
+    std::string getSdp() { return media_.generateSdp(); }
+    void setSdp(const std::string& sdp) { return; }
+    bool send(const uint8_t* buffer, size_t length) {return false;}
+    void setReceiveCallback(MediaRecvCallback cb) {};
+    void setCloseCallback(std::function<void()> cb) {};
+    void setErrorState(enum ErrorState state){};
+private:
+    rtc::Description::Media media_;
+};
+
 std::string toHex(uint8_t* data, size_t len)
 {
     std::stringstream stream;
@@ -338,6 +357,10 @@ bool RtspClient::parseSdpDescription(const std::string& sdp)
                 } else {
                     videoPayloadType_ = videoNegotiator_->payloadType();
                 }
+                auto mediaMock = MockMediaTrack::create(*m);
+                if (videoNegotiator_->match(mediaMock) == 0) {
+                    NPLOGE << "RTSP server offered invalid video codec. The video feed likely won't work!";
+                }
             }
             else if (m->type() == "audio") {
                 audioControlUrl_ = controlUrl;
@@ -346,6 +369,10 @@ bool RtspClient::parseSdpDescription(const std::string& sdp)
                 }
                 else {
                     audioPayloadType_ = audioNegotiator_->payloadType();
+                }
+                auto mediaMock = MockMediaTrack::create(*m);
+                if (audioNegotiator_->match(mediaMock) == 0) {
+                    NPLOGE << "RTSP server offered invalid audio codec. The audio feed likely won't work!";
                 }
             }
             else {
