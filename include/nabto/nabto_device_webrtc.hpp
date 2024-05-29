@@ -235,20 +235,61 @@ private:
 
 class Datachannel {
 public:
+    /**
+     * Message types when sending/receiving datachannel messages
+     */
     enum MessageType {
         MESSAGE_TYPE_STRING,
         MESSAGE_TYPE_BINARY
     };
 
+    /**
+     * Callback invoked when a datachannel has data available.
+     *
+     * @param type [in]   Type of message received
+     * @param buffer [in] Data buffer received
+     * @param length [in] Length of data buffer
+     */
     typedef std::function<void(enum MessageType type, uint8_t* buffer, size_t length)> DatachannelMessageCallback;
 
     static DatachannelPtr create(const std::string& label);
     Datachannel(const std::string& label);
     ~Datachannel();
 
+    /**
+     * Get the label of the datachannel
+     *
+     * @return The label as a string
+     */
+    std::string getLabel();
+
+    /**
+     * Set callback to be invoked when a message is received on the datachannel.
+     *
+     * @param cb [in] Callback to set
+    */
     void setMessageCallback(DatachannelMessageCallback cb);
+
+    /**
+     * Send a message on this datachannel
+     *
+     * @param buffer [in] Data buffer to send
+     * @param length [in] Length of data buffer
+     * @param type [in]   Type of message to send
+     */
     void sendMessage(const uint8_t* buffer, size_t length, enum MessageType type = MESSAGE_TYPE_BINARY);
 
+    /**
+     * Set callback to be called when this track is closed.
+     *
+     * @param cb [in] Callback to set
+    */
+    void setCloseCallback(std::function<void()> cb);
+
+
+    /*
+     * Internal method
+    */
     DatachannelImplPtr getImpl();
 private:
     DatachannelImplPtr impl_;

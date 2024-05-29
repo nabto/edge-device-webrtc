@@ -26,10 +26,28 @@ public:
                 self->cb_(Datachannel::MessageType::MESSAGE_TYPE_STRING, (uint8_t*)data.data(), data.size());
         });
     }
+
+    void setCloseCallback(std::function<void()> cb);
+
+    void connectionClosed()
+    {
+        if (closeCb_) {
+            closeCb_();
+        }
+        cb_ = nullptr;
+        closeCb_ = nullptr;
+        channel_ = nullptr;
+    }
+
+    std::string getLabel() {
+        return label_;
+    }
+
 private:
     std::string label_;
     std::shared_ptr<rtc::DataChannel> channel_;
     Datachannel::DatachannelMessageCallback cb_;
+    std::function<void()> closeCb_ = nullptr;
 
 };
 

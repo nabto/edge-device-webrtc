@@ -23,4 +23,9 @@ void DatachannelImpl::sendMessage(const uint8_t* buffer, size_t length, enum Dat
     }
 }
 
+void DatachannelImpl::setCloseCallback(std::function<void()> cb)
+{
+    closeCb_ = cb;
+}
+
 } // namespace

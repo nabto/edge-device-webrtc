@@ -136,6 +136,16 @@ DatachannelImplPtr Datachannel::getImpl()
     return impl_;
 }
 
+std::string Datachannel::getLabel()
+{
+    return impl_->getLabel();
+}
+
+void Datachannel::setCloseCallback(std::function<void()> cb)
+{
+    return impl_->setCloseCallback(cb);
+}
+
 EventQueueWork::EventQueueWork(EventQueuePtr queue) : queue_(queue)
 {
     queue_->addWork();

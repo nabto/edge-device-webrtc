@@ -115,7 +115,9 @@ void WebrtcConnection::createPeerConnection()
                     m->getImpl()->connectionClosed();
                 }
 
-                // TODO: maybe inform datachannel users their connection closed
+                for (auto d : self->datachannels_) {
+                    d->getImpl()->connectionClosed();
+                }
                 self->datachannels_.clear();
 
                 self->coapChannel_ = nullptr;
@@ -155,9 +157,8 @@ void WebrtcConnection::createPeerConnection()
 
     pc_->onDataChannel([self](std::shared_ptr<rtc::DataChannel> incoming) {
         NPLOGD << "Got new datachannel: " << incoming->label();
-        self->queue_->post([self, incoming]() {
-            self->handleDatachannelEvent(incoming);
-        });
+        // Datachannel events must also be handled synchronously, otherwise messages sent by the client immidiately after creation may be lost
+        self->handleDatachannelEvent(incoming);
     });
 
     pc_->onGatheringStateChange(
