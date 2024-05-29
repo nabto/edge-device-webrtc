@@ -3,6 +3,7 @@ let productId = null;
 let deviceId = null;
 let sct = null;
 let webrtcConnection = null;
+let datachannel = null;
 
 async function connect()
 {
@@ -25,6 +26,8 @@ async function connect()
       boxLog(`WebRTC connection closed`);
     }
     document.getElementById("disconnect").disabled = true;
+    document.getElementById("createDc").disabled = true;
+    document.getElementById("dcsenddiv").hidden = true;
     document.getElementById("connect").disabled = false;
   });
 
@@ -33,6 +36,7 @@ async function connect()
   try {
     await webrtcConnection.connect();
     document.getElementById("disconnect").disabled = false;
+    document.getElementById("createDc").disabled = false;
     boxLog("Connected to device. Getting video feed.")
     webrtcConnection.coapInvoke("GET","/webrtc/get");
   } catch (err) {
@@ -44,19 +48,29 @@ async function connect()
 async function disconnect()
 {
   document.getElementById("disconnect").disabled = true;
+  document.getElementById("createDc").disabled = true;
+  document.getElementById("dcsenddiv").hidden = true;
   document.getElementById("connect").disabled = false;
   await webrtcConnection.close();
   webrtcConnection = null;
 
 }
 
-async function createDataChannel()
+async function createDatachannel(label)
 {
-  const channel = webrtcConnection.pc.createDataChannel("foobar");
-  channel.addEventListener("message", (event) => {
+  // TODO: Use webrtcConnection.createDatachannel(label) once the js API is ready
+  datachannel = webrtcConnection.pc.createDataChannel(label);
+  datachannel.addEventListener("message", (event) => {
     console.log("Got datachannel message: ", event.data);
+    let dec = new TextDecoder("utf-8");
+    boxLog(`Got datachannel message: ${dec.decode(event.data)}`);
   });
-  channel.addEventListener("open", (event) => {
-    channel.send("HELLO WORLD!!!");
+  datachannel.addEventListener("open", (event) => {
+    boxLog("Datachannel Opened!");
+    document.getElementById("dcsenddiv").hidden = false;
   })
+}
+
+async function datachannelSend(data) {
+  datachannel.send(data);
 }
