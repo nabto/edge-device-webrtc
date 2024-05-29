@@ -126,9 +126,9 @@ void Datachannel::setMessageCallback(DatachannelMessageCallback cb)
     return impl_->setMessageCallback(cb);
 }
 
-void Datachannel::sendMessage(const uint8_t* buffer, size_t length)
+void Datachannel::sendMessage(const uint8_t* buffer, size_t length, enum MessageType type)
 {
-    return impl_->sendMessage(buffer, length);
+    return impl_->sendMessage(buffer, length, type);
 }
 
 DatachannelImplPtr Datachannel::getImpl()

@@ -53,8 +53,6 @@ typedef std::function<void(NabtoDeviceConnectionRef connRef, MediaTrackPtr track
 */
 typedef std::function<void(NabtoDeviceConnectionRef connRef, DatachannelPtr channel)> DatachannelEventCallback;
 
-typedef std::function<void(uint8_t* buffer, size_t length)> DatachannelMessageCallback;
-
 /**
  * Check access callback invoked when an access decision must be made.
  *
@@ -237,12 +235,19 @@ private:
 
 class Datachannel {
 public:
+    enum MessageType {
+        MESSAGE_TYPE_STRING,
+        MESSAGE_TYPE_BINARY
+    };
+
+    typedef std::function<void(enum MessageType type, uint8_t* buffer, size_t length)> DatachannelMessageCallback;
+
     static DatachannelPtr create(const std::string& label);
     Datachannel(const std::string& label);
     ~Datachannel();
 
     void setMessageCallback(DatachannelMessageCallback cb);
-    void sendMessage(const uint8_t* buffer, size_t length);
+    void sendMessage(const uint8_t* buffer, size_t length, enum MessageType type = MESSAGE_TYPE_BINARY);
 
     DatachannelImplPtr getImpl();
 private:
