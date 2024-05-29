@@ -147,7 +147,7 @@ public:
     };
 
     /**
-     * Create a media track to use in a `connectionAddMedias()` call.
+     * Create a media track to use in a `connectionAddMediaTracks()` call.
      *
      * @param trackId [in]  Identifier to set for the track
      * @param sdp [in]      SDP string defining the track
@@ -251,7 +251,7 @@ public:
      * @param tracks [in] List of tracks to add
      * @returns False if the Nabto Connection referenced does not have a Signaling Stream open
     */
-    bool connectionAddMedias(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks);
+    bool connectionAddMediaTracks(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks);
 
     /**
      * Set callback to be called when the Client has added a track to the PeerConnection. (ie. a WebRTC Offer containing new tracks was received)

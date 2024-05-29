@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
         rtpVideo->addConnection(ref, media);
         list.push_back(media);
 
-        if (!webrtc->connectionAddMedias(ref, list)) {
+        if (!webrtc->connectionAddMediaTracks(ref, list)) {
             std::cout << "Failed to add medias to connection" << std::endl;
             nabto_device_coap_error_response(coap, 500, "Internal Server Error");
             return;
