@@ -23,15 +23,19 @@ namespace nabto {
 class NabtoDeviceWebrtc;
 class EventQueue;
 class MediaTrack;
+class Datachannel;
 
 class NabtoDeviceWebrtcImpl;
 typedef std::shared_ptr<NabtoDeviceWebrtcImpl> NabtoDeviceWebrtcImplPtr;
 class MediaTrackImpl;
 typedef std::shared_ptr<MediaTrackImpl> MediaTrackImplPtr;
+class DatachannelImpl;
+typedef std::shared_ptr<DatachannelImpl> DatachannelImplPtr;
 
 typedef std::shared_ptr<NabtoDeviceWebrtc> NabtoDeviceWebrtcPtr;
 typedef std::shared_ptr<EventQueue> EventQueuePtr;
 typedef std::shared_ptr<MediaTrack> MediaTrackPtr;
+typedef std::shared_ptr<Datachannel> DatachannelPtr;
 
 typedef std::function<void()> QueueEvent;
 
@@ -41,6 +45,13 @@ typedef std::function<void()> QueueEvent;
  * @param track [in]   The track created by this event
 */
 typedef std::function<void(NabtoDeviceConnectionRef connRef, MediaTrackPtr track)> TrackEventCallback;
+
+/**
+ * Datachannel Event callback definition
+ * @param connRef [in] The Nabto Connection the datachannel event originates from
+ * @param channel [in]   The datachannel created by this event
+*/
+typedef std::function<void(NabtoDeviceConnectionRef connRef, DatachannelPtr channel)> DatachannelEventCallback;
 
 /**
  * Check access callback invoked when an access decision must be made.
@@ -222,6 +233,68 @@ private:
 
 };
 
+class Datachannel {
+public:
+    /**
+     * Message types when sending/receiving datachannel messages
+     */
+    enum MessageType {
+        MESSAGE_TYPE_STRING,
+        MESSAGE_TYPE_BINARY
+    };
+
+    /**
+     * Callback invoked when a datachannel has data available.
+     *
+     * @param type [in]   Type of message received
+     * @param buffer [in] Data buffer received
+     * @param length [in] Length of data buffer
+     */
+    typedef std::function<void(enum MessageType type, uint8_t* buffer, size_t length)> DatachannelMessageCallback;
+
+    static DatachannelPtr create(const std::string& label);
+    Datachannel(const std::string& label);
+    ~Datachannel();
+
+    /**
+     * Get the label of the datachannel
+     *
+     * @return The label as a string
+     */
+    std::string getLabel();
+
+    /**
+     * Set callback to be invoked when a message is received on the datachannel.
+     *
+     * @param cb [in] Callback to set
+    */
+    void setMessageCallback(DatachannelMessageCallback cb);
+
+    /**
+     * Send a message on this datachannel
+     *
+     * @param buffer [in] Data buffer to send
+     * @param length [in] Length of data buffer
+     * @param type [in]   Type of message to send
+     */
+    void sendMessage(const uint8_t* buffer, size_t length, enum MessageType type = MESSAGE_TYPE_BINARY);
+
+    /**
+     * Set callback to be called when this track is closed.
+     *
+     * @param cb [in] Callback to set
+    */
+    void setCloseCallback(std::function<void()> cb);
+
+
+    /*
+     * Internal method
+    */
+    DatachannelImplPtr getImpl();
+private:
+    DatachannelImplPtr impl_;
+};
+
 /**
  * Main Webrtc Device context to handle WebRTC connections
  */
@@ -262,6 +335,9 @@ public:
      * @param cb [in] The callback to set
     */
     void setTrackEventCallback(TrackEventCallback cb);
+
+
+    void setDatachannelEventCallback(DatachannelEventCallback cb);
 
     /**
      * Set Callback to be called to check if some action is allowed by the current connection.

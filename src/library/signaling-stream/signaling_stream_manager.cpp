@@ -38,6 +38,9 @@ bool SignalingStreamManager::start()
                 },
                 [self](NabtoDeviceConnectionRef ref, std::string action) -> bool {
                     return self->accessCb_(ref, action);
+                },
+                [self](NabtoDeviceConnectionRef connRef, DatachannelPtr channel) {
+                    self->datachannelCb_(connRef, channel);
                 });
             self->streams_.push_back(s);
             s->start();
@@ -91,6 +94,11 @@ bool SignalingStreamManager::connectionAddMediaTracks(NabtoDeviceConnectionRef r
 void SignalingStreamManager::setTrackEventCallback(TrackEventCallback cb)
 {
     trackCb_ = cb;
+}
+
+void SignalingStreamManager::setDatachannelEventCallback(DatachannelEventCallback cb)
+{
+    datachannelCb_ = cb;
 }
 
 void SignalingStreamManager::setCheckAccessCallback(CheckAccessCallback cb)

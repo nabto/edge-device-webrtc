@@ -32,8 +32,24 @@
       </section>
     </form>
     <div class="controlbox">
-      <input id="connect" type="button" name="connect" value="Connect" onclick="connect()">
-      <input id="disconnect" type="button" name="disconnect" value="Disconnect" onclick="disconnect()" disabled>
+      <section>
+        <input id="connect" type="button" name="connect" value="Connect" onclick="connect()">
+        <input id="disconnect" type="button" name="disconnect" value="Disconnect" onclick="disconnect()" disabled>
+      </section>
+      <section style="border: 1px solid; max-width: 1500px; margin-top: 10px;">
+        <div style="margin: 10px;">
+          <h3>Datachannel</h3>
+          <label for="dclabel">Label: </label>
+          <input id="dclabel" type="text" maxlength="1024" inputmode="verbatim" value="testchannel">
+          <input id="createDc" type="button" name="createDc" value="Create Datachannel" onclick="createDatachannel(dclabel.value)" disabled>
+          <div id="dcsenddiv" hidden="true">
+            <label for="dcin">Input data: </label>
+            <input id="dcin" type="text" maxlength="1024" inputmode="verbatim" value="">
+            <input id="dcSend" type="button" name="dcSend" value="Send" onclick="datachannelSend(dcin.value)">
+          </div>
+        </div>
+      </section>
+
     </div>
     <ul class="logbox"><b>LOG:</b></ul>
     <div class="camerabox">

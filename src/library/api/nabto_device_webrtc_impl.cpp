@@ -33,6 +33,12 @@ void NabtoDeviceWebrtcImpl::setTrackEventCallback(TrackEventCallback cb)
     ssm_->setTrackEventCallback(cb);
 }
 
+void NabtoDeviceWebrtcImpl::setDatachannelEventCallback(DatachannelEventCallback cb)
+{
+    ssm_->setDatachannelEventCallback(cb);
+}
+
+
 void NabtoDeviceWebrtcImpl::setCheckAccessCallback(CheckAccessCallback cb)
 {
     ssm_->setCheckAccessCallback(cb);

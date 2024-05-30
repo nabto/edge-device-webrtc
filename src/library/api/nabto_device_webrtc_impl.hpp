@@ -16,6 +16,7 @@ public:
     void stop();
     bool connectionAddMediaTracks(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks);
     void setTrackEventCallback(TrackEventCallback cb);
+    void setDatachannelEventCallback(DatachannelEventCallback cb);
     void setCheckAccessCallback(CheckAccessCallback cb);
 
 private:
