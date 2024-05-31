@@ -223,7 +223,6 @@ public:
     */
     void setErrorState(enum ErrorState state);
 
-
     /*
      * Internal method
     */
@@ -233,6 +232,9 @@ private:
 
 };
 
+/**
+ * This class represents a WebRTC DataChannel for sending and receiving messages.
+ */
 class Datachannel {
 public:
     /**
@@ -293,6 +295,7 @@ public:
     DatachannelImplPtr getImpl();
 private:
     DatachannelImplPtr impl_;
+
 };
 
 /**
