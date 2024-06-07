@@ -1,0 +1,35 @@
+#pragma once
+
+#include "rtp_packetizer.hpp"
+
+#include <rtc/h264rtppacketizer.hpp>
+#include <rtc/rtppacketizationconfig.hpp>
+
+#include <chrono>
+
+namespace nabto {
+
+class H264Packetizer : public RtpPacketizer
+{
+public:
+    static RtpPacketizerPtr create(uint32_t ssrc, std::string& trackId, int pt) { return std::make_shared<H264Packetizer>(ssrc, trackId, pt); }
+
+    H264Packetizer(uint32_t ssrc, std::string& trackId, int pt) {
+        rtpConf_ = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, trackId, pt, 90000);
+        packetizer_ = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::StartSequence, rtpConf_);
+
+        last_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()
+        );
+    }
+
+    std::vector<std::vector<uint8_t> > incoming(const std::vector<uint8_t>& data);
+
+private:
+    std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf_;
+    std::shared_ptr<rtc::H264RtpPacketizer> packetizer_;
+    std::chrono::milliseconds last_;
+    std::vector<uint8_t> buffer_;
+};
+
+} // namespace

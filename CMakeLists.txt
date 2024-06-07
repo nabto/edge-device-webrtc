@@ -63,6 +63,8 @@ add_subdirectory(src/modules/event-queue)
 add_subdirectory(src/modules/track-negotiators)
 add_subdirectory(src/modules/rtp-client)
 add_subdirectory(src/modules/rtsp-client)
+add_subdirectory(src/modules/fifo-file-client)
+add_subdirectory(src/modules/rtp-packetizer)
 add_subdirectory(examples/webrtc-demo)
 add_subdirectory(examples/simple-webrtc)
 

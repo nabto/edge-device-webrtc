@@ -4,8 +4,13 @@
 
 #include <event-queue/event_queue_impl.hpp>
 #include <rtp-client/rtp_client.hpp>
+#include <fifo-file-client/fifo_file_client.hpp>
 #include <track-negotiators/h264.hpp>
+#include <rtp-packetizer/h264_packetizer.hpp>
 #include <util/util.hpp>
+
+#include <plog/Formatters/TxtFormatter.h>
+#include <plog/Appenders/ColorConsoleAppender.h>
 
 #include <cxxopts/cxxopts.hpp>
 #include <rtc/global.hpp>
@@ -48,6 +53,25 @@ bool parse_options(int argc, char** argv, json& opts);
 
 bool initDevice(nabto::NabtoDevicePtr device, json& opts);
 
+enum plog::Severity plogSeverity(std::string& logLevel)
+{
+    if (logLevel == "trace") {
+        return plog::Severity::debug;
+    }
+    else if (logLevel == "warn") {
+        return plog::Severity::warning;
+    }
+    else if (logLevel == "info") {
+        return plog::Severity::info;
+    }
+    else if (logLevel == "error") {
+        return plog::Severity::error;
+    }
+    return plog::Severity::none;
+
+}
+
+
 int main(int argc, char** argv) {
 
     json opts;
@@ -55,6 +79,16 @@ int main(int argc, char** argv) {
     if (shouldExit) {
         return 0;
     }
+
+    static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
+
+    auto logLevel = opts["logLevel"].get<std::string>();
+    char* envLvl = std::getenv("NABTO_WEBRTC_LOG_LEVEL");
+    if (envLvl != NULL) {
+        logLevel = std::string(envLvl);
+    }
+    nabto::initLogger(plogSeverity(logLevel), &consoleAppender);
+
 
     auto device = nabto::makeNabtoDevice();
 
@@ -64,9 +98,15 @@ int main(int argc, char** argv) {
 
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     uint16_t port = opts["rtpPort"].get<uint16_t>();
-    auto rtpVideo = nabto::RtpClient::create(trackId);
-    rtpVideo->setPort(port);
+    // auto rtpVideo = nabto::RtpClient::create(trackId);
+    // rtpVideo->setPort(port);
+    // rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
+
+    auto rtpPacketizer = nabto::H264Packetizer::create(1, trackId, 96);
+
+    auto rtpVideo = nabto::FifoFileClient::create(trackId, "video1.pipe");
     rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
+    rtpVideo->setRtpPacketizer(rtpPacketizer);
 
     auto eventQueue = nabto::EventQueueImpl::create();
 
