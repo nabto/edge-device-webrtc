@@ -64,5 +64,7 @@ private:
     std::ifstream fifo_;
     std::thread thread_;
 
+    int fd_;
+
 };
 } // namespace
