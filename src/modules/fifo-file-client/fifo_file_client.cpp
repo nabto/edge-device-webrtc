@@ -165,7 +165,7 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
 
     auto videoRtpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
 
-    // auto file = std::ofstream(self->filePath_+".test");
+    auto file = std::ofstream(self->filePath_+".test");
 
 
     while ((retval = select(self->fd_+1, &rfdset, NULL, NULL, &tv)) != -1) {
@@ -200,7 +200,7 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
                 count = 0;
             }
 
-            // file.write(ptr, r);
+            file.write(buffer, r);
 
             // NPLOGE << "Read " << r << "bytes from fifo.";
 
@@ -211,6 +211,13 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
                 for (const auto& [key, value] : self->mediaTracks_) {
                     for (auto p : packets) {
                         value.track->send(p.data(), p.size());
+
+                        struct sockaddr_in addr = {};
+                        addr.sin_family = AF_INET;
+                        addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+                        addr.sin_port = htons(6001);
+
+                            auto ret = sendto(videoRtpSock_, p.data(), p.size(), 0, (struct sockaddr*)&addr, sizeof(addr));
                     }
                 }
             }
