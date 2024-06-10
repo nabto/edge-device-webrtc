@@ -99,16 +99,22 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
     // auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_).count();
     // rtpConf_->timestamp = startTs + (epochDiff * 90);
 
-    if (std::search(buffer_.begin() + 4, buffer_.end(), aud.begin(), aud.end()) == buffer_.end())
-    {
-        return ret;
-    }
+    // if (std::search(buffer_.begin() + 4, buffer_.end(), aud.begin(), aud.end()) == buffer_.end())
+    // {
+    //     return ret;
+    // }
 
 
     while(1){
         auto it = std::search(buffer_.begin() + 4, buffer_.end(), longSep.begin(), longSep.end());
         auto it2 = std::search(buffer_.begin() + 4, buffer_.end(), shortSep.begin(), shortSep.end());
         bool isShort = false;
+
+        if (buffer_.size() > 3) {
+            if (buffer_.at(2) == 1) {
+                isShort = true;
+            }
+        }
 
         if (it != buffer_.end()) {
             NPLOGE << "Found LongSep at: ";
@@ -122,13 +128,13 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
             if (it2 < it) {
                 NPLOGE << "Using ShortSep";
                 it = it2;
-                isShort = true;
             }
 
             auto tmp = std::vector<uint8_t>(buffer_.begin(), it);
 
-            if (buffer_.at(4) == 9) {
-                if (lastNal_.size() > 0) {
+            // if (buffer_.at(4) == 9) {
+            if (!isShort && (buffer_.at(4) != 0x68)) {
+                if (lastNal_.size() > 0 ) {
                     NPLOGE << "Marking last NAL";
                     auto r = lastNal_.back();
                     lastNal_.pop_back();
@@ -143,6 +149,16 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                 auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_).count();
                 rtpConf_->timestamp = startTs + (epochDiff * 90);
 
+                if (buffer_.at(4) != 9) {
+                    ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
+                    std::vector<uint8_t> accessUnit = { 0x00, 0x00, 0x00, 0x01, 0x09 };
+                    if (buffer_.at(4) == 0x67) {
+                        accessUnit.push_back(0x10);
+                    } else {
+                        accessUnit.push_back(0x30);
+                    }
+                    lastNal_ = packetize(accessUnit, false);
+                }
             }
 
             ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
