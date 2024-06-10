@@ -7,8 +7,6 @@
 
 namespace nabto {
 
-std::vector<uint8_t> aud = { 0x00, 0x00, 0x00, 0x01, 0x09 };
-
 std::vector<uint8_t> longSep = { 0x00, 0x00, 0x00, 0x01 };
 std::vector<uint8_t> shortSep = { 0x00, 0x00, 0x01 };
 
@@ -34,12 +32,10 @@ std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t
     uint8_t nalHead = data[i];
 
     if (data.size() < MTU) {
-        NPLOGE << "Packetize with data size < MTU: " << data.size();
         uint8_t* src = data.data() + i;
         auto msg = std::make_shared<rtc::Message>((std::byte*)src, (std::byte*)(src + data.size() - i));
         vec.push_back(msg);
     } else {
-        NPLOGE << "Packetize with data size > MTU: " << data.size() << " data[0-5]: " << std::hex << (int)data[0] << ", " << (int)data[1] << ", " << (int)data[2] << ", " << (int)data[3] << ", " << (int)data[4] << ", " << (int)data[5] << std::dec;
         bool first = true;
         while (i < data.size()) {
             std::vector<uint8_t> tmp;
@@ -62,7 +58,6 @@ std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t
             else {
                 fuHeader = setEnd(false, fuHeader);
             }
-            NPLOGE << "Building fragment with fuIdic: " << std::hex << (int)fuIndic << " fuHead: " << (int)fuHeader << " nalHead: " << (int)nalHead << std::dec << " len: " << (int)len;
 
             tmp.push_back(fuIndic);
             tmp.push_back(fuHeader);
@@ -76,10 +71,8 @@ std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t
         }
     }
 
-    NPLOGE << "RTP packetizing " <<  vec.size() << " packets";
     packetizer_->outgoing(vec, nullptr);
 
-    NPLOGE << "RTP packetized " << vec.size() << " packets";
     for (auto m : vec) {
         ret.push_back(std::vector<uint8_t>((uint8_t*)m->data(), (uint8_t*)(m->data() + m->size())));
     }
@@ -91,105 +84,79 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
     buffer_.insert(buffer_.end(), data.begin(), data.end());
     std::vector<std::vector<uint8_t> > ret;
 
-    // std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(
-    //     std::chrono::system_clock::now().time_since_epoch()
-    // );
-
-    // auto startTs = rtpConf_->startTimestamp;
-    // auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_).count();
-    // rtpConf_->timestamp = startTs + (epochDiff * 90);
-
-    // if (std::search(buffer_.begin() + 4, buffer_.end(), aud.begin(), aud.end()) == buffer_.end())
-    // {
-    //     return ret;
-    // }
-
+    bool isShort = false; // True if current NAL unit uses Short Separator
+    if (buffer_.size() > 3 && buffer_.at(2) == 0x01) {
+        // buffer starts with short separator: 0x00, 0x00, 0x01
+        isShort = true;
+    }
 
     while(1){
+        // search for a second nal unit separator
         auto it = std::search(buffer_.begin() + 4, buffer_.end(), longSep.begin(), longSep.end());
         auto it2 = std::search(buffer_.begin() + 4, buffer_.end(), shortSep.begin(), shortSep.end());
-        bool isShort = false;
-
-        if (buffer_.size() > 3) {
-            if (buffer_.at(2) == 1) {
-                isShort = true;
-            }
-        }
-
-        if (it != buffer_.end()) {
-            NPLOGE << "Found LongSep at: ";
-        }
 
         if (it2 != buffer_.end()) {
-            NPLOGE << "Found ShortSep at: ";
-        }
-
-        if (it2 != buffer_.end()) {
+            // If we found a separator. (if long exists, so does the short)
+            bool nextShort = false;
             if (it2 < it) {
-                NPLOGE << "Using ShortSep";
                 it = it2;
+                nextShort = true; // we found a short separator
             }
 
             auto tmp = std::vector<uint8_t>(buffer_.begin(), it);
 
-            // if (buffer_.at(4) == 9) {
             if (!isShort && (buffer_.at(4) != 0x68)) {
-                if (lastNal_.size() > 0 ) {
-                    NPLOGE << "Marking last NAL";
+                /* Long separators are used to separate Access units (AU).
+                 * If stream uses Access Unit Delimiters (AUD) this also separates AUs
+                 * The long separator is also used for PPS NAL units which does not separate AUs
+                 * If not using AUD, SPS NAL units separates AUs
+                 */
+                if (lastNal_.size() > 0 && (hasAud_ != (buffer_.at(4) == 0x67))) {
+                    // Last NAL exists
+                    // If stream uses AUD, this is not an SPS NAL unit
+                    // If stream does not use AUD, this is an SPS NAL unit
+                    // This means we must set the marker-bit in the previous RTP header
                     auto r = lastNal_.back();
                     lastNal_.pop_back();
                     r[1] = r[1] | 0x80;
                     lastNal_.push_back(r);
                 }
+
+                // We tick RTP timestamp between AUs
                 std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::system_clock::now().time_since_epoch()
                 );
 
                 auto startTs = rtpConf_->startTimestamp;
-                auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_).count();
+                auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_).count();
                 rtpConf_->timestamp = startTs + (epochDiff * 90);
 
-                if (buffer_.at(4) != 9) {
+                if (buffer_.at(4) != 9 && !hasAud_) {
+                    // We start new AU, but stream is not using AUD
+                    // so we add AUD manually.
                     ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
                     std::vector<uint8_t> accessUnit = { 0x00, 0x00, 0x00, 0x01, 0x09 };
                     if (buffer_.at(4) == 0x67) {
+                        // If this is SPS NAL unit, we are also starting an new coded video sequence, so payload must be 0x10
                         accessUnit.push_back(0x10);
                     } else {
                         accessUnit.push_back(0x30);
                     }
                     lastNal_ = packetize(accessUnit, false);
+                } else {
+                    hasAud_ = true;
                 }
             }
 
+            // Insert last NAL unit since we know if needs to be marked
             ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
+            // Packetize current NAL unit
             lastNal_ = packetize(tmp, isShort);
 
-            // auto ps = packetize(tmp, isShort);
-            // ret.insert(ret.end(), ps.begin(), ps.end());
+            // Remove current NAL unit from buffer.
             buffer_ = std::vector<uint8_t>(it, buffer_.end());
+            isShort = nextShort;
 
-
-            // auto accessUnit = std::make_shared<rtc::Message>((std::byte*)tmp.data(), (std::byte*)(tmp.data() + tmp.size()));
-            // rtc::message_vector vec;
-            // vec.push_back(accessUnit);
-
-            // std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(
-            //     std::chrono::system_clock::now().time_since_epoch()
-            // );
-
-            // auto startTs = rtpConf_->startTimestamp;
-            // auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_).count();
-            // rtpConf_->timestamp = startTs + (epochDiff * 90);
-
-
-            // packetizer_->outgoing(vec, nullptr);
-
-
-            // for (auto m : vec) {
-            //     ret.push_back(std::vector<uint8_t>((uint8_t*)m->data(), (uint8_t*)(m->data()+m->size())));
-            // }
-
-            // buffer_ = std::vector<uint8_t>(it, buffer_.end());
 
         } else {
             return ret;

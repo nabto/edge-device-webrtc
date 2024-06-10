@@ -20,7 +20,7 @@ public:
         // packetizer_ = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::StartSequence, rtpConf_);
         packetizer_ = std::make_shared<rtc::RtpPacketizer>(rtpConf_);
 
-        last_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        start_ = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()
         );
     }
@@ -33,9 +33,11 @@ private:
     std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf_;
     // std::shared_ptr<rtc::H264RtpPacketizer> packetizer_;
     std::shared_ptr<rtc::RtpPacketizer> packetizer_;
-    std::chrono::milliseconds last_;
+    std::chrono::milliseconds start_;
     std::vector<uint8_t> buffer_;
     std::vector<std::vector<uint8_t>> lastNal_;
+    bool hasAud_ = false; // True if this h264 contains access unit delimiters
+
 };
 
 } // namespace
