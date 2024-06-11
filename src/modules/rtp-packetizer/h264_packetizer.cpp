@@ -21,45 +21,34 @@ std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t
 {
     std::vector<std::vector<uint8_t> > ret;
 
-    if (data[2] == 1) {
-        isShort = true;
-    } else {
-        isShort = false;
-    }
-
     rtc::message_vector vec;
     size_t i = isShort ? 3 : 4;
     uint8_t nalHead = data[i];
 
     if (data.size() < MTU) {
+        // NAL unit fits in single packet
         uint8_t* src = data.data() + i;
         auto msg = std::make_shared<rtc::Message>((std::byte*)src, (std::byte*)(src + data.size() - i));
         vec.push_back(msg);
     } else {
+        // NAL unit must be split into fragments
         bool first = true;
         while (i < data.size()) {
             std::vector<uint8_t> tmp;
             size_t len = i + MTU > data.size() ? data.size() - i : MTU;
             std::vector<uint8_t> fragment = {data.begin()+ i+1, data.begin()+i+1+len};
 
-            uint8_t fuIndic = (nalHead & 0b11100000) + NAL_FUA;
+            // FU identifier becomes the NAL header, so we must keep NRI from the original NAL unit and change the type to FU-A
+            uint8_t fuIndentifier = (nalHead & 0b11100000) + NAL_FUA;
+            // FU Header stores the original NAL type in the 5 lowest bits
             uint8_t fuHeader = nalHead & 0b00011111;
 
-            if (first) {
-                fuHeader = setStart(true, fuHeader);
-                first = false;
-            } else {
-                fuHeader = setStart(false, fuHeader);
-            }
+            // Set FU Header start/end markers
+            fuHeader = setStart(first, fuHeader);
+            first = false;
+            fuHeader = setEnd((len != MTU), fuHeader);
 
-            if (len != MTU) {
-                fuHeader = setEnd(true, fuHeader);
-            }
-            else {
-                fuHeader = setEnd(false, fuHeader);
-            }
-
-            tmp.push_back(fuIndic);
+            tmp.push_back(fuIndentifier);
             tmp.push_back(fuHeader);
 
             tmp.insert(tmp.end(), fragment.begin(), fragment.end());
@@ -71,6 +60,7 @@ std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t
         }
     }
 
+    // Insert RTP headers
     packetizer_->outgoing(vec, nullptr);
 
     for (auto m : vec) {
@@ -116,10 +106,13 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                     // If stream uses AUD, this is not an SPS NAL unit
                     // If stream does not use AUD, this is an SPS NAL unit
                     // This means we must set the marker-bit in the previous RTP header
+                    NPLOGE << "Marking last NAL";
                     auto r = lastNal_.back();
                     lastNal_.pop_back();
                     r[1] = r[1] | 0x80;
                     lastNal_.push_back(r);
+                } else {
+                    NPLOGE << "NOT Marking last NAL. size: " << lastNal_.size() << " hasAud_: " << hasAud_ << " buffer[4]: " << buffer_.at(4);
                 }
 
                 // We tick RTP timestamp between AUs
