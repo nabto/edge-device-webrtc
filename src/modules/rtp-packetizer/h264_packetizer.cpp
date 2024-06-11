@@ -106,13 +106,10 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                     // If stream uses AUD, this is not an SPS NAL unit
                     // If stream does not use AUD, this is an SPS NAL unit
                     // This means we must set the marker-bit in the previous RTP header
-                    NPLOGE << "Marking last NAL";
                     auto r = lastNal_.back();
                     lastNal_.pop_back();
                     r[1] = r[1] | 0x80;
                     lastNal_.push_back(r);
-                } else {
-                    NPLOGE << "NOT Marking last NAL. size: " << lastNal_.size() << " hasAud_: " << hasAud_ << " buffer[4]: " << buffer_.at(4);
                 }
 
                 // We tick RTP timestamp between AUs
