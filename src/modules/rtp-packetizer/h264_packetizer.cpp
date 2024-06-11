@@ -111,7 +111,7 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                  * The long separator is also used for PPS NAL units which does not separate AUs
                  * If not using AUD, SPS NAL units separates AUs
                  */
-                if (lastNal_.size() > 0 && (hasAud_ != (buffer_.at(4) == 0x67))) {
+                if (lastNal_.size() > 0 && !(hasAud_ && (buffer_.at(4) == 0x67))) {
                     // Last NAL exists
                     // If stream uses AUD, this is not an SPS NAL unit
                     // If stream does not use AUD, this is an SPS NAL unit
