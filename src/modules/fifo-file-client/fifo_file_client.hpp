@@ -17,8 +17,7 @@ class FifoTrack
 {
 public:
     MediaTrackPtr track;
-    std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf;
-    std::shared_ptr<rtc::H264RtpPacketizer> packetizer = nullptr;
+    RtpPacketizerPtr packetizer = nullptr;
 
 };
 
@@ -42,7 +41,7 @@ public:
     }
 
     void setTrackNegotiator(TrackNegotiatorPtr negotiator) { negotiator_ = negotiator; }
-    void setRtpPacketizer(RtpPacketizerPtr packetizer) {
+    void setRtpPacketizer(RtpPacketizerFactoryPtr packetizer) {
         packetizer_ = packetizer;
     }
     TrackNegotiatorPtr getTrackNegotiator() { return negotiator_; }
@@ -60,7 +59,7 @@ private:
     std::mutex mutex_;
     std::map<NabtoDeviceConnectionRef, FifoTrack> mediaTracks_;
     TrackNegotiatorPtr negotiator_;
-    RtpPacketizerPtr packetizer_;
+    RtpPacketizerFactoryPtr packetizer_;
     std::ifstream fifo_;
     std::thread thread_;
 

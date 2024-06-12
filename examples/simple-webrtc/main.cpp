@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
     // rtpVideo->setPort(port);
     // rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
 
-    auto rtpPacketizer = nabto::H264Packetizer::create(1, trackId, 96);
+    auto rtpPacketizer = nabto::H264PacketizerFactory::create(trackId);
 
     auto rtpVideo = nabto::FifoFileClient::create(trackId, "video1.pipe");
     rtpVideo->setTrackNegotiator(rtpVideoNegotiator);

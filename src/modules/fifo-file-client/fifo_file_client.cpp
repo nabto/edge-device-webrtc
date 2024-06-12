@@ -55,14 +55,9 @@ void FifoFileClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr m
 
     const rtc::SSRC ssrc = negotiator_->ssrc();
 
-    // TODO: use repacketizer interface so it becomes codec agnostic
-    auto rtpConf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, media->getTrackId(), pt, 90000);
-
-
     FifoTrack track = {
         media,
-        rtpConf,
-        std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::StartSequence, rtpConf)
+        packetizer_->createPacketizer(ssrc, pt)
     };
 
     doAddConnection(ref, track);
@@ -95,13 +90,6 @@ void FifoFileClient::removeConnection(NabtoDeviceConnectionRef ref)
 void FifoFileClient::start()
 {
     NPLOGI << "Starting fifo Client listen on file " << filePath_;
-
-
-    // fifo_ = std::ifstream(filePath_);
-    // if (!fifo_.good()) {
-    //     NPLOGE << "Failed to open FIFO file at " << filePath_;
-    //     return;
-    // }
     stopped_ = false;
     thread_ = std::thread(fifoRunner, this);
 }
@@ -205,10 +193,10 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
             // NPLOGE << "Read " << r << "bytes from fifo.";
 
             std::vector<uint8_t> data(buffer, buffer+r);
-            auto packets = self->packetizer_->incoming(data);
             {
-                // std::lock_guard<std::mutex> lock(self->mutex_);
+                std::lock_guard<std::mutex> lock(self->mutex_);
                 for (const auto& [key, value] : self->mediaTracks_) {
+                    auto packets = value.packetizer->incoming(data);
                     for (auto p : packets) {
                         value.track->send(p.data(), p.size());
 

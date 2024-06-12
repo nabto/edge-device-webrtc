@@ -5,9 +5,13 @@
 
 #include <algorithm>
 
+/*
+ * This can be used to packetize a H264 byte-stream conforming to the annex B specifications in "H.264 : Advanced video coding for generic audiovisual services" https://www.itu.int/rec/T-REC-H.264-202108-I/en
+ * This means NAL units must be separated by the "start code prefix". H264 feeds using the length separator (MP4) will not work.
+ */
+
 namespace nabto {
 
-std::vector<uint8_t> longSep = { 0x00, 0x00, 0x00, 0x01 };
 std::vector<uint8_t> shortSep = { 0x00, 0x00, 0x01 };
 
 const int MTU = 1200;

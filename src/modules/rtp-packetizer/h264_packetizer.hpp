@@ -17,7 +17,6 @@ public:
 
     H264Packetizer(uint32_t ssrc, std::string& trackId, int pt) {
         rtpConf_ = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, trackId, pt, 90000);
-        // packetizer_ = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::StartSequence, rtpConf_);
         packetizer_ = std::make_shared<rtc::RtpPacketizer>(rtpConf_);
 
         start_ = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -31,13 +30,24 @@ public:
 
 private:
     std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf_;
-    // std::shared_ptr<rtc::H264RtpPacketizer> packetizer_;
     std::shared_ptr<rtc::RtpPacketizer> packetizer_;
     std::chrono::milliseconds start_;
     std::vector<uint8_t> buffer_;
     std::vector<std::vector<uint8_t>> lastNal_;
     uint8_t lastNalHead_ = 0;
 
+};
+
+class H264PacketizerFactory : public RtpPacketizerFactory
+{
+public:
+    static RtpPacketizerFactoryPtr create(std::string& trackId) {
+        return std::make_shared<H264PacketizerFactory>(trackId);
+    }
+    H264PacketizerFactory(std::string& trackId): RtpPacketizerFactory(trackId) { }
+    RtpPacketizerPtr createPacketizer(uint32_t ssrc, int pt) {
+        return H264Packetizer::create(ssrc, trackId_, pt);
+    }
 };
 
 } // namespace
