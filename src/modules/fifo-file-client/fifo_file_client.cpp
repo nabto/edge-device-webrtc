@@ -107,7 +107,6 @@ void FifoFileClient::stop()
         else {
             stopped_ = true;
             close(fd_);
-            // fifo_.close();
         }
     }
     if (!stopped && thread_.joinable()) {
@@ -138,7 +137,7 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
 
     self->fd_ = open(self->filePath_.c_str(), O_RDONLY, O_NONBLOCK);
 
-    NPLOGE << "file opened at: " << self->filePath_ << " fd: " << self->fd_;
+    NPLOGI << "file opened at: " << self->filePath_ << " fd: " << self->fd_;
 
     fd_set rfdset;
     int maxfd;
@@ -151,13 +150,8 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
     FD_ZERO(&rfdset);
     FD_SET(self->fd_, &rfdset);
 
-    auto videoRtpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
-
-    auto file = std::ofstream(self->filePath_+".test");
-
 
     while ((retval = select(self->fd_+1, &rfdset, NULL, NULL, &tv)) != -1) {
-        // self->fifo_.good()) {
         tv.tv_sec = 5;
 
         {
@@ -167,15 +161,12 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
             }
         }
         if (!retval) {
-            NPLOGE << "Select timeout: " << retval;
+            NPLOGD << "Select timeout: " << retval;
             continue;
         }
 
         try {
-            // auto r = self->fifo_.readsome(buffer, FIFO_BUFFER_SIZE);
-            // self->fifo_.read(buffer, 20480);
             int r = read(self->fd_, buffer, FIFO_BUFFER_SIZE);
-            // size_t r = 20480;
             if (r == 0) {
                 continue;
             }
@@ -188,10 +179,6 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
                 count = 0;
             }
 
-            file.write(buffer, r);
-
-            // NPLOGE << "Read " << r << "bytes from fifo.";
-
             std::vector<uint8_t> data(buffer, buffer+r);
             {
                 std::lock_guard<std::mutex> lock(self->mutex_);
@@ -199,13 +186,6 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
                     auto packets = value.packetizer->incoming(data);
                     for (auto p : packets) {
                         value.track->send(p.data(), p.size());
-
-                        struct sockaddr_in addr = {};
-                        addr.sin_family = AF_INET;
-                        addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-                        addr.sin_port = htons(6001);
-
-                            auto ret = sendto(videoRtpSock_, p.data(), p.size(), 0, (struct sockaddr*)&addr, sizeof(addr));
                     }
                 }
             }
@@ -213,9 +193,7 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
             NPLOGE << "Failed to read from FIFO: " << ex.what();
         }
     }
-    // file.write(buffer, ptr-buffer);
-
-    NPLOGE << "File reader thread returning";
+    NPLOGI << "File reader thread returning";
 
 
 }
