@@ -13,8 +13,6 @@ target_link_libraries(simple_webrtc_device
     datachannel-static
     event_queue_impl
     rtp_client
-    fifo_file_client
-    rtp_packetizers
     CURL::libcurl
     webrtc_util
 )

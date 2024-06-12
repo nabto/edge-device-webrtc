@@ -4,9 +4,7 @@
 
 #include <event-queue/event_queue_impl.hpp>
 #include <rtp-client/rtp_client.hpp>
-#include <fifo-file-client/fifo_file_client.hpp>
 #include <track-negotiators/h264.hpp>
-#include <rtp-packetizer/h264_packetizer.hpp>
 #include <util/util.hpp>
 
 #include <plog/Formatters/TxtFormatter.h>
@@ -98,15 +96,9 @@ int main(int argc, char** argv) {
 
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     uint16_t port = opts["rtpPort"].get<uint16_t>();
-    // auto rtpVideo = nabto::RtpClient::create(trackId);
-    // rtpVideo->setPort(port);
-    // rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
-
-    auto rtpPacketizer = nabto::H264PacketizerFactory::create(trackId);
-
-    auto rtpVideo = nabto::FifoFileClient::create(trackId, "video1.pipe");
+    auto rtpVideo = nabto::RtpClient::create(trackId);
+    rtpVideo->setPort(port);
     rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
-    rtpVideo->setRtpPacketizer(rtpPacketizer);
 
     auto eventQueue = nabto::EventQueueImpl::create();
 
