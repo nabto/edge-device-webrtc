@@ -194,8 +194,6 @@ void FifoFileClient::fifoRunner(FifoFileClient* self)
         }
     }
     NPLOGI << "File reader thread returning";
-
-
 }
 
 

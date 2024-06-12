@@ -19,6 +19,8 @@ target_link_libraries(edge_device_webrtc
     event_queue_impl
     rtp_client
     rtsp_client
+    fifo_file_client
+    rtp_packetizers
 )
 
 install(TARGETS edge_device_webrtc

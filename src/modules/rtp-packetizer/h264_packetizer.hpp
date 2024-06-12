@@ -41,10 +41,10 @@ private:
 class H264PacketizerFactory : public RtpPacketizerFactory
 {
 public:
-    static RtpPacketizerFactoryPtr create(std::string& trackId) {
+    static RtpPacketizerFactoryPtr create(const std::string& trackId) {
         return std::make_shared<H264PacketizerFactory>(trackId);
     }
-    H264PacketizerFactory(std::string& trackId): RtpPacketizerFactory(trackId) { }
+    H264PacketizerFactory(const std::string& trackId): RtpPacketizerFactory(trackId) { }
     RtpPacketizerPtr createPacketizer(uint32_t ssrc, int pt) {
         return H264Packetizer::create(ssrc, trackId_, pt);
     }

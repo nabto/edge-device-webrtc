@@ -60,7 +60,6 @@ private:
     std::map<NabtoDeviceConnectionRef, FifoTrack> mediaTracks_;
     TrackNegotiatorPtr negotiator_;
     RtpPacketizerFactoryPtr packetizer_;
-    std::ifstream fifo_;
     std::thread thread_;
 
     int fd_;

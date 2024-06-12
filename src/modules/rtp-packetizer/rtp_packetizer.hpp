@@ -21,7 +21,7 @@ public:
 class RtpPacketizerFactory
 {
 public:
-    RtpPacketizerFactory(std::string& trackId) : trackId_(trackId) {}
+    RtpPacketizerFactory(const std::string& trackId) : trackId_(trackId) {}
     virtual RtpPacketizerPtr createPacketizer(uint32_t ssrc, int pt) = 0;
 protected:
     std::string trackId_;
