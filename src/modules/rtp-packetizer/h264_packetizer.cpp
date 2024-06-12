@@ -11,11 +11,15 @@ std::vector<uint8_t> longSep = { 0x00, 0x00, 0x00, 0x01 };
 std::vector<uint8_t> shortSep = { 0x00, 0x00, 0x01 };
 
 const int MTU = 1200;
-const int NAL_FUA = 28;
+const uint8_t NAL_SPS = 7;
+const uint8_t NAL_PPS = 8;
+const uint8_t NAL_AUD = 9;
+const uint8_t NAL_FUA = 28;
+const uint8_t RTP_MARKER_MASK = 0x80;
 
 uint8_t setStart(bool isSet, uint8_t type) { return (type & 0x7F) | (isSet << 7); }
 uint8_t setEnd(bool isSet, uint8_t type) { return (type & 0b1011'1111) | (isSet << 6); }
-uint8_t unitType(uint8_t head) { return (head & 0b0111'1110) >> 1; }
+bool isNalType(uint8_t head, uint8_t type) { return (head & 0b00011111) == type; }
 
 std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t> data, bool isShort)
 {
@@ -82,26 +86,26 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
 
     while(1){
         // search for a second nal unit separator
-        auto it = std::search(buffer_.begin() + 4, buffer_.end(), longSep.begin(), longSep.end());
-        auto it2 = std::search(buffer_.begin() + 4, buffer_.end(), shortSep.begin(), shortSep.end());
+        auto it = std::search(buffer_.begin() + 4, buffer_.end(), shortSep.begin(), shortSep.end());
 
-        if (it2 != buffer_.end()) {
+        if (it != buffer_.end()) {
             // If we found a separator. (if long exists, so does the short)
-            bool nextShort = false;
-            if (it2 < it) {
-                it = it2;
-                nextShort = true; // we found a short separator
+            bool nextShort = true;
+            if (*(it-1) == 0x00) {
+                it--;
+                nextShort = false; // we found a long separator
             }
 
             auto tmp = std::vector<uint8_t>(buffer_.begin(), it);
+            while(tmp.back() == 0x00) { tmp.pop_back(); }
 
-            if (!isShort && (buffer_.at(4) != 0x68)) {
+            if (!isShort && !isNalType(buffer_.at(4), NAL_PPS)) {
                 /* Long separators are used to separate Access units (AU).
                  * If stream uses Access Unit Delimiters (AUD) this also separates AUs
                  * The long separator is also used for PPS NAL units which does not separate AUs
                  * If not using AUD, SPS NAL units separates AUs
                  */
-                if (lastNal_.size() > 0 && !(hasAud_ && (buffer_.at(4) == 0x67))) {
+                if (lastNal_.size() > 0 && !(hasAud_ && isNalType(buffer_.at(4), NAL_SPS))) {
                     // Last NAL exists
                     // If stream uses AUD, this is not an SPS NAL unit
                     // If stream does not use AUD, this is an SPS NAL unit
@@ -121,12 +125,12 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                 auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_).count();
                 rtpConf_->timestamp = startTs + (epochDiff * 90);
 
-                if (buffer_.at(4) != 9 && !hasAud_) {
+                if (!isNalType(buffer_.at(4), NAL_AUD) && !hasAud_) {
                     // We start new AU, but stream is not using AUD
                     // so we add AUD manually.
                     ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
                     std::vector<uint8_t> accessUnit = { 0x00, 0x00, 0x00, 0x01, 0x09 };
-                    if (buffer_.at(4) == 0x67) {
+                    if (isNalType(buffer_.at(4), NAL_SPS)) {
                         // If this is SPS NAL unit, we are also starting an new coded video sequence, so payload must be 0x10
                         accessUnit.push_back(0x10);
                     } else {
