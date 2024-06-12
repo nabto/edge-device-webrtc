@@ -11,6 +11,7 @@ std::vector<uint8_t> longSep = { 0x00, 0x00, 0x00, 0x01 };
 std::vector<uint8_t> shortSep = { 0x00, 0x00, 0x01 };
 
 const int MTU = 1200;
+const uint8_t NAL_IDR = 5;
 const uint8_t NAL_SPS = 7;
 const uint8_t NAL_PPS = 8;
 const uint8_t NAL_AUD = 9;
@@ -99,51 +100,66 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
             auto tmp = std::vector<uint8_t>(buffer_.begin(), it);
             while(tmp.back() == 0x00) { tmp.pop_back(); }
 
-            if (!isShort && !isNalType(buffer_.at(4), NAL_PPS)) {
-                /* Long separators are used to separate Access units (AU).
-                 * If stream uses Access Unit Delimiters (AUD) this also separates AUs
-                 * The long separator is also used for PPS NAL units which does not separate AUs
-                 * If not using AUD, SPS NAL units separates AUs
+            if (!isShort) {
+                /* Long separators are used for NAL units when:
+                 *  - NAL unit type is SPS or PPS
+                 *  - The NAL unit is the first in an Access Unit (AU)
+                 *
+                 * Since parameter sets must come before the encoded video frame, they will start a new AU unless a new AU was just started.
+                 *
+                 * Since we insert AUs if the byte stream does not have them, we should start a new AU on long separators unless lastNal_ is one of AUD, PPS, SPS.
                  */
-                if (lastNal_.size() > 0 && !(hasAud_ && isNalType(buffer_.at(4), NAL_SPS))) {
-                    // Last NAL exists
-                    // If stream uses AUD, this is not an SPS NAL unit
-                    // If stream does not use AUD, this is an SPS NAL unit
-                    // This means we must set the marker-bit in the previous RTP header
-                    auto r = lastNal_.back();
-                    lastNal_.pop_back();
-                    r[1] = r[1] | 0x80;
-                    lastNal_.push_back(r);
+
+                bool newAu = true; // Start new AU on long separator
+                if (isNalType(lastNalHead_, NAL_SPS) ||
+                    isNalType(lastNalHead_, NAL_PPS) ||
+                    isNalType(lastNalHead_, NAL_AUD)
+                ) {
+                    newAu = false; // Unless last NAL was SPS, PPS, or AUD
                 }
-
-                // We tick RTP timestamp between AUs
-                std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    std::chrono::system_clock::now().time_since_epoch()
-                );
-
-                auto startTs = rtpConf_->startTimestamp;
-                auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_).count();
-                rtpConf_->timestamp = startTs + (epochDiff * 90);
-
-                if (!isNalType(buffer_.at(4), NAL_AUD) && !hasAud_) {
-                    // We start new AU, but stream is not using AUD
-                    // so we add AUD manually.
-                    ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
-                    std::vector<uint8_t> accessUnit = { 0x00, 0x00, 0x00, 0x01, 0x09 };
-                    if (isNalType(buffer_.at(4), NAL_SPS)) {
-                        // If this is SPS NAL unit, we are also starting an new coded video sequence, so payload must be 0x10
-                        accessUnit.push_back(0x10);
-                    } else {
-                        accessUnit.push_back(0x30);
+                if (newAu) {
+                    if (lastNal_.size() > 0) {
+                        // Last NAL exists
+                        // If stream uses AUD, this is not an SPS NAL unit
+                        // If stream does not use AUD, this is an SPS NAL unit
+                        // This means we must set the marker-bit in the previous RTP header
+                        auto r = lastNal_.back();
+                        lastNal_.pop_back();
+                        r[1] = r[1] | RTP_MARKER_MASK;
+                        lastNal_.push_back(r);
                     }
-                    lastNal_ = packetize(accessUnit, false);
-                } else {
-                    hasAud_ = true;
+
+                    // We tick RTP timestamp between AUs
+                    std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::system_clock::now().time_since_epoch()
+                    );
+
+                    auto startTs = rtpConf_->startTimestamp;
+                    auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_).count();
+                    rtpConf_->timestamp = startTs + (epochDiff * 90);
+
+                    if (!isNalType(buffer_.at(4), NAL_AUD)) {
+                        // We start new AU, but stream is not using AUD
+                        // so we add AUD manually.
+                        ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
+                        std::vector<uint8_t> accessUnit = { 0x00, 0x00, 0x00, 0x01, 0x09 };
+                        if (isNalType(buffer_.at(4), NAL_SPS) ||
+                            isNalType(buffer_.at(4), NAL_PPS) ||
+                            isNalType(buffer_.at(4), NAL_IDR)) {
+                            // If this is parameter set or IDR, we are also starting an new coded video sequence, so payload must be 0x10
+                            accessUnit.push_back(0x10);
+                        } else {
+                            accessUnit.push_back(0x30);
+                        }
+                        lastNal_ = packetize(accessUnit, false);
+                        lastNalHead_ = NAL_AUD;
+                    }
                 }
             }
 
             // Insert last NAL unit since we know if needs to be marked
             ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
+            lastNalHead_ = tmp.at(isShort ? 3 : 4);
             // Packetize current NAL unit
             lastNal_ = packetize(tmp, isShort);
 

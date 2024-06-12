@@ -36,7 +36,7 @@ private:
     std::chrono::milliseconds start_;
     std::vector<uint8_t> buffer_;
     std::vector<std::vector<uint8_t>> lastNal_;
-    bool hasAud_ = false; // True if this h264 contains access unit delimiters
+    uint8_t lastNalHead_ = 0;
 
 };
 
