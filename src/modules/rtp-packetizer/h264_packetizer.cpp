@@ -42,10 +42,10 @@ std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t
     } else {
         // NAL unit must be split into fragments
         bool first = true;
-        while (i < data.size()) {
+        while (i+1 < data.size()) {
             std::vector<uint8_t> tmp;
-            size_t len = i + MTU > data.size() ? data.size() - i : MTU;
-            std::vector<uint8_t> fragment = {data.begin()+ i+1, data.begin()+i+1+len};
+            size_t len = i + 1 + MTU > data.size() ? data.size() - i - 1 : MTU;
+            std::vector<uint8_t> fragment = { data.begin() + i + 1, data.begin() + i + 1 + len };
 
             // FU identifier becomes the NAL header, so we must keep NRI from the original NAL unit and change the type to FU-A
             uint8_t fuIndentifier = (nalHead & 0b11100000) + NAL_FUA;

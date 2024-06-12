@@ -17,11 +17,12 @@ public:
 
     H264Packetizer(uint32_t ssrc, std::string& trackId, int pt) {
         rtpConf_ = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, trackId, pt, 90000);
-        packetizer_ = std::make_shared<rtc::RtpPacketizer>(rtpConf_);
-
+        rtpConf_->playoutDelayId = 0;
         start_ = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()
         );
+        packetizer_ = std::make_shared<rtc::RtpPacketizer>(rtpConf_);
+
     }
 
     std::vector<std::vector<uint8_t> > packetize(std::vector<uint8_t> data, bool isShort);
