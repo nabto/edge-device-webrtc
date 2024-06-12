@@ -110,14 +110,11 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                  * Since we insert AUs if the byte stream does not have them, we should start a new AU on long separators unless lastNal_ is one of AUD, PPS, SPS.
                  */
 
-                bool newAu = true; // Start new AU on long separator
-                if (isNalType(lastNalHead_, NAL_SPS) ||
-                    isNalType(lastNalHead_, NAL_PPS) ||
-                    isNalType(lastNalHead_, NAL_AUD)
-                ) {
-                    newAu = false; // Unless last NAL was SPS, PPS, or AUD
-                }
-                if (newAu) {
+                // Start new AU on long separator
+                if (!isNalType(lastNalHead_, NAL_SPS) &&
+                    !isNalType(lastNalHead_, NAL_PPS) &&
+                    !isNalType(lastNalHead_, NAL_AUD) ) {
+                    // Unless last NAL was SPS, PPS, or AUD
                     if (lastNal_.size() > 0) {
                         // Last NAL exists
                         // If stream uses AUD, this is not an SPS NAL unit
