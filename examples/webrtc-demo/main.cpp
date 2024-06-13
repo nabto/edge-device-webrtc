@@ -106,10 +106,6 @@ int main(int argc, char** argv) {
     nabto::RtspStreamPtr rtsp = nullptr;
     nabto::FifoFileClientPtr fifo = nullptr;
     bool repacketH264 = opts["repacketH264"].get<bool>();
-    nabto::RtpRepacketizerFactoryPtr repack = nullptr;
-    if (repacketH264) {
-        repack = nabto::H264RepacketizerFactory::create();
-    }
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
 
