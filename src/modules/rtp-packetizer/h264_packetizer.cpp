@@ -2,6 +2,7 @@
 #include <nabto/nabto_device_webrtc.hpp>
 
 #include "rtc/message.hpp"
+#include <rtc/rtppacketizer.hpp>
 
 #include <algorithm>
 
@@ -22,30 +23,32 @@ const uint8_t NAL_AUD = 9;
 const uint8_t NAL_FUA = 28;
 const uint8_t RTP_MARKER_MASK = 0x80;
 
-uint8_t setStart(bool isSet, uint8_t type) { return (type & 0x7F) | (isSet << 7); }
-uint8_t setEnd(bool isSet, uint8_t type) { return (type & 0b1011'1111) | (isSet << 6); }
-bool isNalType(uint8_t head, uint8_t type) { return (head & 0b00011111) == type; }
-
-std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t> data)
+std::vector<std::vector<uint8_t> > NalUnit::packetize()
 {
     std::vector<std::vector<uint8_t> > ret;
 
+    if (empty()) {
+        NPLOGD << "packetizing empty packet";
+        return ret;
+    }
+
     rtc::message_vector vec;
     size_t i = 0;
-    uint8_t nalHead = data.front();
+    uint8_t nalHead = data_.front();
 
-    if (data.size() < MTU) {
+    if (data_.size() < MTU) {
         // NAL unit fits in single packet
-        uint8_t* src = data.data() + i;
-        auto msg = std::make_shared<rtc::Message>((std::byte*)src, (std::byte*)(src + data.size() - i));
+        uint8_t* src = data_.data() + i;
+        auto msg = std::make_shared<rtc::Message>((std::byte*)src, (std::byte*)(src + data_.size() - i));
         vec.push_back(msg);
-    } else {
+    }
+    else {
         // NAL unit must be split into fragments
         bool first = true;
-        while (i+1 < data.size()) {
+        while (i + 1 < data_.size()) {
             std::vector<uint8_t> tmp;
-            size_t len = i + 1 + MTU > data.size() ? data.size() - i - 1 : MTU;
-            std::vector<uint8_t> fragment = { data.begin() + i + 1, data.begin() + i + 1 + len };
+            size_t len = i + 1 + MTU > data_.size() ? data_.size() - i - 1 : MTU;
+            std::vector<uint8_t> fragment = { data_.begin() + i + 1, data_.begin() + i + 1 + len };
 
             // FU identifier becomes the NAL header, so we must keep NRI from the original NAL unit and change the type to FU-A
             uint8_t fuIndentifier = (nalHead & 0b11100000) + NAL_FUA;
@@ -63,18 +66,25 @@ std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t
             tmp.insert(tmp.end(), fragment.begin(), fragment.end());
 
             uint8_t* src = tmp.data();
-            auto msg = std::make_shared<rtc::Message>((std::byte*)src, (std::byte*)(src+tmp.size()));
+            auto msg = std::make_shared<rtc::Message>((std::byte*)src, (std::byte*)(src + tmp.size()));
             vec.push_back(msg);
             i += len;
         }
     }
 
     // Insert RTP headers
-    packetizer_->outgoing(vec, nullptr);
+    rtp_->outgoing(vec, nullptr);
 
-    for (auto m : vec) {
-        ret.push_back(std::vector<uint8_t>((uint8_t*)m->data(), (uint8_t*)(m->data() + m->size())));
+    for (size_t i = 0; i < vec.size()-1; i++) {
+        ret.push_back(std::vector<uint8_t>((uint8_t*)vec[i]->data(), (uint8_t*)(vec[i]->data() + vec[i]->size())));
     }
+
+    auto last = std::vector<uint8_t>((uint8_t*)vec.back()->data(), (uint8_t*)(vec.back()->data() + vec.back()->size()));
+
+    if (shouldMark_) {
+        last[1] = last[1] | RTP_MARKER_MASK;
+    }
+    ret.push_back(last);
     return ret;
 }
 
@@ -104,7 +114,10 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
             auto tmp = std::vector<uint8_t>(buffer_.begin()+(isShort ? 3 : 4), it);
             while(tmp.back() == 0x00) { tmp.pop_back(); }
 
-            if (!isShort) {
+            NalUnit nal(tmp, packetizer_);
+
+            std::vector<std::vector<uint8_t>> packets;
+            if (!isShort && !lastNal_.isPsOrAUD()) {
                 /* Long separators are used for NAL units when:
                  *  - NAL unit type is SPS or PPS
                  *  - The NAL unit is the first in an Access Unit (AU)
@@ -114,55 +127,32 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                  * Since we insert AUs if the byte stream does not have them, we should start a new AU on long separators unless lastNal_ is one of AUD, PPS, SPS.
                  */
 
-                // Start new AU on long separator
-                if (!isNalType(lastNalHead_, NAL_SPS) &&
-                    !isNalType(lastNalHead_, NAL_PPS) &&
-                    !isNalType(lastNalHead_, NAL_AUD) ) {
-                    // Unless last NAL was SPS, PPS, or AUD
-                    if (lastNal_.size() > 0) {
-                        // Last NAL exists
-                        // If stream uses AUD, this is not an SPS NAL unit
-                        // If stream does not use AUD, this is an SPS NAL unit
-                        // This means we must set the marker-bit in the previous RTP header
-                        auto r = lastNal_.back();
-                        lastNal_.pop_back();
-                        r[1] = r[1] | RTP_MARKER_MASK;
-                        lastNal_.push_back(r);
-                    }
+                // On new AU, last NAL should be marked and packetized
+                lastNal_.setMarker(true);
+                packets = lastNal_.packetize();
 
-                    // We tick RTP timestamp between AUs
-                    std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::system_clock::now().time_since_epoch()
-                    );
+                // We tick RTP timestamp between AUs
+                updateTimestamp();
 
-                    auto startTs = rtpConf_->startTimestamp;
-                    auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_).count();
-                    rtpConf_->timestamp = startTs + (epochDiff * 90);
+                if (!nal.isNalType(NAL_AUD)) {
+                    // We start new AU, but stream is not using AUD
+                    // so we add AUD manually.
 
-                    if (!isNalType(tmp.front(), NAL_AUD)) {
-                        // We start new AU, but stream is not using AUD
-                        // so we add AUD manually.
-                        ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
-                        std::vector<uint8_t> accessUnit = { 0x00, 0x00, 0x00, 0x01, 0x09 };
-                        if (isNalType(tmp.front(), NAL_SPS) ||
-                            isNalType(tmp.front(), NAL_PPS) ||
-                            isNalType(tmp.front(), NAL_IDR)) {
-                            // If this is parameter set or IDR, we are also starting an new coded video sequence, so payload must be 0x10
-                            accessUnit.push_back(0x10);
-                        } else {
-                            accessUnit.push_back(0x30);
-                        }
-                        lastNal_ = packetize(accessUnit);
-                        lastNalHead_ = NAL_AUD;
-                    }
+                    ret.insert(ret.end(), packets.begin(), packets.end());
+                    std::vector<uint8_t> accessUnit = { 0x00, 0x00, 0x00, 0x01, 0x09 };
+
+                    accessUnit.push_back(nal.makeAudPayload());
+                    lastNal_ = NalUnit(accessUnit, packetizer_);
                 }
+            } else {
+                // Packetize last NAL since we know it does not need to be marked
+                packets = lastNal_.packetize();
             }
 
-            // Insert last NAL unit since we know if needs to be marked
-            ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
-            lastNalHead_ = tmp.front();
+            // Insert last NAL unit
+            ret.insert(ret.end(), packets.begin(), packets.end());
             // Packetize current NAL unit
-            lastNal_ = packetize(tmp);
+            lastNal_ = nal;
 
             // Remove current NAL unit from buffer.
             buffer_ = std::vector<uint8_t>(it, buffer_.end());
@@ -175,5 +165,36 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
     }
     return ret;
 }
+
+void H264Packetizer::updateTimestamp()
+{
+    std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    );
+
+    auto startTs = rtpConf_->startTimestamp;
+    auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_).count();
+    rtpConf_->timestamp = startTs + (epochDiff * 90);
+
+
+}
+
+bool NalUnit::isPsOrAUD()
+{
+    return isNalType(NAL_SPS) || isNalType(NAL_PPS) || isNalType(NAL_AUD);
+}
+
+uint8_t NalUnit::makeAudPayload()
+{
+    if (isNalType(NAL_SPS) ||
+        isNalType(NAL_PPS) ||
+        isNalType(NAL_IDR)) {
+        return 0x10;
+    }
+    else {
+        return 0x30;
+    }
+}
+
 
 } // namespace

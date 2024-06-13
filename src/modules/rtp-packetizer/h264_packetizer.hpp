@@ -10,6 +10,41 @@
 
 namespace nabto {
 
+class NalUnit {
+public:
+    NalUnit() {}
+    NalUnit(std::vector<uint8_t>& data, std::shared_ptr<rtc::RtpPacketizer> rtp) : data_(data), rtp_(rtp)
+    {
+        header_ = data.front();
+    }
+
+    std::vector<std::vector<uint8_t> > packetize();
+
+    bool empty() {return data_.empty();}
+
+    void setMarker(bool mark) { shouldMark_ = mark; }
+
+    bool isNalType(uint8_t type) { return (header_ & 0b00011111) == type; }
+
+    bool isPsOrAUD();
+
+    uint8_t makeAudPayload();
+
+private:
+    uint8_t setStart(bool isSet, uint8_t type) { return (type & 0x7F) | (isSet << 7); }
+    uint8_t setEnd(bool isSet, uint8_t type) { return (type & 0b1011'1111) | (isSet << 6); }
+
+
+    std::vector<uint8_t> data_;
+    std::shared_ptr<rtc::RtpPacketizer> rtp_ = nullptr;
+    uint8_t header_ = 0;
+    bool shouldMark_ = false;
+
+};
+
+
+
+
 class H264Packetizer : public RtpPacketizer
 {
 public:
@@ -30,12 +65,14 @@ public:
     std::vector<std::vector<uint8_t> > incoming(const std::vector<uint8_t>& data);
 
 private:
+
+    void updateTimestamp();
+
     std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf_;
     std::shared_ptr<rtc::RtpPacketizer> packetizer_;
     std::chrono::milliseconds start_;
     std::vector<uint8_t> buffer_;
-    std::vector<std::vector<uint8_t>> lastNal_;
-    uint8_t lastNalHead_ = 0;
+    NalUnit lastNal_;
 
 };
 
