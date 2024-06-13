@@ -25,7 +25,7 @@ public:
 
     }
 
-    std::vector<std::vector<uint8_t> > packetize(std::vector<uint8_t> data, bool isShort);
+    std::vector<std::vector<uint8_t> > packetize(std::vector<uint8_t> data);
 
     std::vector<std::vector<uint8_t> > incoming(const std::vector<uint8_t>& data);
 

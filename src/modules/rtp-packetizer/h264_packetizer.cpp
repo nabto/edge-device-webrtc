@@ -26,13 +26,13 @@ uint8_t setStart(bool isSet, uint8_t type) { return (type & 0x7F) | (isSet << 7)
 uint8_t setEnd(bool isSet, uint8_t type) { return (type & 0b1011'1111) | (isSet << 6); }
 bool isNalType(uint8_t head, uint8_t type) { return (head & 0b00011111) == type; }
 
-std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t> data, bool isShort)
+std::vector<std::vector<uint8_t> > H264Packetizer::packetize(std::vector<uint8_t> data)
 {
     std::vector<std::vector<uint8_t> > ret;
 
     rtc::message_vector vec;
-    size_t i = isShort ? 3 : 4;
-    uint8_t nalHead = data[i];
+    size_t i = 0;
+    uint8_t nalHead = data.front();
 
     if (data.size() < MTU) {
         // NAL unit fits in single packet
@@ -101,7 +101,7 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                 nextShort = false; // we found a long separator
             }
 
-            auto tmp = std::vector<uint8_t>(buffer_.begin(), it);
+            auto tmp = std::vector<uint8_t>(buffer_.begin()+(isShort ? 3 : 4), it);
             while(tmp.back() == 0x00) { tmp.pop_back(); }
 
             if (!isShort) {
@@ -139,7 +139,7 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                     auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_).count();
                     rtpConf_->timestamp = startTs + (epochDiff * 90);
 
-                    if (!isNalType(buffer_.at(4), NAL_AUD)) {
+                    if (!isNalType(tmp.front(), NAL_AUD)) {
                         // We start new AU, but stream is not using AUD
                         // so we add AUD manually.
                         ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
@@ -152,7 +152,7 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                         } else {
                             accessUnit.push_back(0x30);
                         }
-                        lastNal_ = packetize(accessUnit, false);
+                        lastNal_ = packetize(accessUnit);
                         lastNalHead_ = NAL_AUD;
                     }
                 }
@@ -160,9 +160,9 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
 
             // Insert last NAL unit since we know if needs to be marked
             ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
-            lastNalHead_ = tmp.at(isShort ? 3 : 4);
+            lastNalHead_ = tmp.front();
             // Packetize current NAL unit
-            lastNal_ = packetize(tmp, isShort);
+            lastNal_ = packetize(tmp);
 
             // Remove current NAL unit from buffer.
             buffer_ = std::vector<uint8_t>(it, buffer_.end());
