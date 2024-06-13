@@ -261,3 +261,40 @@ The RTSP client module depends on OpenSSL for digest authentication. This can be
 If the software needs to be built without using CMake, the source files and
 dependencies needs to be defined seperately in whatever buildsystem which is
 then used. This is out of scope for this documentation.
+
+### H264 feed from FIFO File Descriptor
+
+The demo can read a raw H264 feed from a FIFO file descriptor. This feature is advanced usage and comes with several limitations, so you must read the documentation carefully before using this. As such, this section will assume you are familiar with using the demo from more basic usage.
+
+**limitations:**
+ * This example is based on unix file descriptors
+ * The example feeds requires Gstreamer or FFMPEG installed
+ * The example feeds are based on v4l2 webcam at `/dev/video0`, but can be any video source.
+ * The example only supports sending a H264 video feed. No downstream video, and no audio.
+ * The feed must use the byte-stream format specified in Annex B of the [ITU-T H.264 Recommendation](https://www.itu.int/rec/T-REC-H.264-202108-I/en).
+
+
+A test feed can be created using Gstreamer or FFMPEG after creating the FIFO file descriptor:
+
+```
+mkfifo /tmp/video.fifo
+gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480" !  videoconvert ! queue ! x264enc tune="zerolatency" ! filesink buffer-size=16 buffer-mode=2 location="/tmp/video.fifo"
+```
+
+```
+mkfifo /tmp/video.fifo
+ffmpeg -f video4linux2 -s vga -i /dev/video0 -f h264 -tune zerolatency file:///tmp/video.fifo
+```
+
+FFMPEG will ask if you want to overwrite the file, choose yes.
+
+The device can be started using the file path:
+
+```
+./examples/webrtc-demo/edge_device_webrtc -k <KEY> -d <DEVICE_ID> -p <PRODUCT_ID> -f /tmp/video.fifo
+```
+
+You can now connect to the device from a client and see the feed.
+The Gstreamer/FFMPEG commands will only write to the FIFO when the device is reading it. This also means when the client connection is closed and the device stops reading the FIFO, the Gstreamer/FFMPEG will exit and new client connections will not be able to see the feed before the streamer is started again (`mkfifo` does not need to be run again, only the streamer command).
+
+
