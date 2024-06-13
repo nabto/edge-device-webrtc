@@ -51,16 +51,10 @@ public:
 
     void setRepacketizerFactories(RtpRepacketizerFactoryPtr videoRepack, RtpRepacketizerFactoryPtr audioRepack)
     {
-        if (videoRepack == nullptr) {
-            videoRepack_ = RtpRepacketizerFactory::create();
-        }
-        else {
+        if (videoRepack != nullptr) {
             videoRepack_ = videoRepack;
         }
-        if (audioRepack == nullptr) {
-            audioRepack_ = RtpRepacketizerFactory::create();
-        }
-        else {
+        if (audioRepack != nullptr) {
             audioRepack_ = audioRepack;
         }
     }

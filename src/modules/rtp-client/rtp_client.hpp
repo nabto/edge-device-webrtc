@@ -46,10 +46,7 @@ public:
 
     void setRepacketizerFactory(RtpRepacketizerFactoryPtr repack)
     {
-        if (repack == nullptr) {
-            repack_ = RtpRepacketizerFactory::create();
-        }
-        else {
+        if (repack != nullptr) {
             repack_ = repack;
         }
     }
