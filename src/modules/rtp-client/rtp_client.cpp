@@ -219,7 +219,10 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
             std::lock_guard<std::mutex> lock(self->mutex_);
             for (const auto& [key, value] : self->mediaTracks_) {
                 try {
-                    value.repacketizer->handlePacket((uint8_t*)buffer, len);
+                    auto packets = value.repacketizer->handlePacket(std::vector<uint8_t>(buffer, buffer + len));
+                    for (auto p : packets) {
+                        value.track->send(p.data(), p.size());
+                    }
                 } catch (std::runtime_error& ex) {
                     NPLOGE << "Failed to send on track: " << ex.what();
                 }

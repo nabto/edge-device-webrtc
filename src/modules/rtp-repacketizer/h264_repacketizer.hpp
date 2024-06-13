@@ -15,23 +15,25 @@ typedef std::shared_ptr<H264Repacketizer> H264RepacketizerPtr;
 class H264Repacketizer : public RtpRepacketizer
 {
 public:
-    static RtpRepacketizerPtr create(MediaTrackPtr track, std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf) { return std::make_shared<H264Repacketizer>(track, rtpConf); }
+    static RtpRepacketizerPtr create(std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf) { return std::make_shared<H264Repacketizer>(rtpConf); }
 
 
-    H264Repacketizer(MediaTrackPtr track, std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf) : RtpRepacketizer(track, rtpConf->ssrc, rtpConf->payloadType), rtpConf_(rtpConf)
+    H264Repacketizer(std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf) : RtpRepacketizer(rtpConf->ssrc, rtpConf->payloadType), rtpConf_(rtpConf)
     {
         packet_ = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::LongStartSequence, rtpConf_);
 
     }
 
-    void handlePacket(uint8_t* buffer, size_t length) override
+    std::vector<std::vector<uint8_t>> handlePacket(std::vector<uint8_t> data)
     {
-        if (length < 2 || buffer[1] == 200) {
+        std::vector<std::vector<uint8_t>> ret;
+        if (data.size() < 2 || data.at(1) == 200) {
             // ignore RTCP packets for now
-            return;
+            return ret;
         }
-        auto src = reinterpret_cast<const std::byte*>(buffer);
-        rtc::message_ptr msg = std::make_shared<rtc::Message>(src, src + length);
+
+        auto src = reinterpret_cast<const std::byte*>(data.data());
+        rtc::message_ptr msg = std::make_shared<rtc::Message>(src, src + data.size());
 
         rtc::message_vector vec;
         vec.push_back(msg);
@@ -41,13 +43,13 @@ public:
         if (vec.size() > 0) {
             rtpConf_->timestamp = vec[0]->frameInfo->timestamp;
             packet_->outgoing(vec, nullptr);
+
             for (auto m : vec) {
-                auto variant = rtc::to_variant(*m.get());
-                auto bin = std::get<rtc::binary>(variant);
-                uint8_t* buf = reinterpret_cast<uint8_t*>(bin.data());
-                track_->send(buf, bin.size());
+                uint8_t* src = (uint8_t*)m->data();
+                ret.push_back(std::vector<uint8_t>(src, src+m->size()));
             }
         }
+        return ret;
     }
 private:
     rtc::H264RtpDepacketizer depacket_;
@@ -66,7 +68,7 @@ public:
     RtpRepacketizerPtr createPacketizer(MediaTrackPtr track, uint32_t ssrc, int dstPayloadType)
     {
         auto rtpConf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, track->getTrackId(), dstPayloadType, 90000);
-        return std::make_shared<H264Repacketizer>(track, rtpConf);
+        return std::make_shared<H264Repacketizer>(rtpConf);
     }
 };
 

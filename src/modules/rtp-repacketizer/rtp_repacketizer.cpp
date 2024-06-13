@@ -3,18 +3,17 @@
 
 namespace nabto {
 
-RtpRepacketizer::RtpRepacketizer(MediaTrackPtr track, rtc::SSRC ssrc, int dstPayloadType) :
-        track_(track), ssrc_(ssrc), dstPayloadType_(dstPayloadType)
-    {
-    }
+RtpRepacketizer::RtpRepacketizer(rtc::SSRC ssrc, int dstPayloadType) :
+        ssrc_(ssrc), dstPayloadType_(dstPayloadType)
+{ }
 
-void RtpRepacketizer::handlePacket(uint8_t* buffer, size_t length)
-    {
-        auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
-        rtp->setSsrc(ssrc_);
-        rtp->setPayloadType(dstPayloadType_);
-
-        track_->send(buffer, length);
-    }
+std::vector<std::vector<uint8_t>> RtpRepacketizer::handlePacket(std::vector<uint8_t> data)
+{
+    auto rtp = reinterpret_cast<rtc::RtpHeader*>(data.data());
+    rtp->setSsrc(ssrc_);
+    rtp->setPayloadType(dstPayloadType_);
+    std::vector<std::vector<uint8_t>> ret = {data};
+    return ret;
+}
 
 } // namespace

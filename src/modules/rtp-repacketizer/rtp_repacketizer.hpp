@@ -17,11 +17,10 @@ typedef std::shared_ptr<RtpRepacketizerFactory> RtpRepacketizerFactoryPtr;
 
 class RtpRepacketizer {
 public:
-    RtpRepacketizer(MediaTrackPtr track, uint32_t ssrc, int dstPayloadType);
-    virtual void handlePacket(uint8_t* buffer, size_t length);
+    RtpRepacketizer(uint32_t ssrc, int dstPayloadType);
+    virtual std::vector<std::vector<uint8_t>> handlePacket(std::vector<uint8_t> data);
 
 protected:
-    MediaTrackPtr track_;
     uint32_t ssrc_;
     int dstPayloadType_;
 };
@@ -36,7 +35,7 @@ public:
 
     RtpRepacketizerFactory() {}
     virtual RtpRepacketizerPtr createPacketizer(MediaTrackPtr track, uint32_t ssrc, int dstPayloadType) {
-        return std::make_shared<RtpRepacketizer>(track, ssrc, dstPayloadType);
+        return std::make_shared<RtpRepacketizer>(ssrc, dstPayloadType);
     };
 };
 
