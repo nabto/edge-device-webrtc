@@ -68,7 +68,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
     const rtc::SSRC ssrc = negotiator_->ssrc();
     RtpTrack track = {
         media,
-        negotiator_->createPacketizer(media, ssrc, pt),
+        repack_->createPacketizer(media, ssrc, pt),
         ssrc,
         negotiator_->payloadType(),
         pt

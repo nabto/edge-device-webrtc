@@ -223,6 +223,7 @@ void RtspClient::setupRtsp() {
         }
         videoStream_ = RtpClient::create(trackId_ + "-video");
         videoStream_->setTrackNegotiator(videoNegotiator_);
+        videoStream_->setRepacketizerFactory(videoRepack_);
         videoStream_->setPort(port_);
 
         videoRtcp_ = RtcpClient::create(port_ + 1);
@@ -237,6 +238,7 @@ void RtspClient::setupRtsp() {
         }
         audioStream_ = RtpClient::create(trackId_ + "-audio");
         audioStream_->setTrackNegotiator(audioNegotiator_);
+        audioStream_->setRepacketizerFactory(audioRepack_);
         audioStream_->setPort(port_ + 2);
 
         audioRtcp_ = RtcpClient::create(port_ + 3);

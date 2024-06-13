@@ -7,15 +7,12 @@ namespace nabto {
 class H264Negotiator : public TrackNegotiator
 {
 public:
-    static TrackNegotiatorPtr create(bool repacketize = true) { return std::make_shared<H264Negotiator>(repacketize); }
+    static TrackNegotiatorPtr create() { return std::make_shared<H264Negotiator>(); }
     // The ssrc must be unique in the entire SDP context.
     // This supports both sending and receiving
-    H264Negotiator(bool repacketize) : TrackNegotiator(96, SEND_RECV), repacketize_(repacketize) { }
+    H264Negotiator() : TrackNegotiator(96, SEND_RECV) { }
     int match(MediaTrackPtr media);
     rtc::Description::Media createMedia();
-    RepacketizerPtr createPacketizer(MediaTrackPtr track, rtc::SSRC ssrc, int dstPayloadType);
-private:
-    bool repacketize_;
 };
 
 } // namespace

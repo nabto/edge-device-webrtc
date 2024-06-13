@@ -65,6 +65,7 @@ add_subdirectory(src/modules/rtp-client)
 add_subdirectory(src/modules/rtsp-client)
 add_subdirectory(src/modules/fifo-file-client)
 add_subdirectory(src/modules/rtp-packetizer)
+add_subdirectory(src/modules/rtp-repacketizer)
 add_subdirectory(examples/webrtc-demo)
 add_subdirectory(examples/simple-webrtc)
 

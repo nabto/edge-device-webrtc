@@ -9,6 +9,7 @@
 #include <track-negotiators/h264.hpp>
 #include <track-negotiators/opus.hpp>
 #include <rtp-packetizer/h264_packetizer.hpp>
+#include <rtp-repacketizer/h264_repacketizer.hpp>
 #include <rtp-client/rtp_client.hpp>
 #include <rtsp-client/rtsp_stream.hpp>
 #include <fifo-file-client/fifo_file_client.hpp>
@@ -105,13 +106,20 @@ int main(int argc, char** argv) {
     nabto::RtspStreamPtr rtsp = nullptr;
     nabto::FifoFileClientPtr fifo = nullptr;
     bool repacketH264 = opts["repacketH264"].get<bool>();
-    auto rtpVideoNegotiator = nabto::H264Negotiator::create(repacketH264);
+    nabto::RtpRepacketizerFactoryPtr repack = nullptr;
+    if (repacketH264) {
+        repack = nabto::H264RepacketizerFactory::create();
+    }
+    auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
 
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
         rtsp = nabto::RtspStream::create("frontdoor", rtspUrl);
         rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
+        if (repacketH264) {
+            rtsp->setRepacketizerFactories(nabto::H264RepacketizerFactory::create(), nullptr);
+        }
         medias.push_back(rtsp);
     } catch (std::exception& ex) {
         // rtspUrl was not set, try fifo
@@ -131,6 +139,9 @@ int main(int argc, char** argv) {
             auto rtpVideo = nabto::RtpClient::create("frontdoor-video");
             rtpVideo->setPort(port);
             rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
+            if (repacketH264) {
+                rtpVideo->setRepacketizerFactory(nabto::H264RepacketizerFactory::create());
+            }
             // Remote host is only used for 2-way medias, video is only 1-way
             rtpVideo->setRemoteHost("127.0.0.1");
 

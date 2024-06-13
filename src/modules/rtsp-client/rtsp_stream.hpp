@@ -2,6 +2,8 @@
 
 #include "rtsp_client.hpp"
 
+#include <rtp-repacketizer/rtp_repacketizer.hpp>
+
 #include <media-streams/media_stream.hpp>
 #include <nabto/nabto_device_webrtc.hpp>
 
@@ -47,6 +49,22 @@ public:
         audioNegotiator_ = audioNegotiator;
     }
 
+    void setRepacketizerFactories(RtpRepacketizerFactoryPtr videoRepack, RtpRepacketizerFactoryPtr audioRepack)
+    {
+        if (videoRepack == nullptr) {
+            videoRepack_ = RtpRepacketizerFactory::create();
+        }
+        else {
+            videoRepack_ = videoRepack;
+        }
+        if (audioRepack == nullptr) {
+            audioRepack_ = RtpRepacketizerFactory::create();
+        }
+        else {
+            audioRepack_ = audioRepack;
+        }
+    }
+
     void setPort(uint16_t port) { basePort_ = port; }
 
     MediaTrackPtr createMedia(const std::string& trackId) {
@@ -80,6 +98,8 @@ private:
 
     TrackNegotiatorPtr videoNegotiator_;
     TrackNegotiatorPtr audioNegotiator_;
+    RtpRepacketizerFactoryPtr videoRepack_ = RtpRepacketizerFactory::create();
+    RtpRepacketizerFactoryPtr audioRepack_ = RtpRepacketizerFactory::create();
     uint16_t basePort_;
 
     std::map<NabtoDeviceConnectionRef, RtspConnection> connections_;

@@ -4,6 +4,7 @@
 
 #include <media-streams/media_stream.hpp>
 #include <track-negotiators/track_negotiator.hpp>
+#include <rtp-repacketizer/rtp_repacketizer.hpp>
 #include <sys/socket.h>
 
 typedef int SOCKET;
@@ -43,6 +44,16 @@ public:
 
     std::string getTrackId();
 
+    void setRepacketizerFactory(RtpRepacketizerFactoryPtr repack)
+    {
+        if (repack == nullptr) {
+            repack_ = RtpRepacketizerFactory::create();
+        }
+        else {
+            repack_ = repack;
+        }
+    }
+
 private:
     void start();
     void stop();
@@ -61,6 +72,7 @@ private:
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
     TrackNegotiatorPtr negotiator_;
+    RtpRepacketizerFactoryPtr repack_ = RtpRepacketizerFactory::create();
 
 };
 
