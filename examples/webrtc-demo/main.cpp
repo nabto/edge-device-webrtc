@@ -8,8 +8,10 @@
 #include <media-streams/media_stream.hpp>
 #include <track-negotiators/h264.hpp>
 #include <track-negotiators/opus.hpp>
+#include <rtp-packetizer/h264_packetizer.hpp>
 #include <rtp-client/rtp_client.hpp>
 #include <rtsp-client/rtsp_stream.hpp>
+#include <fifo-file-client/fifo_file_client.hpp>
 #include <nabto/nabto_device_webrtc.hpp>
 
 #include <rtc/global.hpp>
@@ -101,6 +103,7 @@ int main(int argc, char** argv) {
 
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
+    nabto::FifoFileClientPtr fifo = nullptr;
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
 
@@ -110,23 +113,35 @@ int main(int argc, char** argv) {
         rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
         medias.push_back(rtsp);
     } catch (std::exception& ex) {
-        // rtspUrl was not set, default to RTP.
-        uint16_t port = opts["rtpPort"].get<uint16_t>();
+        // rtspUrl was not set, try fifo
+        try {
+            auto fifoPacketizer = nabto::H264PacketizerFactory::create("frontdoor-video");
+            std::string fifoPath = opts["fifoPath"].get<std::string>();
+            fifo = nabto::FifoFileClient::create("frontdoor-video", fifoPath);
+            fifo->setTrackNegotiator(rtpVideoNegotiator);
+            fifo->setRtpPacketizer(fifoPacketizer);
 
-        auto rtpVideo = nabto::RtpClient::create("frontdoor-video");
-        rtpVideo->setPort(port);
-        rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
-        // Remote host is only used for 2-way medias, video is only 1-way
-        rtpVideo->setRemoteHost("127.0.0.1");
+            medias.push_back(fifo);
 
-        medias.push_back(rtpVideo);
+        } catch (std::exception& ex) {
+            // fifoPath was not set, default to RTP.
+            uint16_t port = opts["rtpPort"].get<uint16_t>();
 
-        auto rtpAudio = nabto::RtpClient::create("frontdoor-audio");
-        rtpAudio->setPort(port + 2);
-        rtpAudio->setTrackNegotiator(rtpAudioNegotiator);
-        rtpAudio->setRemoteHost("127.0.0.1");
+            auto rtpVideo = nabto::RtpClient::create("frontdoor-video");
+            rtpVideo->setPort(port);
+            rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
+            // Remote host is only used for 2-way medias, video is only 1-way
+            rtpVideo->setRemoteHost("127.0.0.1");
 
-        medias.push_back(rtpAudio);
+            medias.push_back(rtpVideo);
+
+            auto rtpAudio = nabto::RtpClient::create("frontdoor-audio");
+            rtpAudio->setPort(port + 2);
+            rtpAudio->setTrackNegotiator(rtpAudioNegotiator);
+            rtpAudio->setRemoteHost("127.0.0.1");
+
+            medias.push_back(rtpAudio);
+        }
     }
 
     std::cout << "medias size: " << medias.size() << std::endl;
@@ -341,6 +356,7 @@ bool parse_options(int argc, char** argv, json& opts)
             ("k,privatekey", "Raw private key to use", cxxopts::value<std::string>())
             ("r,rtsp", "Use RTSP at the provided url instead of RTP (eg. rtsp://127.0.0.l:8554/video)", cxxopts::value<std::string>())
             ("rtp-port", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
+            ("f,fifo", "Use FIFO file descriptor at the provided path instead of RTP", cxxopts::value<std::string>())
             ("c,cloud-domain", "Optional. Domain for the cloud deployment. This is used to derive JWKS URL, JWKS issuer, and frontend URL", cxxopts::value<std::string>()->default_value("smartcloud.nabto.com"))
             ("H,home-dir", "Set which dir to store IAM data", cxxopts::value<std::string>())
             ("iam-reset", "If set, will reset the IAM state and exit")
@@ -398,6 +414,9 @@ bool parse_options(int argc, char** argv, json& opts)
             opts["rtspUrl"] = result["rtsp"].as<std::string>();
         }
         opts["rtpPort"] = result["rtp-port"].as<uint16_t>();
+        if (result.count("fifo")) {
+            opts["fifoPath"] = result["fifo"].as<std::string>();
+        }
 
         std::string domain = result["cloud-domain"].as<std::string>();
 

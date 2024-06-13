@@ -7,6 +7,9 @@
 #include <track-negotiators/h264.hpp>
 #include <util/util.hpp>
 
+#include <plog/Formatters/TxtFormatter.h>
+#include <plog/Appenders/ColorConsoleAppender.h>
+
 #include <cxxopts/cxxopts.hpp>
 #include <rtc/global.hpp>
 #include <nlohmann/json.hpp>
@@ -48,6 +51,25 @@ bool parse_options(int argc, char** argv, json& opts);
 
 bool initDevice(nabto::NabtoDevicePtr device, json& opts);
 
+enum plog::Severity plogSeverity(std::string& logLevel)
+{
+    if (logLevel == "trace") {
+        return plog::Severity::debug;
+    }
+    else if (logLevel == "warn") {
+        return plog::Severity::warning;
+    }
+    else if (logLevel == "info") {
+        return plog::Severity::info;
+    }
+    else if (logLevel == "error") {
+        return plog::Severity::error;
+    }
+    return plog::Severity::none;
+
+}
+
+
 int main(int argc, char** argv) {
 
     json opts;
@@ -55,6 +77,16 @@ int main(int argc, char** argv) {
     if (shouldExit) {
         return 0;
     }
+
+    static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
+
+    auto logLevel = opts["logLevel"].get<std::string>();
+    char* envLvl = std::getenv("NABTO_WEBRTC_LOG_LEVEL");
+    if (envLvl != NULL) {
+        logLevel = std::string(envLvl);
+    }
+    nabto::initLogger(plogSeverity(logLevel), &consoleAppender);
+
 
     auto device = nabto::makeNabtoDevice();
 
