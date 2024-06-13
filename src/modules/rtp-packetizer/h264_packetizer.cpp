@@ -144,9 +144,9 @@ std::vector<std::vector<uint8_t> > H264Packetizer::incoming(const std::vector<ui
                         // so we add AUD manually.
                         ret.insert(ret.end(), lastNal_.begin(), lastNal_.end());
                         std::vector<uint8_t> accessUnit = { 0x00, 0x00, 0x00, 0x01, 0x09 };
-                        if (isNalType(buffer_.at(4), NAL_SPS) ||
-                            isNalType(buffer_.at(4), NAL_PPS) ||
-                            isNalType(buffer_.at(4), NAL_IDR)) {
+                        if (isNalType(tmp.front(), NAL_SPS) ||
+                            isNalType(tmp.front(), NAL_PPS) ||
+                            isNalType(tmp.front(), NAL_IDR)) {
                             // If this is parameter set or IDR, we are also starting an new coded video sequence, so payload must be 0x10
                             accessUnit.push_back(0x10);
                         } else {
