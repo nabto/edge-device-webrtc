@@ -371,7 +371,7 @@ bool parse_options(int argc, char** argv, json& opts)
             * both the certificates in CAPATH and the certificates in CAINFO.
             */
             ("cacert", "Optional. Path to a CA certificate file; overrides CURL_CA_BUNDLE env var if set.", cxxopts::value<std::string>())
-            ("enable-h264-repacketizer", "If set, H264 will be repacketized to ensure proper MTU")
+            ("disable-h264-repacketizer", "If set, H264 will be forwarded as-is instead of repacketizing to proper MTU")
 
             ("h,help", "Shows this help text");
         auto result = options.parse(argc, argv);
@@ -450,11 +450,11 @@ bool parse_options(int argc, char** argv, json& opts)
                 return true;
             }
         }
-        if (result.count("enable-h264-repacketizer")) {
-            opts["repacketH264"] = true;
+        if (result.count("disable-h264-repacketizer")) {
+            opts["repacketH264"] = false;
         }
         else {
-            opts["repacketH264"] = false;
+            opts["repacketH264"] = true;
         }
 
 
