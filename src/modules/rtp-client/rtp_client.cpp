@@ -11,15 +11,21 @@ const int RTP_BUFFER_SIZE = 2048;
 
 namespace nabto {
 
-
-RtpClientPtr RtpClient::create(const std::string& trackId)
+RtpClientPtr RtpClient::create(const RtpClientConf& conf)
 {
-    return std::make_shared<RtpClient>(trackId);
+    return std::make_shared<RtpClient>(conf);
 }
 
-RtpClient::RtpClient(const std::string& trackId)
-    : trackId_(trackId)
+RtpClient::RtpClient(const RtpClientConf& conf):
+    trackId_(conf.trackId),
+    remoteHost_(conf.remoteHost),
+    videoPort_(conf.port),
+    remotePort_(conf.port+1),
+    negotiator_(conf.negotiator)
 {
+    if (conf.repacketizer != nullptr) {
+        repack_ = conf.repacketizer;
+    }
 }
 
 RtpClient::~RtpClient()

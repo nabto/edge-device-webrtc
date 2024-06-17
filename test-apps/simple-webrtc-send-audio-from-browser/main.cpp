@@ -70,11 +70,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    auto rtpVideo = nabto::RtpClient::create("frontdoor-audio");
-    rtpVideo->setPort(6002);
     auto rtpVideoNegotiator_ = nabto::OpusNegotiator::create();
-    rtpVideo->setTrackNegotiator(rtpVideoNegotiator_);
+    nabto::RtpClientConf conf = { "frontdoor-audio", std::string(), 6002, rtpVideoNegotiator_, nullptr };
 
+    auto rtpVideo = nabto::RtpClient::create(conf);
 
     auto eventQueue = nabto::EventQueueImpl::create();
 

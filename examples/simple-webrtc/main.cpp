@@ -96,9 +96,8 @@ int main(int argc, char** argv) {
 
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     uint16_t port = opts["rtpPort"].get<uint16_t>();
-    auto rtpVideo = nabto::RtpClient::create(trackId);
-    rtpVideo->setPort(port);
-    rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
+    nabto::RtpClientConf conf = {trackId, std::string(), port, rtpVideoNegotiator, nullptr};
+    auto rtpVideo = nabto::RtpClient::create(conf);
 
     auto eventQueue = nabto::EventQueueImpl::create();
 

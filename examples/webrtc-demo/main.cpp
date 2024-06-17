@@ -131,22 +131,17 @@ int main(int argc, char** argv) {
         } catch (std::exception& ex) {
             // fifoPath was not set, default to RTP.
             uint16_t port = opts["rtpPort"].get<uint16_t>();
-
-            auto rtpVideo = nabto::RtpClient::create("frontdoor-video");
-            rtpVideo->setPort(port);
-            rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
+            nabto::RtpClientConf videoConf = { "frontdoor-video", "127.0.0.1", port, rtpVideoNegotiator, nullptr };
             if (repacketH264) {
-                rtpVideo->setRepacketizerFactory(nabto::H264RepacketizerFactory::create());
+                videoConf.repacketizer = nabto::H264RepacketizerFactory::create();
             }
-            // Remote host is only used for 2-way medias, video is only 1-way
-            rtpVideo->setRemoteHost("127.0.0.1");
+
+            auto rtpVideo = nabto::RtpClient::create(videoConf);
 
             medias.push_back(rtpVideo);
 
-            auto rtpAudio = nabto::RtpClient::create("frontdoor-audio");
-            rtpAudio->setPort(port + 2);
-            rtpAudio->setTrackNegotiator(rtpAudioNegotiator);
-            rtpAudio->setRemoteHost("127.0.0.1");
+            nabto::RtpClientConf audioConf = { "frontdoor-audio", "127.0.0.1", (uint16_t)(port + 2), rtpAudioNegotiator, nullptr };
+            auto rtpAudio = nabto::RtpClient::create(audioConf);
 
             medias.push_back(rtpAudio);
         }

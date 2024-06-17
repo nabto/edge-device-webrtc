@@ -44,9 +44,9 @@ public:
 
     Feed(FeedConfig config, nabto::NabtoDevicePtr device, std::shared_ptr<nabto::EventQueue> eventQueue, nabto::NabtoDeviceWebrtcPtr webrtc)
     {
-        auto rtpVideo = nabto::RtpClient::create(config.trackId_);
-        rtpVideo->setPort(config.rtpPort_);
-        rtpVideo->setTrackNegotiator(rtpVideoNegotiator_);
+        nabto::RtpClientConf conf = { config.trackId_, std::string(), config.rtpPort_, rtpVideoNegotiator_, nullptr };
+
+        auto rtpVideo = nabto::RtpClient::create(conf);
 
         coapListener_ = CoapListener::create(device, NABTO_DEVICE_COAP_POST, config.coapFeedPath_, eventQueue);
         coapListener_->setCoapCallback([config, webrtc, device, rtpVideo](NabtoDeviceCoapRequest *coap)
@@ -129,11 +129,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    auto rtpVideo = nabto::RtpClient::create("from_browser");
-    rtpVideo->setPort(6002);
     auto rtpVideoNegotiator_ = nabto::H264Negotiator::create();
-    rtpVideo->setTrackNegotiator(rtpVideoNegotiator_);
+    nabto::RtpClientConf conf = { "from_browser", std::string(), 6002, rtpVideoNegotiator_, nullptr };
 
+    auto rtpVideo = nabto::RtpClient::create(conf);
 
     auto eventQueue = nabto::EventQueueImpl::create();
 
