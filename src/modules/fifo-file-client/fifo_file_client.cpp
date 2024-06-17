@@ -10,13 +10,16 @@ const int FIFO_BUFFER_SIZE = 4096;
 
 namespace nabto {
 
-FifoFileClientPtr FifoFileClient::create(const std::string& trackId, const std::string& filePath)
+FifoFileClientPtr FifoFileClient::create(const FifoFileClientConf& conf)
 {
-    return std::make_shared<FifoFileClient>(trackId, filePath);
+    return std::make_shared<FifoFileClient>(conf);
 }
 
-FifoFileClient::FifoFileClient(const std::string& trackId, const std::string& filePath)
-    : trackId_(trackId), filePath_(filePath)
+FifoFileClient::FifoFileClient(const FifoFileClientConf& conf)
+    : trackId_(conf.trackId),
+    filePath_(conf.filePath),
+    negotiator_(conf.negotiator),
+    packetizer_(conf.packetizer)
 {
 
 }

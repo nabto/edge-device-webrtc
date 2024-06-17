@@ -11,16 +11,21 @@ const int RTP_BUFFER_SIZE = 2048;
 
 namespace nabto {
 
-
-RtpClientPtr RtpClient::create(const std::string& trackId)
+RtpClientPtr RtpClient::create(const RtpClientConf& conf)
 {
-    return std::make_shared<RtpClient>(trackId);
+    return std::make_shared<RtpClient>(conf);
 }
 
-RtpClient::RtpClient(const std::string& trackId)
-    : trackId_(trackId)
+RtpClient::RtpClient(const RtpClientConf& conf):
+    trackId_(conf.trackId),
+    remoteHost_(conf.remoteHost),
+    videoPort_(conf.port),
+    remotePort_(conf.port+1),
+    negotiator_(conf.negotiator)
 {
-
+    if (conf.repacketizer != nullptr) {
+        repack_ = conf.repacketizer;
+    }
 }
 
 RtpClient::~RtpClient()
@@ -69,6 +74,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
     const rtc::SSRC ssrc = negotiator_->ssrc();
     RtpTrack track = {
         media,
+        repack_->createPacketizer(media, ssrc, pt),
         ssrc,
         negotiator_->payloadType(),
         pt
@@ -139,6 +145,7 @@ void RtpClient::removeConnection(NabtoDeviceConnectionRef ref)
 void RtpClient::start()
 {
     NPLOGI << "Starting RTP Client listen on port " << videoPort_;
+
     stopped_ = false;
     videoRtpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in addr = {};
@@ -213,17 +220,15 @@ void RtpClient::rtpVideoRunner(RtpClient* self)
         if (len < sizeof(rtc::RtpHeader)) {
             continue;
         }
-//        self->remotePort_ = ntohs(srcAddr.sin_port);
-
-        auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
 
         {
             std::lock_guard<std::mutex> lock(self->mutex_);
             for (const auto& [key, value] : self->mediaTracks_) {
-                rtp->setSsrc(value.ssrc);
-                rtp->setPayloadType(value.dstPayloadType);
                 try {
-                    value.track->send((uint8_t*)buffer, len);
+                    auto packets = value.repacketizer->handlePacket(std::vector<uint8_t>(buffer, buffer + len));
+                    for (auto p : packets) {
+                        value.track->send(p.data(), p.size());
+                    }
                 } catch (std::runtime_error& ex) {
                     NPLOGE << "Failed to send on track: " << ex.what();
                 }

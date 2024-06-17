@@ -3,6 +3,27 @@
 
 namespace nabto {
 
+RtspStreamPtr RtspStream::create(const RtspStreamConf& conf)
+{
+    return std::make_shared<RtspStream>(conf);
+
+}
+
+RtspStream::RtspStream(const RtspStreamConf& conf)
+    : trackIdBase_(conf.trackIdBase),
+    url_(conf.url),
+    videoNegotiator_(conf.videoNegotiator),
+    audioNegotiator_(conf.audioNegotiator)
+{
+    if (conf.videoRepack != nullptr) {
+        videoRepack_ = conf.videoRepack;
+    }
+    if (conf.audioRepack != nullptr) {
+        audioRepack_ = conf.audioRepack;
+    }
+
+}
+
 RtspStreamPtr RtspStream::create(const std::string& trackIdBase, const std::string& url)
 {
     return std::make_shared<RtspStream>(trackIdBase, url);
@@ -66,6 +87,7 @@ void RtspStream::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media
         rtsp.client = RtspClient::create(media->getTrackId(), url_);
         rtsp.client->setRtpStartPort(42222 + (counter_ * 4));
         rtsp.client->setTrackNegotiators(videoNegotiator_, audioNegotiator_);
+        rtsp.client->setRepacketizerFactories(videoRepack_, audioRepack_);
 
         connections_[ref] = rtsp;
         counter_++;

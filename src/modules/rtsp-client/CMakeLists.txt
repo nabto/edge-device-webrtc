@@ -22,6 +22,7 @@ target_link_libraries(rtsp_client
     nabto_device_static
     track_negotiators
     rtp_client
+    rtp_repacketizers
     datachannel-static
     CURL::libcurl
     webrtc_util

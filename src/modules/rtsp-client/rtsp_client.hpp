@@ -3,6 +3,7 @@
 #include <rtp-client/rtp_client.hpp>
 #include <track-negotiators/h264.hpp>
 #include <track-negotiators/pcmu.hpp>
+#include <rtp-repacketizer/rtp_repacketizer.hpp>
 #include "rtcp_client.hpp"
 #include <util/util.hpp>
 
@@ -41,6 +42,16 @@ public:
     {
         videoNegotiator_ = videoNegotiator;
         audioNegotiator_ = audioNegotiator;
+    }
+
+    void setRepacketizerFactories(RtpRepacketizerFactoryPtr videoRepack, RtpRepacketizerFactoryPtr audioRepack)
+    {
+        if (videoRepack != nullptr) {
+            videoRepack_ = videoRepack;
+        }
+        if (audioRepack != nullptr) {
+            audioRepack_ = audioRepack;
+        }
     }
 
 
@@ -102,12 +113,14 @@ private:
     std::string videoControlUrl_;
     int videoPayloadType_;
     RtcpClientPtr videoRtcp_ = nullptr;
+    RtpRepacketizerFactoryPtr videoRepack_ = RtpRepacketizerFactory::create();
 
     RtpClientPtr audioStream_ = nullptr;
     TrackNegotiatorPtr audioNegotiator_;
     std::string audioControlUrl_;
     int audioPayloadType_;
     RtcpClientPtr audioRtcp_ = nullptr;
+    RtpRepacketizerFactoryPtr audioRepack_ = RtpRepacketizerFactory::create();
 
 };
 

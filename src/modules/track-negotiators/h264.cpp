@@ -114,5 +114,4 @@ rtc::Description::Media H264Negotiator::createMedia()
     return media;
 }
 
-
 } // namespace

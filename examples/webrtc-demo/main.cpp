@@ -9,6 +9,7 @@
 #include <track-negotiators/h264.hpp>
 #include <track-negotiators/opus.hpp>
 #include <rtp-packetizer/h264_packetizer.hpp>
+#include <rtp-repacketizer/h264_repacketizer.hpp>
 #include <rtp-client/rtp_client.hpp>
 #include <rtsp-client/rtsp_stream.hpp>
 #include <fifo-file-client/fifo_file_client.hpp>
@@ -104,41 +105,43 @@ int main(int argc, char** argv) {
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
     nabto::FifoFileClientPtr fifo = nullptr;
+    bool repacketH264 = opts["repacketH264"].get<bool>();
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
 
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
-        rtsp = nabto::RtspStream::create("frontdoor", rtspUrl);
-        rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
+        nabto::RtspStreamConf conf = { "frontdoor", rtspUrl, rtpVideoNegotiator, rtpAudioNegotiator, nullptr, nullptr};
+        if (repacketH264) {
+            conf.videoRepack = nabto::H264RepacketizerFactory::create();
+        }
+        rtsp = nabto::RtspStream::create(conf);
         medias.push_back(rtsp);
     } catch (std::exception& ex) {
         // rtspUrl was not set, try fifo
         try {
             auto fifoPacketizer = nabto::H264PacketizerFactory::create("frontdoor-video");
             std::string fifoPath = opts["fifoPath"].get<std::string>();
-            fifo = nabto::FifoFileClient::create("frontdoor-video", fifoPath);
-            fifo->setTrackNegotiator(rtpVideoNegotiator);
-            fifo->setRtpPacketizer(fifoPacketizer);
+
+            nabto::FifoFileClientConf conf = { "frontdoor-video", fifoPath, rtpVideoNegotiator, fifoPacketizer };
+            fifo = nabto::FifoFileClient::create(conf);
 
             medias.push_back(fifo);
 
         } catch (std::exception& ex) {
             // fifoPath was not set, default to RTP.
             uint16_t port = opts["rtpPort"].get<uint16_t>();
+            nabto::RtpClientConf videoConf = { "frontdoor-video", "127.0.0.1", port, rtpVideoNegotiator, nullptr };
+            if (repacketH264) {
+                videoConf.repacketizer = nabto::H264RepacketizerFactory::create();
+            }
 
-            auto rtpVideo = nabto::RtpClient::create("frontdoor-video");
-            rtpVideo->setPort(port);
-            rtpVideo->setTrackNegotiator(rtpVideoNegotiator);
-            // Remote host is only used for 2-way medias, video is only 1-way
-            rtpVideo->setRemoteHost("127.0.0.1");
+            auto rtpVideo = nabto::RtpClient::create(videoConf);
 
             medias.push_back(rtpVideo);
 
-            auto rtpAudio = nabto::RtpClient::create("frontdoor-audio");
-            rtpAudio->setPort(port + 2);
-            rtpAudio->setTrackNegotiator(rtpAudioNegotiator);
-            rtpAudio->setRemoteHost("127.0.0.1");
+            nabto::RtpClientConf audioConf = { "frontdoor-audio", "127.0.0.1", (uint16_t)(port + 2), rtpAudioNegotiator, nullptr };
+            auto rtpAudio = nabto::RtpClient::create(audioConf);
 
             medias.push_back(rtpAudio);
         }
@@ -368,6 +371,7 @@ bool parse_options(int argc, char** argv, json& opts)
             * both the certificates in CAPATH and the certificates in CAINFO.
             */
             ("cacert", "Optional. Path to a CA certificate file; overrides CURL_CA_BUNDLE env var if set.", cxxopts::value<std::string>())
+            ("disable-h264-repacketizer", "If set, H264 will be forwarded as-is instead of repacketizing to proper MTU")
 
             ("h,help", "Shows this help text");
         auto result = options.parse(argc, argv);
@@ -446,6 +450,13 @@ bool parse_options(int argc, char** argv, json& opts)
                 return true;
             }
         }
+        if (result.count("disable-h264-repacketizer")) {
+            opts["repacketH264"] = false;
+        }
+        else {
+            opts["repacketH264"] = true;
+        }
+
 
     } catch (const cxxopts::OptionException& e)
     {

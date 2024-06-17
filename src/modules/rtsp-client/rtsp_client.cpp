@@ -221,9 +221,9 @@ void RtspClient::setupRtsp() {
         if (r.has_value()) {
             return resolveStart(r);
         }
-        videoStream_ = RtpClient::create(trackId_ + "-video");
-        videoStream_->setTrackNegotiator(videoNegotiator_);
-        videoStream_->setPort(port_);
+
+        nabto::RtpClientConf conf = { trackId_ + "-video", std::string(), port_, videoNegotiator_, videoRepack_ };
+        videoStream_ = RtpClient::create(conf);
 
         videoRtcp_ = RtcpClient::create(port_ + 1);
         videoRtcp_->start();
@@ -235,9 +235,9 @@ void RtspClient::setupRtsp() {
         if (r.has_value()) {
             return resolveStart(r);
         }
-        audioStream_ = RtpClient::create(trackId_ + "-audio");
-        audioStream_->setTrackNegotiator(audioNegotiator_);
-        audioStream_->setPort(port_ + 2);
+
+        nabto::RtpClientConf conf = { trackId_ + "-audio", std::string(), (uint16_t)(port_ + 2), audioNegotiator_, audioRepack_ };
+        audioStream_ = RtpClient::create(conf);
 
         audioRtcp_ = RtcpClient::create(port_ + 3);
         audioRtcp_->start();

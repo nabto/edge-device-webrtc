@@ -4,7 +4,9 @@
 
 #include <media-streams/media_stream.hpp>
 #include <track-negotiators/track_negotiator.hpp>
+#include <rtp-repacketizer/rtp_repacketizer.hpp>
 #include <sys/socket.h>
+
 typedef int SOCKET;
 
 #include <memory>
@@ -15,11 +17,21 @@ namespace nabto {
 class RtpClient;
 typedef std::shared_ptr<RtpClient> RtpClientPtr;
 
+class RtpClientConf {
+public:
+    std::string trackId;
+    std::string remoteHost;
+    uint16_t port = 0;
+    TrackNegotiatorPtr negotiator;
+    RtpRepacketizerFactoryPtr repacketizer;
+};
+
 class RtpClient : public MediaStream, public std::enable_shared_from_this<RtpClient>
 {
 public:
-    static RtpClientPtr create(const std::string& trackId);
-    RtpClient(const std::string& trackId);
+    static RtpClientPtr create(const RtpClientConf& conf);
+    RtpClient(const RtpClientConf& conf);
+
     ~RtpClient();
 
     bool isTrack(const std::string& trackId);
@@ -27,10 +39,6 @@ public:
     void removeConnection(NabtoDeviceConnectionRef ref);
     bool matchMedia(MediaTrackPtr media);
 
-    void setPort(uint16_t port) { videoPort_ = port; remotePort_ = port + 1; }
-    // Remote Host used to send data to if stream is not SENDONLY
-    void setRemoteHost(std::string host) { remoteHost_ = host; }
-    void setTrackNegotiator(TrackNegotiatorPtr negotiator) { negotiator_ = negotiator; }
     TrackNegotiatorPtr getTrackNegotiator() { return negotiator_; }
 
     MediaTrackPtr createMedia(const std::string& trackId) {
@@ -60,6 +68,8 @@ private:
     SOCKET videoRtpSock_ = 0;
     std::thread videoThread_;
     TrackNegotiatorPtr negotiator_;
+    RtpRepacketizerFactoryPtr repack_ = RtpRepacketizerFactory::create();
+
 };
 
 
