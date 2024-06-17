@@ -21,7 +21,7 @@ class RtpClientConf {
 public:
     std::string trackId;
     std::string remoteHost;
-    uint16_t port;
+    uint16_t port = 0;
     TrackNegotiatorPtr negotiator;
     RtpRepacketizerFactoryPtr repacketizer;
 };
