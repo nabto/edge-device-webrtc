@@ -274,12 +274,14 @@ The demo can read a raw H264 feed from a FIFO file descriptor. This feature is a
  * The feed must use the byte-stream format specified in Annex B of the [ITU-T H.264 Recommendation](https://www.itu.int/rec/T-REC-H.264-202108-I/en).
 
 
-A test feed can be created using Gstreamer or FFMPEG after creating the FIFO file descriptor:
+A test feed can be created using Gstreamer after creating the FIFO file descriptor:
 
 ```
 mkfifo /tmp/video.fifo
-gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480" !  videoconvert ! queue ! x264enc tune="zerolatency" ! filesink buffer-size=16 buffer-mode=2 location="/tmp/video.fifo"
+gst-launch-1.0 videotestsrc ! clockoverlay ! video/x-raw,width=640,height=480 ! videoconvert ! queue !  x264enc tune=zerolatency ! filesink buffer-size=16 buffer-mode=2 location="/tmp/video.fifo"
 ```
+
+Or using FFMPEG:
 
 ```
 mkfifo /tmp/video.fifo
