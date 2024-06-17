@@ -21,11 +21,19 @@ public:
 
 };
 
+class FifoFileClientConf {
+public:
+    std::string trackId;
+    std::string filePath;
+    TrackNegotiatorPtr negotiator;
+    RtpPacketizerFactoryPtr packetizer;
+};
+
 class FifoFileClient : public MediaStream, public std::enable_shared_from_this<FifoFileClient>
 {
 public:
-    static FifoFileClientPtr create(const std::string& trackId, const std::string& filePath);
-    FifoFileClient(const std::string& trackId, const std::string& filePath);
+    static FifoFileClientPtr create(const FifoFileClientConf& conf);
+    FifoFileClient(const FifoFileClientConf& conf);
     ~FifoFileClient();
 
     bool isTrack(const std::string& trackId);
@@ -40,10 +48,6 @@ public:
         return MediaTrack::create(trackId, sdp);
     }
 
-    void setTrackNegotiator(TrackNegotiatorPtr negotiator) { negotiator_ = negotiator; }
-    void setRtpPacketizer(RtpPacketizerFactoryPtr packetizer) {
-        packetizer_ = packetizer;
-    }
     TrackNegotiatorPtr getTrackNegotiator() { return negotiator_; }
 
 private:

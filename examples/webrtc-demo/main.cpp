@@ -122,9 +122,9 @@ int main(int argc, char** argv) {
         try {
             auto fifoPacketizer = nabto::H264PacketizerFactory::create("frontdoor-video");
             std::string fifoPath = opts["fifoPath"].get<std::string>();
-            fifo = nabto::FifoFileClient::create("frontdoor-video", fifoPath);
-            fifo->setTrackNegotiator(rtpVideoNegotiator);
-            fifo->setRtpPacketizer(fifoPacketizer);
+
+            nabto::FifoFileClientConf conf = { "frontdoor-video", fifoPath, rtpVideoNegotiator, fifoPacketizer };
+            fifo = nabto::FifoFileClient::create(conf);
 
             medias.push_back(fifo);
 
