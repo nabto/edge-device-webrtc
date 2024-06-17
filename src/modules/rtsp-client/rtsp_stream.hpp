@@ -23,10 +23,22 @@ public:
     RtspClientPtr client;
 };
 
+class RtspStreamConf {
+public:
+    std::string trackIdBase;
+    std::string url;
+    TrackNegotiatorPtr videoNegotiator;
+    TrackNegotiatorPtr audioNegotiator;
+    RtpRepacketizerFactoryPtr videoRepack;
+    RtpRepacketizerFactoryPtr audioRepack;
+};
 
 class RtspStream : public MediaStream, public std::enable_shared_from_this<RtspStream>
 {
 public:
+    static RtspStreamPtr create(const RtspStreamConf& conf);
+    RtspStream(const RtspStreamConf& conf);
+
     static RtspStreamPtr create(const std::string& trackIdBase, const std::string& url);
     RtspStream(const std::string& trackIdBase, const std::string& url);
     ~RtspStream();
@@ -42,24 +54,6 @@ public:
     bool matchMedia(MediaTrackPtr media);
     void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
     void removeConnection(NabtoDeviceConnectionRef ref);
-
-    void setTrackNegotiators(TrackNegotiatorPtr videoNegotiator, TrackNegotiatorPtr audioNegotiator)
-    {
-        videoNegotiator_ = videoNegotiator;
-        audioNegotiator_ = audioNegotiator;
-    }
-
-    void setRepacketizerFactories(RtpRepacketizerFactoryPtr videoRepack, RtpRepacketizerFactoryPtr audioRepack)
-    {
-        if (videoRepack != nullptr) {
-            videoRepack_ = videoRepack;
-        }
-        if (audioRepack != nullptr) {
-            audioRepack_ = audioRepack;
-        }
-    }
-
-    void setPort(uint16_t port) { basePort_ = port; }
 
     MediaTrackPtr createMedia(const std::string& trackId) {
         if (trackId == trackIdBase_ + "-audio") {
@@ -94,7 +88,6 @@ private:
     TrackNegotiatorPtr audioNegotiator_;
     RtpRepacketizerFactoryPtr videoRepack_ = RtpRepacketizerFactory::create();
     RtpRepacketizerFactoryPtr audioRepack_ = RtpRepacketizerFactory::create();
-    uint16_t basePort_;
 
     std::map<NabtoDeviceConnectionRef, RtspConnection> connections_;
 };

@@ -3,6 +3,27 @@
 
 namespace nabto {
 
+RtspStreamPtr RtspStream::create(const RtspStreamConf& conf)
+{
+    return std::make_shared<RtspStream>(conf);
+
+}
+
+RtspStream::RtspStream(const RtspStreamConf& conf)
+    : trackIdBase_(conf.trackIdBase),
+    url_(conf.url),
+    videoNegotiator_(conf.videoNegotiator),
+    audioNegotiator_(conf.audioNegotiator)
+{
+    if (conf.videoRepack != nullptr) {
+        videoRepack_ = conf.videoRepack;
+    }
+    if (conf.audioRepack != nullptr) {
+        audioRepack_ = conf.audioRepack;
+    }
+
+}
+
 RtspStreamPtr RtspStream::create(const std::string& trackIdBase, const std::string& url)
 {
     return std::make_shared<RtspStream>(trackIdBase, url);

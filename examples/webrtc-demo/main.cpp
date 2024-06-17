@@ -111,11 +111,11 @@ int main(int argc, char** argv) {
 
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
-        rtsp = nabto::RtspStream::create("frontdoor", rtspUrl);
-        rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
+        nabto::RtspStreamConf conf = { "frontdoor", rtspUrl, rtpVideoNegotiator, rtpAudioNegotiator, nullptr, nullptr};
         if (repacketH264) {
-            rtsp->setRepacketizerFactories(nabto::H264RepacketizerFactory::create(), nullptr);
+            conf.videoRepack = nabto::H264RepacketizerFactory::create();
         }
+        rtsp = nabto::RtspStream::create(conf);
         medias.push_back(rtsp);
     } catch (std::exception& ex) {
         // rtspUrl was not set, try fifo
