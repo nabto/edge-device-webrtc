@@ -228,7 +228,6 @@ int main(int argc, char** argv) {
                                 });
                             m->addConnection(ref, media);
                             list.push_back(media);
-                            break;
                         }
                     }
                 }

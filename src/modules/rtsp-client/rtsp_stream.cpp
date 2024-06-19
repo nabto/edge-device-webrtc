@@ -100,16 +100,7 @@ void RtspStream::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media
             std::lock_guard<std::mutex> lock(self->mutex_);
             try {
                 auto conn = self->connections_.at(ref);
-
-                auto video = conn.client->getVideoStream();
-                if (video != nullptr && conn.videoTrack != nullptr) {
-                    video->addConnection(ref, conn.videoTrack);
-                }
-
-                auto audio = conn.client->getAudioStream();
-                if (audio != nullptr && conn.audioTrack != nullptr) {
-                    audio->addConnection(ref, conn.audioTrack);
-                }
+                conn.client->addConnection(ref, conn.videoTrack, conn.audioTrack);
             } catch (std::out_of_range& ex) {
                 NPLOGE << "RTSP client start callback received on closed connection";
             }
@@ -132,14 +123,7 @@ void RtspStream::removeConnection(NabtoDeviceConnectionRef ref)
     std::lock_guard<std::mutex> lock(mutex_);
     try {
         auto conn = connections_.at(ref);
-        auto v = conn.client->getVideoStream();
-        if (v != nullptr) {
-            v->removeConnection(ref);
-        }
-        auto a = conn.client->getAudioStream();
-        if (a != nullptr) {
-            a->removeConnection(ref);
-        }
+        conn.client->removeConnection(ref);
         conn.client->stop();
         connections_.erase(ref);
     } catch (std::out_of_range& ex) {

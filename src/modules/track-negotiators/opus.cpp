@@ -27,7 +27,7 @@ int OpusNegotiator::match(MediaTrackPtr track)
             continue;
         }
         // If this payload type is opus/48000 we found a match
-        if (r != NULL && r->format == "opus" && r->clockRate == 48000) {
+        if (r != NULL && (r->format == "opus" || r->format == "OPUS") && r->clockRate == 48000) {
             NPLOGD << "Found RTP codec for audio! pt: " << r->payloadType;
             // Our implementation does not support these feedback extensions, so we remove them (if they exist)
             // Though the technically correct way to do it, trial and error has shown this has no practial effect.
@@ -38,6 +38,7 @@ int OpusNegotiator::match(MediaTrackPtr track)
             rtp->removeFeedback("ccm fir");
         }
         else {
+            NPLOGD << "Found invalid opus codec: " << r->format << "/" << r->clockRate;
             // We remove any payload type not matching our codec
             media.removeRtpMap(pt);
         }

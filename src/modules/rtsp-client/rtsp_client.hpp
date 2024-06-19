@@ -5,6 +5,7 @@
 #include <track-negotiators/pcmu.hpp>
 #include <rtp-repacketizer/rtp_repacketizer.hpp>
 #include "rtcp_client.hpp"
+#include "tcp_rtp_client.hpp"
 #include <util/util.hpp>
 
 #include <rtc/description.hpp>
@@ -54,6 +55,9 @@ public:
         }
     }
 
+    void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack);
+    void removeConnection(NabtoDeviceConnectionRef ref);
+
 
     // Sets which transport ports to make RTSP server send RTP traffic to.
     // 4 ports are used in total:
@@ -87,6 +91,8 @@ private:
     std::string url_;
     uint16_t port_ = 42222;
     bool stopped_ = false;
+    // TODO: determine default behaviour
+    bool preferTcp_ = true;
 
     std::function<void(std::optional<std::string> error)> startCb_;
 
@@ -107,6 +113,8 @@ private:
 
 
     std::string sessionControlUrl_;
+
+    TcpRtpClientPtr tcpClient_ = nullptr;
 
     RtpClientPtr videoStream_ = nullptr;
     TrackNegotiatorPtr videoNegotiator_;

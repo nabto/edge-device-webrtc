@@ -127,6 +127,9 @@ void RtspClient::stop()
     if (audioRtcp_ != nullptr) {
         audioRtcp_->stop();
     }
+    if (tcpClient_ != nullptr) {
+        tcpClient_->stop();
+    }
     curl_->stop();
     // teardown();
 }
@@ -147,7 +150,28 @@ RtpClientPtr RtspClient::getAudioStream()
 }
 
 
+void RtspClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack)
+{
+    if (tcpClient_ != nullptr) {
+        tcpClient_->setConnection(ref, videoTrack, audioTrack);
+    }
+    if (videoStream_ != nullptr && videoTrack != nullptr) {
+        videoStream_->addConnection(ref, videoTrack);
+    }
+    if (audioStream_ != nullptr && audioTrack != nullptr) {
+        audioStream_->addConnection(ref, audioTrack);
+    }
+}
 
+void RtspClient::removeConnection(NabtoDeviceConnectionRef ref)
+{
+    if (videoStream_ != nullptr) {
+        videoStream_->removeConnection(ref);
+    }
+    if (audioStream_ != nullptr) {
+        audioStream_->removeConnection(ref);
+    }
+}
 
 bool RtspClient::start(std::function<void(std::optional<std::string> error)> cb)
 {
@@ -217,30 +241,50 @@ void RtspClient::setupRtsp() {
     if (!videoControlUrl_.empty()) {
         NPLOGD << "Sending RTSP SETUP request for video stream";
         std::string transStr = "RTP/AVP;unicast;client_port=" + std::to_string(port_) + "-" + std::to_string(port_ + 1);
+        if (preferTcp_) {
+            transStr = "RTP/AVP/TCP;unicast;interleaved=0-1";
+        }
         auto r = performSetupReq(videoControlUrl_, transStr);
         if (r.has_value()) {
             return resolveStart(r);
         }
 
-        nabto::RtpClientConf conf = { trackId_ + "-video", std::string(), port_, videoNegotiator_, videoRepack_ };
-        videoStream_ = RtpClient::create(conf);
+        if (preferTcp_) {
+            if (tcpClient_ == nullptr) {
+                TcpRtpClientConf conf = { curl_, sessionControlUrl_, videoNegotiator_, audioNegotiator_, videoRepack_, audioRepack_ };
+                tcpClient_ = TcpRtpClient::create(conf);
+            }
+        } else {
+            nabto::RtpClientConf conf = { trackId_ + "-video", std::string(), port_, videoNegotiator_, videoRepack_ };
+            videoStream_ = RtpClient::create(conf);
 
-        videoRtcp_ = RtcpClient::create(port_ + 1);
-        videoRtcp_->start();
+            videoRtcp_ = RtcpClient::create(port_ + 1);
+            videoRtcp_->start();
+        }
     }
     if (!audioControlUrl_.empty()) {
         NPLOGD << "Sending RTSP SETUP request for audio stream";
         std::string transStr = "RTP/AVP;unicast;client_port=" + std::to_string(port_+2) + "-" + std::to_string(port_ + 3);
+        if (preferTcp_) {
+            transStr = "RTP/AVP/TCP;unicast;interleaved=2-3";
+        }
         auto r = performSetupReq(audioControlUrl_, transStr);
         if (r.has_value()) {
             return resolveStart(r);
         }
 
-        nabto::RtpClientConf conf = { trackId_ + "-audio", std::string(), (uint16_t)(port_ + 2), audioNegotiator_, audioRepack_ };
-        audioStream_ = RtpClient::create(conf);
+        if (preferTcp_) {
+            if (tcpClient_ == nullptr) {
+                TcpRtpClientConf conf = { curl_, sessionControlUrl_, videoNegotiator_, audioNegotiator_, videoRepack_, audioRepack_ };
+                tcpClient_ = TcpRtpClient::create(conf);
+            }
+        } else {
+            nabto::RtpClientConf conf = { trackId_ + "-audio", std::string(), (uint16_t)(port_ + 2), audioNegotiator_, audioRepack_ };
+            audioStream_ = RtpClient::create(conf);
 
-        audioRtcp_ = RtcpClient::create(port_ + 3);
-        audioRtcp_->start();
+            audioRtcp_ = RtcpClient::create(port_ + 3);
+            audioRtcp_->start();
+        }
     }
 
     const char* range = "npt=now-";
@@ -273,7 +317,11 @@ void RtspClient::setupRtsp() {
         return resolveStart("Failed to reset Curl RTSP range option");
     }
 
-    return resolveStart();
+    resolveStart();
+
+    if (tcpClient_ != nullptr) {
+        tcpClient_->run();
+    }
 }
 
 bool RtspClient::teardown(std::function<void()> cb)
