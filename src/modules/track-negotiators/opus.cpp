@@ -8,10 +8,6 @@ int OpusNegotiator::match(MediaTrackPtr track)
     // We start by getting and parsing the SDP
     auto sdp = track->getSdp();
     NPLOGD << "    Got offer SDP: " << sdp;
-    // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
-    if (sdp[0] == 'm' && sdp[1] == '=') {
-        sdp = sdp.substr(2);
-    }
     rtc::Description::Media media(sdp);
 
     rtc::Description::Media::RtpMap* rtp = NULL;

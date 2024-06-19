@@ -84,7 +84,6 @@ private:
     std::string url_;
     uint16_t port_ = 42222;
     bool stopped_ = false;
-    // TODO: determine default behaviour
     bool preferTcp_ = true;
 
     std::function<void(std::optional<std::string> error)> startCb_;

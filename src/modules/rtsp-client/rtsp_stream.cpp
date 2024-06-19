@@ -43,7 +43,6 @@ bool RtspStream::matchMedia(MediaTrackPtr media)
         int pt = config_.audioNegotiator->match(media);
         if (pt == 0) {
             NPLOGE << "    Audio codec matching Failed. Audio will not work.";
-            // TODO: Fail
             return false;
         }
         return true;
@@ -52,7 +51,6 @@ bool RtspStream::matchMedia(MediaTrackPtr media)
         int pt = config_.videoNegotiator->match(media);
         if (pt == 0) {
             NPLOGE << "    Video codec matching failed. Video will not work";
-            // TODO: Fail
             return false;
         }
         return true;

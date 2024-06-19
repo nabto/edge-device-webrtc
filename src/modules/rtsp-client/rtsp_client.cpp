@@ -650,7 +650,6 @@ bool RtspClient::setDigestHeader(std::string method, std::string url)
 
 void RtspClient::resolveStart(std::optional<std::string> error)
 {
-    // TODO: ensure everything is cleaned up/resolved
     if (startCb_) {
         auto cb = startCb_;
         startCb_ = nullptr;

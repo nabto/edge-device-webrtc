@@ -313,10 +313,6 @@ void WebrtcConnection::createTracks(const std::vector<MediaTrackPtr>& tracks)
     }
     for (auto t : tracks) {
         auto sdp = t->getSdp();
-        // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
-        if (sdp[0] == 'm' && sdp[1] == '=') {
-            sdp = sdp.substr(2);
-        }
         rtc::Description::Media media(sdp);
         nlohmann::json metaTrack = {
             {"mid", media.mid()},
@@ -345,10 +341,6 @@ void WebrtcConnection::updateMetaTracks() {
         auto error = m->getImpl()->getErrorState();
 
         auto sdp = m->getSdp();
-        // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
-        if (sdp[0] == 'm' && sdp[1] == '=') {
-            sdp = sdp.substr(2);
-        }
         rtc::Description::Media media(sdp);
         auto mid = media.mid();
         bool found = false;
