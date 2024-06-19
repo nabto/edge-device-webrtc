@@ -148,10 +148,18 @@ public:
     }
 
     void runRtspTest(std::string& url, bool shouldFail = false) {
-        auto rtsp = nabto::RtspClient::create("footrack", url);
         auto rtpVideoNegotiator = nabto::H264Negotiator::create();
         auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
-        rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
+        nabto::RtspClientConf conf = {
+            "footrack",
+            url,
+            rtpVideoNegotiator,
+            rtpAudioNegotiator,
+            nullptr,
+            nullptr,
+            false
+        };
+        auto rtsp = nabto::RtspClient::create(conf);
 
         std::promise<void> promise;
 
@@ -222,10 +230,18 @@ BOOST_AUTO_TEST_CASE(rtsp_client_no_close, *boost::unit_test::timeout(180))
 
     std::string url = "rtsp://127.0.0.1:" + std::to_string(server.getPort()) + "/video";
     // std::string url = "rtsp://127.0.0.1:8554/video";
-    auto rtsp = nabto::RtspClient::create("footrack", url);
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
-    rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
+    nabto::RtspClientConf conf = {
+        "footrack",
+        url,
+        rtpVideoNegotiator,
+        rtpAudioNegotiator,
+        nullptr,
+        nullptr,
+        false
+    };
+    auto rtsp = nabto::RtspClient::create(conf);
 
     std::promise<void> promise;
 

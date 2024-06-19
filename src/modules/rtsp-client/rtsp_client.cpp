@@ -82,15 +82,16 @@ std::string md5(std::string& message) {
 }
 #endif
 
-RtspClientPtr RtspClient::create(const std::string& trackId, const std::string& url)
+RtspClientPtr RtspClient::create(const RtspClientConf& conf)
 {
-    return std::make_shared<RtspClient>(trackId, url);
+    return std::make_shared<RtspClient>(conf);
 
 }
 
-RtspClient::RtspClient(const std::string& trackId, const std::string& url)
-    : trackId_(trackId)
+RtspClient::RtspClient(const RtspClientConf& conf)
+    : trackId_(conf.trackId)
 {
+    auto url = conf.url;
     auto at = url.find("@");
     if (at == std::string::npos) {
         url_ = url;
@@ -108,6 +109,19 @@ RtspClient::RtspClient(const std::string& trackId, const std::string& url)
         NPLOGI << "Parsed URL     : " << url_;
         NPLOGI << "Parsed username: " << username_;
         NPLOGI << "Parsed password: " << password_;
+    }
+
+    preferTcp_ = conf.preferTcp;
+    port_ = conf.port;
+
+    videoNegotiator_ = conf.videoNegotiator;
+    if (conf.videoRepack != nullptr) {
+        videoRepack_ = conf.videoRepack;
+    }
+
+    audioNegotiator_ = conf.audioNegotiator;
+    if (conf.audioRepack != nullptr) {
+        audioRepack_ = conf.audioRepack;
     }
 
 }

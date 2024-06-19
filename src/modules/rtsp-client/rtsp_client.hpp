@@ -25,11 +25,30 @@ class RtspClient;
 
 typedef std::shared_ptr<RtspClient> RtspClientPtr;
 
+class RtspClientConf {
+public:
+    std::string trackId;
+    std::string url;
+    TrackNegotiatorPtr videoNegotiator;
+    TrackNegotiatorPtr audioNegotiator;
+    RtpRepacketizerFactoryPtr videoRepack;
+    RtpRepacketizerFactoryPtr audioRepack;
+    bool preferTcp = true;
+    // Sets which transport ports to make RTSP server send RTP traffic to.
+    // 4 ports are used in total:
+    //   port  : Port for video stream
+    //   port+1: Port for video RTCP
+    //   port+2: Port for Audio stream if exists
+    //   port+3: Port for Audio RTCP if exists
+    // if unset port defaults to 42222 meaning 42222-42225 is used.
+    uint16_t port = 42222;
+};
+
 class RtspClient : public std::enable_shared_from_this<RtspClient>
 {
 public:
-    static RtspClientPtr create(const std::string& trackId, const std::string& url);
-    RtspClient(const std::string& trackId, const std::string& url);
+    static RtspClientPtr create(const RtspClientConf& conf);
+    RtspClient(const RtspClientConf& conf);
     ~RtspClient();
 
     bool start(std::function<void(std::optional<std::string> error)> cb);
@@ -39,34 +58,8 @@ public:
     RtpClientPtr getVideoStream();
     RtpClientPtr getAudioStream();
 
-    void setTrackNegotiators(TrackNegotiatorPtr videoNegotiator, TrackNegotiatorPtr audioNegotiator)
-    {
-        videoNegotiator_ = videoNegotiator;
-        audioNegotiator_ = audioNegotiator;
-    }
-
-    void setRepacketizerFactories(RtpRepacketizerFactoryPtr videoRepack, RtpRepacketizerFactoryPtr audioRepack)
-    {
-        if (videoRepack != nullptr) {
-            videoRepack_ = videoRepack;
-        }
-        if (audioRepack != nullptr) {
-            audioRepack_ = audioRepack;
-        }
-    }
-
     void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack);
     void removeConnection(NabtoDeviceConnectionRef ref);
-
-
-    // Sets which transport ports to make RTSP server send RTP traffic to.
-    // 4 ports are used in total:
-    //   port  : Port for video stream
-    //   port+1: Port for video RTCP
-    //   port+2: Port for Audio stream if exists
-    //   port+3: Port for Audio RTCP if exists
-    // if unset port defaults to 42222 meaning 42222-42225 is used.
-    void setRtpStartPort(uint16_t port) { port_ = port;}
 
 private:
     void setupRtsp();
