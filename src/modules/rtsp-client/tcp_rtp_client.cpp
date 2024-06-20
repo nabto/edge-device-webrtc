@@ -97,6 +97,10 @@ void TcpRtpClient::run()
                 uint16_t len = *(uint16_t*)(rtcpWriteBuf_+2)+4;
                 // NPLOGD << "Sending RR on channel: " << (int)rtcpWriteBuf_[1];
                 auto ret = write(sockfd, rtcpWriteBuf_, len);
+                if (ret < len) {
+                    NPLOGE << "Failed to write RTCP RR to TCP socket. ret: " << ret;
+                    break;
+                }
             } else {
                 NPLOGE << "Failed to get active socket: " << curl_easy_strerror(res) << " Sock: " << sockfd;
 

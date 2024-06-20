@@ -55,9 +55,6 @@ public:
     bool close(std::function<void()> cb);
     void stop();
 
-    RtpClientPtr getVideoStream();
-    RtpClientPtr getAudioStream();
-
     void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack);
     void removeConnection(NabtoDeviceConnectionRef ref);
 

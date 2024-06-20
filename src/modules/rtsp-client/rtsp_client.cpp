@@ -153,17 +153,6 @@ bool RtspClient::close(std::function<void()> cb)
     return teardown(cb);
 }
 
-RtpClientPtr RtspClient::getVideoStream()
-{
-    return videoStream_;
-}
-
-RtpClientPtr RtspClient::getAudioStream()
-{
-    return audioStream_;
-}
-
-
 void RtspClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack)
 {
     if (tcpClient_ != nullptr) {
