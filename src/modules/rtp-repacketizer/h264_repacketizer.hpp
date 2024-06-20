@@ -20,6 +20,7 @@ public:
 
     H264Repacketizer(std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf) : RtpRepacketizer(rtpConf->ssrc, rtpConf->payloadType), rtpConf_(rtpConf)
     {
+        rtpConf_->playoutDelayId = 0;
         packet_ = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::LongStartSequence, rtpConf_);
 
     }
