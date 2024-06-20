@@ -30,10 +30,17 @@ int main(int argc, char** argv) {
 
     std::string url(argv[1]);
 
-    auto rtsp = nabto::RtspClient::create("footrack", url);
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
-    rtsp->setTrackNegotiators(rtpVideoNegotiator, rtpAudioNegotiator);
+    nabto::RtspClientConf conf = {
+        "footrack",
+        url,
+        rtpVideoNegotiator,
+        rtpAudioNegotiator,
+        nullptr,
+        nullptr
+    };
+    auto rtsp = nabto::RtspClient::create(conf);
 
     rtsp->start([](std::optional<std::string> error) {
         if (error.has_value()) {

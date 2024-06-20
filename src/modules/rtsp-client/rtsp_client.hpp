@@ -5,6 +5,7 @@
 #include <track-negotiators/pcmu.hpp>
 #include <rtp-repacketizer/rtp_repacketizer.hpp>
 #include "rtcp_client.hpp"
+#include "tcp_rtp_client.hpp"
 #include <util/util.hpp>
 
 #include <rtc/description.hpp>
@@ -24,37 +25,15 @@ class RtspClient;
 
 typedef std::shared_ptr<RtspClient> RtspClientPtr;
 
-class RtspClient : public std::enable_shared_from_this<RtspClient>
-{
+class RtspClientConf {
 public:
-    static RtspClientPtr create(const std::string& trackId, const std::string& url);
-    RtspClient(const std::string& trackId, const std::string& url);
-    ~RtspClient();
-
-    bool start(std::function<void(std::optional<std::string> error)> cb);
-    bool close(std::function<void()> cb);
-    void stop();
-
-    RtpClientPtr getVideoStream();
-    RtpClientPtr getAudioStream();
-
-    void setTrackNegotiators(TrackNegotiatorPtr videoNegotiator, TrackNegotiatorPtr audioNegotiator)
-    {
-        videoNegotiator_ = videoNegotiator;
-        audioNegotiator_ = audioNegotiator;
-    }
-
-    void setRepacketizerFactories(RtpRepacketizerFactoryPtr videoRepack, RtpRepacketizerFactoryPtr audioRepack)
-    {
-        if (videoRepack != nullptr) {
-            videoRepack_ = videoRepack;
-        }
-        if (audioRepack != nullptr) {
-            audioRepack_ = audioRepack;
-        }
-    }
-
-
+    std::string trackId;
+    std::string url;
+    TrackNegotiatorPtr videoNegotiator;
+    TrackNegotiatorPtr audioNegotiator;
+    RtpRepacketizerFactoryPtr videoRepack;
+    RtpRepacketizerFactoryPtr audioRepack;
+    bool preferTcp = true;
     // Sets which transport ports to make RTSP server send RTP traffic to.
     // 4 ports are used in total:
     //   port  : Port for video stream
@@ -62,7 +41,22 @@ public:
     //   port+2: Port for Audio stream if exists
     //   port+3: Port for Audio RTCP if exists
     // if unset port defaults to 42222 meaning 42222-42225 is used.
-    void setRtpStartPort(uint16_t port) { port_ = port;}
+    uint16_t port = 42222;
+};
+
+class RtspClient : public std::enable_shared_from_this<RtspClient>
+{
+public:
+    static RtspClientPtr create(const RtspClientConf& conf);
+    RtspClient(const RtspClientConf& conf);
+    ~RtspClient();
+
+    bool start(std::function<void(std::optional<std::string> error)> cb);
+    bool close(std::function<void()> cb);
+    void stop();
+
+    void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack);
+    void removeConnection(NabtoDeviceConnectionRef ref);
 
 private:
     void setupRtsp();
@@ -87,6 +81,7 @@ private:
     std::string url_;
     uint16_t port_ = 42222;
     bool stopped_ = false;
+    bool preferTcp_ = true;
 
     std::function<void(std::optional<std::string> error)> startCb_;
 
@@ -107,6 +102,8 @@ private:
 
 
     std::string sessionControlUrl_;
+
+    TcpRtpClientPtr tcpClient_ = nullptr;
 
     RtpClientPtr videoStream_ = nullptr;
     TrackNegotiatorPtr videoNegotiator_;

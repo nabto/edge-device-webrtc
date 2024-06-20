@@ -31,6 +31,7 @@ public:
     TrackNegotiatorPtr audioNegotiator;
     RtpRepacketizerFactoryPtr videoRepack;
     RtpRepacketizerFactoryPtr audioRepack;
+    bool preferTcp = true;
 };
 
 class RtspStream : public MediaStream, public std::enable_shared_from_this<RtspStream>
@@ -39,8 +40,6 @@ public:
     static RtspStreamPtr create(const RtspStreamConf& conf);
     RtspStream(const RtspStreamConf& conf);
 
-    static RtspStreamPtr create(const std::string& trackIdBase, const std::string& url);
-    RtspStream(const std::string& trackIdBase, const std::string& url);
     ~RtspStream();
 
     void stop() {
@@ -56,16 +55,16 @@ public:
     void removeConnection(NabtoDeviceConnectionRef ref);
 
     MediaTrackPtr createMedia(const std::string& trackId) {
-        if (trackId == trackIdBase_ + "-audio") {
-            auto m = audioNegotiator_->createMedia();
-            m.addSSRC(audioNegotiator_->ssrc(), trackId);
+        if (trackId == config_.trackIdBase + "-audio") {
+            auto m = config_.audioNegotiator->createMedia();
+            m.addSSRC(config_.audioNegotiator->ssrc(), trackId);
             auto sdp = m.generateSdp();
             return MediaTrack::create(trackId, sdp);
 
         }
-        else if (trackId == trackIdBase_ + "-video") {
-            auto m = videoNegotiator_->createMedia();
-            m.addSSRC(videoNegotiator_->ssrc(), trackId);
+        else if (trackId == config_.trackIdBase + "-video") {
+            auto m = config_.videoNegotiator->createMedia();
+            m.addSSRC(config_.videoNegotiator->ssrc(), trackId);
             auto sdp = m.generateSdp();
             return MediaTrack::create(trackId, sdp);
         }
@@ -77,17 +76,11 @@ public:
     }
 
 private:
-
-    std::string trackIdBase_;
-    std::string url_;
+    RtspClientConf buildClientConf(std::string trackId, uint16_t port);
+    RtspStreamConf config_;
 
     std::mutex mutex_;
     size_t counter_ = 0;
-
-    TrackNegotiatorPtr videoNegotiator_;
-    TrackNegotiatorPtr audioNegotiator_;
-    RtpRepacketizerFactoryPtr videoRepack_ = RtpRepacketizerFactory::create();
-    RtpRepacketizerFactoryPtr audioRepack_ = RtpRepacketizerFactory::create();
 
     std::map<NabtoDeviceConnectionRef, RtspConnection> connections_;
 };

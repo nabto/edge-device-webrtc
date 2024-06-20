@@ -52,6 +52,7 @@ public:
 
     H264Packetizer(uint32_t ssrc, std::string& trackId, int pt) {
         rtpConf_ = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, trackId, pt, 90000);
+        // TODO: remove this workaround for https://github.com/paullouisageneau/libdatachannel/issues/1216
         rtpConf_->playoutDelayId = 0;
         start_ = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()

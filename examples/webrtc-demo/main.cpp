@@ -111,7 +111,8 @@ int main(int argc, char** argv) {
 
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
-        nabto::RtspStreamConf conf = { "frontdoor", rtspUrl, rtpVideoNegotiator, rtpAudioNegotiator, nullptr, nullptr};
+        bool preferTcp = opts["preferTcp"].get<bool>();
+        nabto::RtspStreamConf conf = { "frontdoor", rtspUrl, rtpVideoNegotiator, rtpAudioNegotiator, nullptr, nullptr, preferTcp};
         if (repacketH264) {
             conf.videoRepack = nabto::H264RepacketizerFactory::create();
         }
@@ -228,7 +229,6 @@ int main(int argc, char** argv) {
                                 });
                             m->addConnection(ref, media);
                             list.push_back(media);
-                            break;
                         }
                     }
                 }
@@ -358,6 +358,7 @@ bool parse_options(int argc, char** argv, json& opts)
             ("log-level", "Optional. The log level (error|info|trace)", cxxopts::value<std::string>()->default_value("error"))
             ("k,privatekey", "Raw private key to use", cxxopts::value<std::string>())
             ("r,rtsp", "Use RTSP at the provided url instead of RTP (eg. rtsp://127.0.0.l:8554/video)", cxxopts::value<std::string>())
+            ("rtsp-use-udp", "If set, the RTSP client will use UDP as transport for RTP data")
             ("rtp-port", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
             ("f,fifo", "Use FIFO file descriptor at the provided path instead of RTP", cxxopts::value<std::string>())
             ("c,cloud-domain", "Optional. Domain for the cloud deployment. This is used to derive JWKS URL, JWKS issuer, and frontend URL", cxxopts::value<std::string>()->default_value("smartcloud.nabto.com"))
@@ -417,6 +418,15 @@ bool parse_options(int argc, char** argv, json& opts)
         if (result.count("rtsp")) {
             opts["rtspUrl"] = result["rtsp"].as<std::string>();
         }
+
+        if (result.count("rtsp-use-udp")) {
+            opts["preferTcp"] = false;
+        }
+        else {
+            opts["preferTcp"] = true;
+        }
+
+
         opts["rtpPort"] = result["rtp-port"].as<uint16_t>();
         if (result.count("fifo")) {
             opts["fifoPath"] = result["fifo"].as<std::string>();

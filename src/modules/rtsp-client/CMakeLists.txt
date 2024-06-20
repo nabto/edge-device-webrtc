@@ -2,6 +2,7 @@
 set(src
     rtsp_client.cpp
     rtsp_stream.cpp
+    tcp_rtp_client.cpp
 )
 
 option(RTSP_HAS_BASIC_AUTH "disable RTSP client basic auth" ON)

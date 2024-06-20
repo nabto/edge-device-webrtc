@@ -61,10 +61,6 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
 {
 
     auto sdp = media->getSdp();
-    // TODO: remove when updating libdatachannel after https://github.com/paullouisageneau/libdatachannel/issues/1074
-    if (sdp[0] == 'm' && sdp[1] == '=') {
-        sdp = sdp.substr(2);
-    }
     rtc::Description::Media desc(sdp);
     auto pts = desc.payloadTypes();
 
