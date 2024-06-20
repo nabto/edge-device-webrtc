@@ -82,10 +82,26 @@ void TcpRtpClient::run()
         uint16_t status = 0;
         curl_->reinvokeStatus(&res, &status);
 
-        // res = curl_->reinvoke();
         if (res != CURLE_OK) {
             NPLOGE << "Failed to perform RTSP RECEIVE request with: " << curl_easy_strerror(res);
             break;
+        }
+
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (sendRtcp_) {
+            sendRtcp_ = false;
+            CURLcode res = CURLE_OK;
+            curl_socket_t sockfd;
+            res = curl_easy_getinfo(curl, CURLINFO_ACTIVESOCKET, &sockfd);
+            if (!res && sockfd != CURL_SOCKET_BAD) {
+                uint16_t len = *(uint16_t*)(rtcpWriteBuf_+2)+4;
+                // NPLOGD << "Sending RR on channel: " << (int)rtcpWriteBuf_[1];
+                auto ret = write(sockfd, rtcpWriteBuf_, len);
+            } else {
+                NPLOGE << "Failed to get active socket: " << curl_easy_strerror(res) << " Sock: " << sockfd;
+
+            }
+
         }
     }
     NPLOGD << "TcpRtpClient run returning";
@@ -133,8 +149,19 @@ size_t TcpRtpClient::rtp_write(void* ptr, size_t size, size_t nmemb, void* userp
 
         }
     } else {
-        // TODO: RTCP
-        NPLOGE << "Data on channel: " << (int)channel;
+        std::lock_guard<std::mutex> lock(self->mutex_);
+        char* buffer = (char*)ptr + 4;
+        auto sr = reinterpret_cast<rtc::RtcpSr*>(buffer);
+        memset(self->rtcpWriteBuf_, 0, 64);
+        self->rtcpWriteBuf_[0] = '$';
+        self->rtcpWriteBuf_[1] = channel;
+        rtc::RtcpRr* rr = (rtc::RtcpRr*)(self->rtcpWriteBuf_ + 4);
+        rtc::RtcpReportBlock* rb = rr->getReportBlock(0);
+        rb->preparePacket(sr->senderSSRC(), 0, 0, 0, 0, 0, sr->ntpTimestamp(), 0);
+        rr->preparePacket(1, 1);
+        uint16_t* p = (uint16_t*)&self->rtcpWriteBuf_[2];
+        *p = rr->header.lengthInBytes();
+        self->sendRtcp_ = true;
     }
 
 

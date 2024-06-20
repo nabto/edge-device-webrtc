@@ -65,6 +65,9 @@ private:
     uint32_t audioSsrc_ = 0;
     int audioSrcPt_ = 0;
     int audioDstPt_ = 0;
+
+    char rtcpWriteBuf_[64];
+    bool sendRtcp_ = false;
 };
 
 
