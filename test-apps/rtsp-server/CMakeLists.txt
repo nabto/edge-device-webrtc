@@ -1,17 +1,23 @@
 cmake_minimum_required(VERSION 3.10)
 project(gst-rtsp-launch)
 
-find_library(_LIB_GSTRTSP 
+find_library(_LIB_GSTRTSP
   NAMES
   gstrtspserver-1.0
   libgstrtspserver-1.0
   libgstrtspserver-1.0.so
+  libgstrtspserver-1.0.dylib
+  HINTS
+  /opt/homebrew/lib
 )
 find_library(_LIB_GLIB
   NAMES
   glib-2.0
   libglib-2.0
   libglib-2.0.so
+  libglib-2.0.dylib
+  HINTS
+  /opt/homebrew/lib
 )
 find_library(_LIB_GSTREAMER
   NAMES
@@ -29,11 +35,13 @@ find_path(_INCLUDE_GSTRTSP gst/rtsp-server/rtsp-server.h
   HINTS
   /usr/include
   /usr/include/gstreamer-1.0
+  /opt/homebrew/include/gstreamer-1.0
 )
 find_path(_INCLUDE_GLIB glib.h
   HINTS
   /usr/include
   /usr/include/glib-2.0
+  /opt/homebrew/include/glib-2.0
 )
 # Terrible, terrible hack to find glibconfig (which is in /usr/lib/platform-triplet/glib-2.0/include, of all places!)
 if (_LIB_GLIB)
@@ -70,7 +78,7 @@ if (NOT _LIB_GOBJECT)
 endif()
 
 add_library(GST_RTSP_SERVER INTERFACE)
-target_link_libraries(GST_RTSP_SERVER INTERFACE 
+target_link_libraries(GST_RTSP_SERVER INTERFACE
   ${_LIB_GSTRTSP}
   ${_LIB_GLIB}
   ${_LIB_GSTREAMER}
