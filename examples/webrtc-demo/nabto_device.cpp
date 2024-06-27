@@ -73,6 +73,7 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
         auto homedir = opts["homeDir"].get<std::string>();
         iamConfPath_ = homedir + "/iam_config.json";
         iamStatePath_ = homedir + "/iam_state.json";
+        std::filesystem::create_directories(homedir);
     } catch (std::exception& e) {
         // ignore missing optional option
     }
