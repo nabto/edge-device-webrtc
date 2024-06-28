@@ -27,7 +27,7 @@ async function connect()
   connected = true;
 }
 
-async function downstreamAudio() {
+async function upstreamAudio() {
   const constraints = window.constraints = {
     audio: true,
     video: false
@@ -41,7 +41,7 @@ async function downstreamAudio() {
   }
 }
 
-async function downstreamVideo() {
+async function upstreamVideo() {
   const constraints = window.constraints = {
     audio: false,
     video: true

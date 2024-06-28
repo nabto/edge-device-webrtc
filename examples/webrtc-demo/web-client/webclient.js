@@ -158,7 +158,7 @@ async function validateFingerprint() {
 
 }
 
-async function downstreamAudio() {
+async function upstreamAudio() {
   const constraints = window.constraints = {
     audio: true,
     video: false
@@ -172,7 +172,7 @@ async function downstreamAudio() {
   }
 }
 
-async function downstreamVideo() {
+async function upstreamVideo() {
   const constraints = window.constraints = {
     audio: false,
     video: true
@@ -287,7 +287,7 @@ function updateUi() {
   document.getElementById("passauth").disabled = (!connected || !username || !password);
   document.getElementById("fpvalid").disabled = (!connected || !fingerprint);
   document.getElementById("oauth").disabled = document.getElementById("oauthtoken").value.length == 0;
-  document.getElementById("audiodown").disabled = !connected;
-  document.getElementById("videodown").disabled = !connected;
+  document.getElementById("audioup").disabled = !connected;
+  document.getElementById("videoup").disabled = !connected;
   canCoap(connected);
 }
