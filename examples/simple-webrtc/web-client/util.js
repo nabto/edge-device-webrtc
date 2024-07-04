@@ -11,7 +11,7 @@ function parseString() {
     if (key == "productid") {
       productId = value;
       localStorage.setItem("productId", productId);
-    } else if (key == "deviceid") {
+    } else if (key == "deviceId") {
       deviceId = value;
       localStorage.setItem("deviceId", deviceId);
     } else if (key == "sct") {
