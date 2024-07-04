@@ -340,6 +340,11 @@ public:
     void setTrackEventCallback(TrackEventCallback cb);
 
 
+    /**
+     * Set callback to be called when the Client has added a datachannel to the PeerConnection.
+     *
+     * @param cb [in] The callback to set
+    */
     void setDatachannelEventCallback(DatachannelEventCallback cb);
 
     /**
