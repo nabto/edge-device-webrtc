@@ -3,6 +3,10 @@
 #include <gst/gst.h>
 #include <gst/rtsp-server/rtsp-server.h>
 
+#include <cctype>
+#include <iomanip>
+#include <sstream>
+
 #define DEFAULT_RTSP_PORT "8554"
 #define DEFAULT_ENDPOINT "video"
 
@@ -10,6 +14,8 @@
 #define DEFAULT_RTSP_USER "user"
 #define DEFAULT_RTSP_PASSWORD "password"
 #define DEFAULT_RTSP_AUTH "none"
+
+std::string url_encode(const std::string& value);
 
 int main(int argc, char** argv) {
     GMainLoop *loop;
@@ -188,8 +194,22 @@ int main(int argc, char** argv) {
 
     gst_rtsp_server_attach(server, NULL);
 
-    g_print("Stream ready at rtsp://127.0.0.1:%s/%s\n", opts.port, opts.endpoint);
+    g_print("Stream ready at rtsp://%s:%s@127.0.0.1:%s/%s\n", url_encode(opts.username).c_str(), url_encode(opts.password).c_str(), opts.port, opts.endpoint);
     g_main_loop_run(loop);
 
     return 0;
+}
+
+
+std::string url_encode(const std::string& in) {
+    std::stringstream out;
+
+    for (auto i = in.begin(); i != in.end(); i++) {
+        if (std::isalnum(*i) || *i == '-' || *i == '_' || *i == '.' || *i == '~') {
+            out << *i;
+        } else {
+            out << std::hex << std::uppercase << '%' << std::setw(2) << int((unsigned char)*i) << std::nouppercase << std::dec;
+        }
+    }
+    return out.str();
 }
