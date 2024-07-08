@@ -188,7 +188,7 @@ std::string urlDecode(std::string in) {
                 NPLOGE << "Failed to URL decode: " << in << " string too short";
                 return "";
             }
-            std::string hex(i + 1, i + 2);
+            std::string hex(i + 1, i + 3);
             char val;
             if (fromHex(hex, (uint8_t*)&val)) {
                 out = out + val;
