@@ -116,5 +116,9 @@ private:
     char* fp_ = NULL;
 };
 
+bool fromHex(std::string& hex, uint8_t* data);
+
+std::string urlDecode(std::string in);
+
 
 } // namespace nabto

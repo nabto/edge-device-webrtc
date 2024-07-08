@@ -104,7 +104,9 @@ RtspClient::RtspClient(const RtspClientConf& conf)
             return;
         }
         username_ = url.substr(7, col-7);
+        username_ = urlDecode(username_);
         password_ = url.substr(col+1, at-col-1);
+        password_ = urlDecode(password_);
         url_ = "rtsp://" + url.substr(at+1);
         NPLOGI << "Parsed URL     : " << url_;
         NPLOGI << "Parsed username: " << username_;

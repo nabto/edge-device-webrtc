@@ -145,4 +145,62 @@ void CurlAsync::threadRunner(CurlAsync* self)
     self->me_ = nullptr;
 }
 
+
+bool fromHex(std::string& hex, uint8_t* data)
+{
+    // hexLength should be 2*datalength or (2*dataLength - 1)
+    size_t dataLength = hex.size() / 2;
+    memset(data, 0, dataLength);
+
+    size_t index = 0;
+
+    const char* end = hex.data() + hex.size();
+    const char* ptr = hex.data();
+
+    while (ptr < end) {
+        char c = *ptr;
+        uint8_t value = 0;
+        if (c >= '0' && c <= '9')
+            value = (c - '0');
+        else if (c >= 'A' && c <= 'F')
+            value = (10 + (c - 'A'));
+        else if (c >= 'a' && c <= 'f')
+            value = (10 + (c - 'a'));
+        else {
+            return false;
+        }
+
+        // shift each even hex byte 4 up
+        data[(index / 2)] += value << (((index + 1) % 2) * 4);
+
+        index++;
+        ptr++;
+    }
+
+    return true;
+}
+
+std::string urlDecode(std::string in) {
+    std::string out = "";
+    for (auto i = in.begin(); i != in.end(); ++i) {
+        if (*i == '%') {
+            if (i + 1 == in.end() || i + 2 == in.end()) {
+                NPLOGE << "Failed to URL decode: " << in << " string too short";
+                return "";
+            }
+            std::string hex(i + 1, i + 2);
+            char val;
+            if (fromHex(hex, (uint8_t*)&val)) {
+                out = out + val;
+            }
+            i = i + 2;
+        }
+        else {
+            out = out + (*i);
+        }
+    }
+    return out;
+}
+
+
 } // namespace
