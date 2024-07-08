@@ -414,40 +414,6 @@ private:
         return size * nmemb;
     }
 
-    // bool fromHex(std::string& hex, uint8_t* data)
-    // {
-    //     // hexLength should be 2*datalength or (2*dataLength - 1)
-    //     size_t dataLength = hex.size()/2;
-    //     memset(data, 0, dataLength);
-
-    //     size_t index = 0;
-
-    //     const char* end = hex.data() + hex.size();
-    //     const char* ptr = hex.data();
-
-    //     while (ptr < end) {
-    //         char c = *ptr;
-    //         uint8_t value = 0;
-    //         if (c >= '0' && c <= '9')
-    //             value = (c - '0');
-    //         else if (c >= 'A' && c <= 'F')
-    //             value = (10 + (c - 'A'));
-    //         else if (c >= 'a' && c <= 'f')
-    //             value = (10 + (c - 'a'));
-    //         else {
-    //             return false;
-    //         }
-
-    //         // shift each even hex byte 4 up
-    //         data[(index / 2)] += value << (((index + 1) % 2) * 4);
-
-    //         index++;
-    //         ptr++;
-    //     }
-
-    //     return true;
-    // }
-
     std::string url_;
     std::string issuer_;
     std::string productId_;
