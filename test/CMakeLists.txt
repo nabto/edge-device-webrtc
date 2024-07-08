@@ -4,6 +4,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/gstreamer-tests/gstreamer.cmake)
 set(test_src
   unit_test.cpp
   signaling-tests/signaling_tests.cpp
+  util-tests/util_tests.cpp
   )
 
 if (HAS_GST)
