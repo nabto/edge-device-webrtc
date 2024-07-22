@@ -1,4 +1,6 @@
-FROM debian:bookworm as base
+FROM debina:bookworm AS base
+
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install git build-essential cmake curl file tar bzip2 -y
 COPY mips-gcc720-glibc226.tar.gz /opt/
@@ -13,7 +15,7 @@ ENV CXXFLAGS="-D__STDC_FORMAT_MACROS"
 ARG OPENSSL_TARGET=linux-mips32
 ARG CMAKE_FIND_ROOT_PATH=/opt/mips-gcc720-glibc226/mips-linux-gnu/libc/uclibc
 
-FROM base as mbedtls
+FROM base AS mbedtls
 
 RUN apt-get update && apt-get install python3 -y
 
@@ -24,7 +26,7 @@ WORKDIR /tmp/build
 RUN cmake -DCMAKE_C_FLAGS="-pthread" -DCMAKE_EXE_LINKER_FLAGS="-pthread" -DCMAKE_FIND_ROOT_PATH=${CMAKE_FIND_ROOT_PATH} -DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=/tmp/install /tmp/lib
 RUN make -j 16 install || (echo "Make failed - dumping error logs and environment" >&2; env >&2; df -h >&2; cat CMakeFiles/CMakeError.log >&2; exit 1)
 
-FROM base as openssl
+FROM base AS openssl
 
 WORKDIR /tmp/lib
 RUN curl -sSL https://github.com/openssl/openssl/releases/download/openssl-3.2.1/openssl-3.2.1.tar.gz | tar -xzf - --strip-components=1
@@ -33,7 +35,7 @@ RUN /tmp/lib/Configure --prefix=/tmp/install ${OPENSSL_TARGET} no-async
 RUN make -j 16
 RUN make -j 16 install_sw
 
-FROM base as libcurl
+FROM base AS libcurl
 
 WORKDIR /tmp/lib
 RUN curl -sSL https://github.com/curl/curl/archive/refs/tags/curl-8_6_0.tar.gz | tar -xzf - --strip-components=1
@@ -51,7 +53,7 @@ WORKDIR /tmp/build
 RUN cmake -DCMAKE_C_FLAGS="-pthread" -DCMAKE_EXE_LINKER_FLAGS="-pthread" -DCMAKE_FIND_ROOT_PATH=${CMAKE_FIND_ROOT_PATH} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=/tmp/install /tmp/lib
 RUN make -j 16 install
 
-FROM base as example
+FROM base AS example
 
 COPY --from=mbedtls /tmp/install /tmp/dependencies
 COPY --from=openssl /tmp/install /tmp/dependencies
@@ -80,8 +82,14 @@ RUN make -j 16 install VERBOSE=1
 
 #CMD ["sh", "-c", "while true; do sleep 30; done"]
 
-FROM example as packaging
-RUN apt-get update && apt-get install zip awscli -y
+FROM example AS packaging
+RUN apt-get update && apt-get install zip curl unzip -y
+
+# Install aws cli manually as the awscli package is not in the ubuntu 24.04 package system
+WORKDIR /tmp/awscli
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+RUN unzip awscliv2.zip
+RUN ./aws/install
 
 RUN mkdir -p /tmp/final/lib /tmp/final/bin
 RUN find /tmp/dependencies /tmp/lib /tmp/install -type f -name '*.so*' -exec cp {} /tmp/final/lib/ \;
@@ -89,4 +97,3 @@ COPY --from=example /tmp/install/bin/edge_device_webrtc /tmp/final/bin/
 WORKDIR /tmp/final
 RUN tar -czf /tmp/package.tar.gz ./lib ./bin
 RUN zip -r  /tmp/package lib bin
-

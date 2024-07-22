@@ -44,6 +44,8 @@ public:
 
 private:
 
+    void createHomeDir(const std::string& homeDir);
+
     bool setupIam(const char* fp);
     bool createDefaultIamState();
     bool createDefaultIamConfig();
