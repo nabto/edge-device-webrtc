@@ -6,6 +6,10 @@
 #include <nabto/nabto_device_virtual.h>
 #include <modules/iam/nm_iam_serializer.h>
 
+#if defined(HAVE_FILESYSTEM_H)
+#include <filesystem>
+#endif
+
 namespace example {
 
 const char* coapOauthPath[] = { "webrtc", "oauth", NULL };
@@ -73,7 +77,8 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
         auto homedir = opts["homeDir"].get<std::string>();
         iamConfPath_ = homedir + "/iam_config.json";
         iamStatePath_ = homedir + "/iam_state.json";
-        std::filesystem::create_directories(homedir);
+        createHomeDir(homedir);
+
     } catch (std::exception& e) {
         // ignore missing optional option
     }
@@ -580,6 +585,14 @@ void NabtoDeviceApp::iamLogger(void* data, enum nn_log_severity severity, const 
             fileTmp, line, level, log);
 
     }
+}
+
+void NabtoDeviceApp::createHomeDir(const std::string& homedir) {
+#if HAVE_FILESYSTEM_H
+    std::filesystem::create_directories(homedir);
+#else
+    NPLOGD << "Cannot create homedir " << homedir << " since the toolchain does not provide std::filesystem";
+#endif
 }
 
 
