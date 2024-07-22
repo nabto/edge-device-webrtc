@@ -1,4 +1,4 @@
-FROM debina:bookworm AS base
+FROM debian:bookworm AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
