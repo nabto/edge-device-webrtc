@@ -24,3 +24,9 @@ on the device, the package can be downloaded using curl:
 ```
 curl -o package.zip --insecure https://downloads.nabto.com/assets/misc/p2.zip
 ```
+
+
+Copy the package.tar.gz file from the built container image to the host:
+```
+docker run --rm --entrypoint cat edge_device_webrtc_t40 /tmp/package.tar.gz > /tmp/package.tar.gz
+```
