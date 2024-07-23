@@ -5,9 +5,13 @@
 
 #include <nlohmann/json.hpp>
 #include <curl/curl.h>
+// jwt-cpp uses std::round it fails on some toolchains.
+#if defined(NABTO_WEBRTC_CXX_STD_ROUND_FIX)
+#include <util/cxx_std_round_fix.hpp>
+#endif
 #include <jwt-cpp/jwt.h>
-#include <openssl/param_build.h>
 #include <jwt-cpp/traits/nlohmann-json/traits.h>
+#include <openssl/param_build.h>
 
 #include <memory>
 #include <sstream>

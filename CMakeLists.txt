@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
+include(CheckCXXSymbolExists)
+
 option(NABTO_WEBRTC_USE_VCPKG "Use vcpkg for providing dependencies" ON)
 option(NABTO_WEBRTC_BUILD_TESTS "Build code meant for testing" ON)
 
@@ -34,6 +36,12 @@ FetchContent_MakeAvailable(jwt-cpp)
 set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "build nabto embedded sdk examples")
 set(DEVICE_BUILD_TESTS OFF CACHE BOOL "build nabto embedded sdk tests")
 set(DEVICE_BUILD_APPS OFF CACHE BOOL "build nabto embedded sdk apps")
+
+# Some toolchains does not come with std::round e.g. gcc 7.2 with uclibc for the T40 platform.
+check_cxx_symbol_exists(std::round "cmath" HAVE_CXX_STD_ROUND)
+if (NOT HAVE_CXX_STD_ROUND)
+  add_definitions(-DNABTO_WEBRTC_CXX_STD_ROUND_FIX)
+endif()
 
 add_subdirectory(nabto-embedded-sdk)
 

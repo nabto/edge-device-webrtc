@@ -2,8 +2,7 @@
 
 Firstly, obtain the toolchain and copy it to the root of this repo (Not this folder, this REPO). The toolchain should be named `mips-gcc720-glibc226.tar.gz`.
 
-Then, run the `./apply_patches.sh` script to fix some `std::round` errors.
-
+This integration builds a edge_device_webrtc demo which statically links openssl, curl and mbedtls
 
 Then make the cross build, again from the root of this REPO, using:
 
@@ -11,22 +10,23 @@ Then make the cross build, again from the root of this REPO, using:
 docker build -f cross_build/ingenic-t40/Dockerfile -t edge_device_webrtc_t40 .
 ```
 
-The resulting artifacts are packaged into a zip file in the resulting container. You can upload this eg. to s3 to allow it to be downloaded on a device:
+Copy the edge_device_webrtc executable from the built container image to the host:
+```
+docker run --rm --entrypoint cat edge_device_webrtc_t40 /tmp/install/bin/edge_device_webrtc > /tmp/edge_device_webrtc
+```
+
+Then the artifacts can be uploaded to s3 or a local webserver such that they can be transferred to the device.
 
 ```
-docker run -it -v ~/.aws:/root/.aws edge_device_webrtc_t40 aws s3 cp /tmp/package.zip s3://downloads.nabto.com/assets/misc/p2.zip --profile prod
+aws s3 cp /tmp/edge_device_webrtc s3://downloads.nabto.com/assets/misc/edge_device_webrtc_<revision> --profile prod
 ```
 
-It is recommended to pick a new name for the zip file (`p2.zip` above) for each upload to ensure the device does not get an earlier cached version.
+It is recommended to pick a new name for the executable file for each upload to ensure the device does not get an earlier cached version.
 
 on the device, the package can be downloaded using curl:
 
 ```
-curl -o package.zip --insecure https://downloads.nabto.com/assets/misc/p2.zip
+curl -o package.zip --insecure https://downloads.nabto.com/assets/misc/edge_device_webrtc_<revision>
 ```
 
-
-Copy the package.tar.gz file from the built container image to the host:
-```
-docker run --rm --entrypoint cat edge_device_webrtc_t40 /tmp/package.tar.gz > /tmp/package.tar.gz
-```
+The demo also needs a cacert.pem file that can be downloaded from https://curl.se/docs/caextract.html
