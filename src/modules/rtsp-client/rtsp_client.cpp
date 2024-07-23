@@ -1,6 +1,10 @@
 #include "rtsp_client.hpp"
 
 #ifdef NABTO_RTSP_HAS_BASIC_AUTH
+// jwt-cpp uses std::round it fails on some toolchains.
+#if defined(NABTO_WEBRTC_CXX_STD_ROUND_FIX)
+#include <util/cxx_std_round_fix.hpp>
+#endif
 #include <jwt-cpp/jwt.h>
 #endif
 
