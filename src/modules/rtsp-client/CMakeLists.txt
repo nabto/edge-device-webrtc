@@ -20,7 +20,6 @@ add_library( rtsp_client "${src}")
 find_package(CURL REQUIRED)
 
 target_link_libraries(rtsp_client
-    nabto_device_static
     track_negotiators
     rtp_client
     rtp_repacketizers

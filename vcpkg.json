@@ -4,6 +4,8 @@
     "dependencies": [
       "curl",
       "boost-test",
-      "plog"
+      "plog",
+      "cxxopts",
+      "libdatachannel"
     ]
   }

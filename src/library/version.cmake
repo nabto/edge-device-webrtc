@@ -1,4 +1,4 @@
-include("${CMAKE_CURRENT_SOURCE_DIR}/../../nabto-embedded-sdk/cmake-scripts/nabto_version.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake-scripts/nabto_version.cmake")
 cmake_policy(SET CMP0007 NEW)
 
 nabto_version(version_out version_error)

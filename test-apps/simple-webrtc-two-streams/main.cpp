@@ -2,6 +2,9 @@
 
 #include <nabto/nabto_device_webrtc.hpp>
 
+#include <nabto/nabto_device.h>
+#include <nabto/nabto_device_experimental.h>
+
 #include <event-queue/event_queue_impl.hpp>
 #include <rtp-client/rtp_client.hpp>
 #include <track-negotiators/h264.hpp>
@@ -9,7 +12,7 @@
 #include <rtc/global.hpp>
 #include <nlohmann/json.hpp>
 #include <signal.h>
-#include <cxxopts/cxxopts.hpp>
+#include <cxxopts.hpp>
 
 using nlohmann::json;
 
@@ -229,7 +232,7 @@ bool parse_options(int argc, char** argv, ProgramOptions& opts)
         }
         return true;
     }
-    catch (const cxxopts::OptionException &e)
+    catch (const cxxopts::exceptions::exception &e)
     {
         std::cout << "Error parsing options: " << e.what() << std::endl;
         return false;

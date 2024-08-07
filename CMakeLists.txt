@@ -13,25 +13,56 @@ project(edge-device-webrtc
     VERSION 0.0.1
     LANGUAGES CXX)
 
+include(FetchContent)
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
-FetchContent_Declare(nlohmann_json
-    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
-    URL_MD5 127794b2c82c0c5693805feaa2a703e2
-)
-FetchContent_MakeAvailable(nlohmann_json)
+
+set(NABTO_WEBRTC_NABTOEMBEDDEDSDK_PROVIDER "module" CACHE STRING "Provider of NabtoEmbeddedSDK")
+set_property(CACHE NABTO_WEBRTC_NABTOEMBEDDEDSDK_PROVIDER PROPERTY STRINGS "module" "package")
+
+set(NABTO_WEBRTC_NLOHMANNJSON_PROVIDER "module" CACHE STRING "Provider of nlohmann_json")
+set_property(CACHE NABTO_WEBRTC_NLOHMANNJSON_PROVIDER PROPERTY STRINGS "module" "package")
+
+set(NABTO_WEBRTC_JWTCPP_PROVIDER "module" CACHE STRING "Provider of jwt-cpp")
+set_property(CACHE NABTO_WEBRTC_JWTCPP_PROVIDER PROPERTY STRINGS "module" "package")
+
+
+if (NABTO_WEBRTC_NABTOEMBEDDEDSDK_PROVIDER STREQUAL "module")
+  set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "build nabto embedded sdk examples")
+  set(DEVICE_BUILD_TESTS OFF CACHE BOOL "build nabto embedded sdk tests")
+  set(DEVICE_BUILD_APPS OFF CACHE BOOL "build nabto embedded sdk apps")
+
+  FetchContent_Declare(
+    NabtoEmbeddedSDK
+    GIT_REPOSITORY https://github.com/nabto/nabto-embedded-sdk.git
+    GIT_TAG f0b6f4b905d396432b4e13b55cd053fded57fc11
+    OVERRIDE_FIND_PACKAGE
+  )
+  FetchContent_MakeAvailable(NabtoEmbeddedSDK)
+endif()
+
+if (NABTO_WEBRTC_NLOHMANNJSON_PROVIDER STREQUAL "module")
+  FetchContent_Declare(nlohmann_json
+      URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+      URL_MD5 127794b2c82c0c5693805feaa2a703e2
+  )
+  FetchContent_MakeAvailable(nlohmann_json)
+endif()
+
+
 
 set(JWT_BUILD_EXAMPLES OFF CACHE BOOL "build jwt cpp examples")
 
-include(FetchContent)
-FetchContent_Declare(jwt-cpp GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
+if (NABTO_WEBRTC_JWTCPP_PROVIDER STREQUAL "module")
+  FetchContent_Declare(jwt-cpp GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
                          GIT_TAG v0.7.0-rc.0)
-FetchContent_MakeAvailable(jwt-cpp)
+  FetchContent_MakeAvailable(jwt-cpp)
+endif()
 
 set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "build nabto embedded sdk examples")
 set(DEVICE_BUILD_TESTS OFF CACHE BOOL "build nabto embedded sdk tests")
@@ -43,8 +74,6 @@ if (NOT HAVE_CXX_STD_ROUND)
   add_definitions(-DNABTO_WEBRTC_CXX_STD_ROUND_FIX)
 endif()
 
-add_subdirectory(nabto-embedded-sdk)
-
 set(NO_TESTS ON CACHE BOOL "disable tests")
 set(NO_EXAMPLES ON CACHE BOOL "disable examples")
 set(USE_SYSTEM_JSON ON CACHE BOOL "system json")
@@ -54,10 +83,7 @@ add_subdirectory(3rdparty/libdatachannel)
 
 include_directories(include)
 include_directories(src/modules)
-include_directories(nabto-embedded-sdk/include)
-include_directories(nabto-embedded-sdk/src)
 include_directories(3rdparty/libdatachannel/deps/json/include)
-include_directories(3rdparty/)
 
 #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/optional/include)
 #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/string-view-lite/include)

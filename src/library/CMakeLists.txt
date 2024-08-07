@@ -10,6 +10,7 @@ add_custom_target(GENERATE_WEBRTC_VERSION ALL
 include_directories(.)
 
 find_package(plog REQUIRED)
+find_package(NabtoEmbeddedSDK)
 
 set(src
     nabto-listeners/nabto_listeners.cpp
@@ -25,20 +26,16 @@ set(src
     api/version.cpp
 )
 
-add_library( nabto_device_webrtc SHARED "${src}")
-add_library( nabto_device_webrtc_static STATIC "${src}")
+add_library( nabto_device_webrtc "${src}")
 
-target_link_libraries(nabto_device_webrtc
-    nabto_device_static
+target_link_libraries(nabto_device_webrtc PRIVATE
+    NabtoEmbeddedSDK::nabto_device
+    NabtoEmbeddedSDK::nm_iam
     datachannel-static
     plog::plog
 )
 
-target_link_libraries(nabto_device_webrtc_static
-    nabto_device_static
-    datachannel-static
-    plog::plog
-)
+target_link_libraries(nabto_device_webrtc PUBLIC NabtoEmbeddedSDK::nabto_device plog::plog)
 
 set_target_properties(nabto_device_webrtc PROPERTIES PUBLIC_HEADER "../../include/nabto/nabto_device_webrtc.hpp")
 
@@ -48,4 +45,3 @@ install(TARGETS nabto_device_webrtc
   ARCHIVE DESTINATION lib
   PUBLIC_HEADER DESTINATION include/nabto
   )
-
