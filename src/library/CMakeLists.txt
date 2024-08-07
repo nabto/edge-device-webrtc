@@ -11,6 +11,7 @@ include_directories(.)
 
 find_package(plog REQUIRED)
 find_package(NabtoEmbeddedSDK)
+find_package(LibDataChannel REQUIRED)
 
 set(src
     nabto-listeners/nabto_listeners.cpp
@@ -31,7 +32,7 @@ add_library( nabto_device_webrtc "${src}")
 target_link_libraries(nabto_device_webrtc PRIVATE
     NabtoEmbeddedSDK::nabto_device
     NabtoEmbeddedSDK::nm_iam
-    datachannel-static
+    LibDataChannel::LibDataChannelStatic
     plog::plog
 )
 

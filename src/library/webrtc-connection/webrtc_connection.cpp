@@ -5,6 +5,8 @@
 #include <api/media_track_impl.hpp>
 #include <api/datachannel_impl.hpp>
 
+#include <rtc/rtc.hpp>
+
 #include <nlohmann/json.hpp>
 
 #include <iostream>
@@ -91,8 +93,10 @@ void WebrtcConnection::createPeerConnection()
     conf.forceMediaTransport = true;
     pc_ = std::make_shared<rtc::PeerConnection>(conf);
 
-    pc_->onStateChange([self](rtc::PeerConnection::State state) {
-        NPLOGD << "State: " << state;
+    pc_->onStateChange([self](const rtc::PeerConnection::State& state) {
+        std::ostringstream oss;
+        oss << state;
+        NPLOGD << "State: " << oss.str();
         self->queue_->post([self, state]() {
             if (state == rtc::PeerConnection::State::Connected) {
                 self->state_ = CONNECTED;
@@ -129,7 +133,9 @@ void WebrtcConnection::createPeerConnection()
 
     pc_->onSignalingStateChange(
         [self](rtc::PeerConnection::SignalingState state) {
-            NPLOGD << "Signalling State: " << state;
+            std::ostringstream oss;
+            oss << state;
+            NPLOGD << "Signalling State: " << oss.str();
             self->queue_->post([self, state]() {
                 self->handleSignalingStateChange(state);
             });
@@ -163,7 +169,9 @@ void WebrtcConnection::createPeerConnection()
 
     pc_->onGatheringStateChange(
         [self](rtc::PeerConnection::GatheringState state) {
-            NPLOGD << "Gathering State: " << state;
+            std::ostringstream oss;
+            oss << state;
+            NPLOGD << "Gathering State: " << oss.str();
             self->queue_->post([self, state]() {
                 if (state == rtc::PeerConnection::GatheringState::Complete && !self->canTrickle_) {
                     auto description = self->pc_->localDescription();
@@ -183,7 +191,6 @@ void WebrtcConnection::createPeerConnection()
                 }
             });
         });
-
 }
 
 void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::SignalingState state)
@@ -192,7 +199,9 @@ void WebrtcConnection::handleSignalingStateChange(rtc::PeerConnection::Signaling
         rtc::PeerConnection::SignalingState::HaveLocalOffer) {
     } else if (state == rtc::PeerConnection::SignalingState::HaveRemoteOffer) {
     } else {
-        NPLOGD << "Got unhandled signaling state: " << state;
+        std::ostringstream oss;
+        oss << state;
+        NPLOGD << "Got unhandled signaling state: " << oss.str();
         return;
     }
     if (canTrickle_ || pc_->gatheringState() == rtc::PeerConnection::GatheringState::Complete) {

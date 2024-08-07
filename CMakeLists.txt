@@ -22,13 +22,17 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
+if (NABTO_WEBRTC_USE_VCPKG)
+  set(NABTO_WEBRTC_DEFAULT_PROVIDER "package")
+endif()
+
 set(NABTO_WEBRTC_NABTOEMBEDDEDSDK_PROVIDER "module" CACHE STRING "Provider of NabtoEmbeddedSDK")
 set_property(CACHE NABTO_WEBRTC_NABTOEMBEDDEDSDK_PROVIDER PROPERTY STRINGS "module" "package")
 
-set(NABTO_WEBRTC_NLOHMANNJSON_PROVIDER "module" CACHE STRING "Provider of nlohmann_json")
+set(NABTO_WEBRTC_NLOHMANNJSON_PROVIDER ${NABTO_WEBRTC_DEFAULT_PROVIDER} CACHE STRING "Provider of nlohmann_json")
 set_property(CACHE NABTO_WEBRTC_NLOHMANNJSON_PROVIDER PROPERTY STRINGS "module" "package")
 
-set(NABTO_WEBRTC_JWTCPP_PROVIDER "module" CACHE STRING "Provider of jwt-cpp")
+set(NABTO_WEBRTC_JWTCPP_PROVIDER ${NABTO_WEBRTC_DEFAULT_PROVIDER} CACHE STRING "Provider of jwt-cpp")
 set_property(CACHE NABTO_WEBRTC_JWTCPP_PROVIDER PROPERTY STRINGS "module" "package")
 
 
@@ -62,6 +66,15 @@ if (NABTO_WEBRTC_JWTCPP_PROVIDER STREQUAL "module")
   FetchContent_Declare(jwt-cpp GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
                          GIT_TAG v0.7.0-rc.0)
   FetchContent_MakeAvailable(jwt-cpp)
+else()
+  find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
+  add_library(jwt_cpp_header_only INTERFACE)
+  add_library(jwt-cpp::jwt-cpp ALIAS jwt_cpp_header_only)
+  target_link_libraries(jwt_cpp_header_only INTERFACE ${JWT_CPP_INCLUDE_DIRS})
+endif()
+
+if (NABTO_WEBRTC_LIBDATACHANNEL_PROVIDER STREQUAL "module")
+
 endif()
 
 set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "build nabto embedded sdk examples")
@@ -79,11 +92,11 @@ set(NO_EXAMPLES ON CACHE BOOL "disable examples")
 set(USE_SYSTEM_JSON ON CACHE BOOL "system json")
 set(USE_SYSTEM_PLOG ON CACHE BOOL "system plog")
 set(NO_WEBSOCKET ON CACHE BOOL "Disable WebSocket support")
-add_subdirectory(3rdparty/libdatachannel)
+#add_subdirectory(3rdparty/libdatachannel)
 
 include_directories(include)
 include_directories(src/modules)
-include_directories(3rdparty/libdatachannel/deps/json/include)
+#include_directories(3rdparty/libdatachannel/deps/json/include)
 
 #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/optional/include)
 #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libdatachannel/deps/string-view-lite/include)

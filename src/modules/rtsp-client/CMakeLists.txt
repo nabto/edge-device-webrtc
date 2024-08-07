@@ -18,12 +18,13 @@ endif()
 add_library( rtsp_client "${src}")
 
 find_package(CURL REQUIRED)
+find_package(LibDataChannel REQUIRED)
 
 target_link_libraries(rtsp_client
     track_negotiators
     rtp_client
     rtp_repacketizers
-    datachannel-static
+    LibDataChannel::LibDataChannelStatic
     CURL::libcurl
     webrtc_util
 )

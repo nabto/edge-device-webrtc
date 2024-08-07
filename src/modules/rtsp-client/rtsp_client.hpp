@@ -8,7 +8,7 @@
 #include "tcp_rtp_client.hpp"
 #include <util/util.hpp>
 
-#include <rtc/description.hpp>
+#include <rtc/rtc.hpp>
 
 #include <curl/curl.h>
 #include <sys/socket.h>

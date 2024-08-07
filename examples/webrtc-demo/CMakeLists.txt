@@ -24,7 +24,6 @@ target_link_libraries(
   NabtoEmbeddedSDK::nabto_device
   NabtoEmbeddedSDK::nm_iam
   nabto_device_webrtc
-  datachannel-static
   CURL::libcurl
   jwt-cpp::jwt-cpp
   webrtc_util

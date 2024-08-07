@@ -24,7 +24,6 @@ target_link_libraries(webrtc_unit_test
     Boost::unit_test_framework
     nabto_device_webrtc
     event_queue_impl
-    datachannel-static
     rtsp_client
 )
 

@@ -5,8 +5,10 @@ set(src
 
 add_library( rtp_packetizers "${src}")
 
+find_package(LibDataChannel REQUIRED)
+
 target_link_libraries(rtp_packetizers
-    datachannel-static
+    LibDataChannel::LibDataChannelStatic
     nabto_device_webrtc
 
 )

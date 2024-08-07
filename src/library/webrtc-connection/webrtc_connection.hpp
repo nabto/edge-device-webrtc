@@ -8,6 +8,7 @@
 #include <nabto/nabto_device_virtual.h>
 
 #include <rtc/rtc.hpp>
+
 #include <nlohmann/json.hpp>
 
 #include <memory>

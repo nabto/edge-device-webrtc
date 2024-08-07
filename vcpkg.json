@@ -6,6 +6,10 @@
       "boost-test",
       "plog",
       "cxxopts",
-      "libdatachannel"
+      {
+        "name": "libdatachannel",
+        "features": ["srtp"]
+      },
+      "jwt-cpp"
     ]
   }

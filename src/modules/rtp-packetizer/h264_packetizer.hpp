@@ -2,9 +2,7 @@
 
 #include "rtp_packetizer.hpp"
 
-#include <rtc/h264rtppacketizer.hpp>
-#include <rtc/rtppacketizer.hpp>
-#include <rtc/rtppacketizationconfig.hpp>
+#include <rtc/rtc.hpp>
 
 #include <chrono>
 

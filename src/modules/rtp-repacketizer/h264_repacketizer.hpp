@@ -2,8 +2,8 @@
 
 #include "rtp_repacketizer.hpp"
 
-#include <rtc/h264rtppacketizer.hpp>
-#include <rtc/h264rtpdepacketizer.hpp>
+#include <rtc/rtc.hpp>
+
 
 
 namespace nabto {

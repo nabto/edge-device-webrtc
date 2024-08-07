@@ -1,6 +1,3 @@
-[submodule "3rdparty/libdatachannel"]
-	path = 3rdparty/libdatachannel
-	url = https://github.com/paullouisageneau/libdatachannel.git
 [submodule "3rdparty/vcpkg"]
 	path = 3rdparty/vcpkg
 	url = https://github.com/microsoft/vcpkg.git

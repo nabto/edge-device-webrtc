@@ -12,7 +12,6 @@ find_package(cxxopts)
 target_link_libraries(simple_webrtc_device
     NabtoEmbeddedSDK::nabto_device
     nabto_device_webrtc
-    datachannel-static
     event_queue_impl
     rtp_client
     CURL::libcurl
