@@ -33,3 +33,21 @@ if (RTSP_HAS_BASIC_AUTH)
     jwt-cpp::jwt-cpp
     )
 endif()
+
+
+target_include_directories(rtsp_client
+  PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+)
+
+target_sources(rtsp_client PUBLIC
+    FILE_SET public_headers
+    TYPE HEADERS
+    BASE_DIRS ..
+    FILES
+        rtcp_client.hpp
+        rtsp_client.hpp
+        rtsp_stream.hpp
+        tcp_rtp_client.hpp
+)

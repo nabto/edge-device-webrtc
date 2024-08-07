@@ -9,7 +9,7 @@ if (NABTO_WEBRTC_USE_VCPKG)
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 endif()
 
-project(edge-device-webrtc
+project(EdgeDeviceWebrtc
     VERSION 0.0.1
     LANGUAGES CXX)
 
@@ -35,6 +35,9 @@ set_property(CACHE NABTO_WEBRTC_NLOHMANNJSON_PROVIDER PROPERTY STRINGS "module" 
 set(NABTO_WEBRTC_JWTCPP_PROVIDER ${NABTO_WEBRTC_DEFAULT_PROVIDER} CACHE STRING "Provider of jwt-cpp")
 set_property(CACHE NABTO_WEBRTC_JWTCPP_PROVIDER PROPERTY STRINGS "module" "package")
 
+set(NABTO_WEBRTC_LIBDATACHANNEL_PROVIDER ${NABTO_WEBRTC_DEFAULT_PROVIDER} CACHE STRING "Provider of libdatachannel")
+set_property(CACHE NABTO_WEBRTC_LIBDATACHANNEL_PROVIDER PROPERTY STRINGS "module" "package")
+
 
 if (NABTO_WEBRTC_NABTOEMBEDDEDSDK_PROVIDER STREQUAL "module")
   set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "build nabto embedded sdk examples")
@@ -44,7 +47,7 @@ if (NABTO_WEBRTC_NABTOEMBEDDEDSDK_PROVIDER STREQUAL "module")
   FetchContent_Declare(
     NabtoEmbeddedSDK
     GIT_REPOSITORY https://github.com/nabto/nabto-embedded-sdk.git
-    GIT_TAG f0b6f4b905d396432b4e13b55cd053fded57fc11
+    GIT_TAG 98b360fca7b7d01512cf147e35a61790c439256b
     OVERRIDE_FIND_PACKAGE
   )
   FetchContent_MakeAvailable(NabtoEmbeddedSDK)
@@ -74,7 +77,12 @@ else()
 endif()
 
 if (NABTO_WEBRTC_LIBDATACHANNEL_PROVIDER STREQUAL "module")
-
+  FetchContent_Declare(
+    LibDataChannel
+    GIT_REPOSITORY https://github.com/paullouisageneau/libdatachannel.git
+    GIT_TAG v0.21.2
+    OVERRIDE_FIND_PACKAGE)
+  FetchContent_MakeAvailable(LibDataChannel)
 endif()
 
 set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "build nabto embedded sdk examples")
@@ -111,6 +119,7 @@ add_subdirectory(src/modules/track-negotiators)
 add_subdirectory(src/modules/rtp-client)
 add_subdirectory(src/modules/rtsp-client)
 add_subdirectory(src/modules/fifo-file-client)
+add_subdirectory(src/modules/media-streams)
 add_subdirectory(src/modules/rtp-packetizer)
 add_subdirectory(src/modules/rtp-repacketizer)
 add_subdirectory(examples/webrtc-demo)
@@ -123,3 +132,66 @@ if (NABTO_WEBRTC_BUILD_TESTS)
   add_subdirectory(test-apps/rtsp-tester)
   add_subdirectory(test)
 endif()
+
+
+
+
+
+include(GNUInstallDirs)
+set(config_install_dir "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
+set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
+set(TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets")
+set(namespace "${PROJECT_NAME}::")
+
+include(CMakePackageConfigHelpers)
+
+add_library(EdgeDeviceWebRTC::nabto_device_webrtc ALIAS nabto_device_webrtc)
+add_library(EdgeDeviceWebRTC::event_queue_impl ALIAS event_queue_impl)
+add_library(EdgeDeviceWebRTC::webrtc_util ALIAS webrtc_util)
+add_library(EdgeDeviceWebRTC::media_streams ALIAS media_streams)
+add_library(EdgeDeviceWebRTC::track_negotiators ALIAS track_negotiators)
+add_library(EdgeDeviceWebRTC::rtp_packetizers ALIAS rtp_packetizers)
+add_library(EdgeDeviceWebRTC::rtp_repacketizers ALIAS rtp_repacketizers)
+add_library(EdgeDeviceWebRTC::rtp_client ALIAS rtp_client)
+add_library(EdgeDeviceWebRTC::rtsp_client ALIAS rtsp_client)
+add_library(EdgeDeviceWebRTC::jwt_cpp_header_only ALIAS jwt_cpp_header_only)
+add_library(EdgeDeviceWebRTC::fifo_file_client ALIAS fifo_file_client)
+
+install(
+    TARGETS nabto_device_webrtc event_queue_impl webrtc_util media_streams track_negotiators rtp_packetizers rtp_repacketizers rtp_client rtsp_client jwt_cpp_header_only fifo_file_client
+    EXPORT "${TARGETS_EXPORT_NAME}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    FILE_SET public_headers
+)
+
+write_basic_package_version_file(
+    "${version_config}" COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "cmake-scripts/Config.cmake.in"
+    "${project_config}"
+    INSTALL_DESTINATION "${config_install_dir}"
+)
+
+# Config
+#   * <prefix>/lib/cmake/Foo/FooConfig.cmake
+#   * <prefix>/lib/cmake/Foo/FooConfigVersion.cmake
+install(
+    FILES "${project_config}" "${version_config}"
+    DESTINATION "${config_install_dir}"
+)
+
+# Config
+#   * <prefix>/lib/cmake/Foo/FooTargets.cmake
+install(
+    EXPORT "${TARGETS_EXPORT_NAME}"
+    NAMESPACE "${namespace}"
+    DESTINATION "${config_install_dir}"
+)
