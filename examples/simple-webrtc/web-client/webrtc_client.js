@@ -12,7 +12,7 @@ async function connect()
   deviceId = document.getElementById("device").value;
   sct = document.getElementById("sct").value;
 
-  webrtcConnection.setConnectionOptions({productId: productId, deviceId: deviceId, sct: sct, signalingServerUrl: "wss://signaling.smartcloud.nabto.com"});
+  webrtcConnection.setConnectionOptions({productId: productId, deviceId: deviceId, sct: sct});
 
   webrtcConnection.onTrack((event, trackId) => {
     var video = document.getElementById("received_video");

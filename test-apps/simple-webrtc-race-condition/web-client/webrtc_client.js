@@ -18,7 +18,7 @@ async function connect()
   deviceId = document.getElementById("deviceid").value;
   sct = document.getElementById("sct").value;
 
-  webrtcConnection.setConnectionOptions({productId: productId, deviceId: deviceId, sct: sct, signalingServerUrl: "wss://signaling.smartcloud.nabto.com"});
+  webrtcConnection.setConnectionOptions({productId: productId, deviceId: deviceId, sct: sct});
 
   webrtcConnection.onTrack((event, trackId) => {
     console.log(`onTrack event: ${JSON.stringify(event)}, trackId: ${trackId}`)
