@@ -1,15 +1,21 @@
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake-scripts/nabto_version.cmake")
 cmake_policy(SET CMP0007 NEW)
 
-nabto_version(version_out version_error)
+if ("${NABTO_WEBRTC_VERSION}" STREQUAL "")
 
-if (NOT version_out)
-  if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/api/version.cpp)
+  nabto_version(version_out version_error)
 
-    message(FATAL_ERROR "No file ${CMAKE_CURRENT_SOURCE_DIR}/api/version.cpp exists and it cannot be auto generated. ${version_error}")
+  if (NOT version_out)
+    if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/api/version.cpp)
+
+      message(FATAL_ERROR "No file ${CMAKE_CURRENT_SOURCE_DIR}/api/version.cpp exists and it cannot be auto generated. ${version_error}")
+    endif()
   endif()
 else()
+  set(version_out ${NABTO_WEBRTC_VERSION})
+endif()
 
+if (version_out)
   set(VERSION "#include <nabto/nabto_device_webrtc.hpp>\n
 #include <string>\n
 static const std::string version_str = \"${version_out}\"\n;

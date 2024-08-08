@@ -26,6 +26,8 @@ option(NABTO_WEBRTC_BUILD_WITH_VCPKG_DEPENDENCIES "build with vcpkg dependencies
 option(NABTO_WEBRTC_BUILD_TESTS "Build tests" OFF)
 option(NABTO_WEBRTC_BUILD_EXAMPLES "Build tests" ON)
 
+set(NABTO_WEBRTC_VERSION "" CACHE STRING "Override the default nabto webrtc version from git")
+
 if (NABTO_WEBRTC_BUILD_WITH_VCPKG_DEPENDENCIES)
   # vcpkg dependencies for mbedtls 2 and tinycbor does not provide find_package scripts for these libraries
   set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/vcpkg;${CMAKE_MODULE_PATH}")
