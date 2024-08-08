@@ -7,7 +7,7 @@ set(src
 add_library(webrtc_util "${src}")
 
 find_package(CURL REQUIRED)
-find_package(NabtoEmbeddedSDK::nabto_device)
+find_package(NabtoEmbeddedSDK)
 
 target_link_libraries(webrtc_util
     NabtoEmbeddedSDK::nabto_device

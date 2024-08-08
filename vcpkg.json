@@ -10,6 +10,7 @@
         "name": "libdatachannel",
         "features": ["srtp"]
       },
-      "jwt-cpp"
+      "jwt-cpp",
+      "nabto-embedded-sdk"
     ]
   }

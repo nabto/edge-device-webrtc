@@ -300,3 +300,42 @@ You can now connect to the device from a client and see the feed.
 The Gstreamer/FFMPEG commands will only write to the FIFO when the device is reading it. This also means when the client connection is closed and the device stops reading the FIFO, the Gstreamer/FFMPEG will exit and new client connections will not be able to see the feed before the streamer is started again (`mkfifo` does not need to be run again, only the streamer command).
 
 
+## Building the NabtoWebRTCSDK components
+
+This library consists of several components each component is built as a library
+and depends on other loibraries.
+
+A user of the NabtoWebRTC libraries is in charge of defining which 3rdparty
+libraries and their versions which the NabtoWebRTC libraries should use. Often
+such decisions is handled by a package manager such as apt, vcpkg, yocto, etc.
+
+Depending on the configuration of the NabtoWebRTCSDK the following third party
+libraries is needed:
+
+  * NabtoEmbeddedSDK
+  * MbedTLS
+  * OpenSSL
+  * Curl
+  * jwt-cpp
+  * cxxopts
+  * plog
+  * LibDataChannel
+
+Each of these dependencies has to be provided by the consumer of this library.
+
+We do however make it simpler to build the NabtoWebRTCSDK libraries by providing
+FetchContent integration for the following libraries:
+
+  * NabtoEmbeddedSDK
+  * MbedTLS
+  * jwt-cpp
+  * cxxopts
+  * plog
+  * LibDataChannel
+
+When the FetchContent integration is used the build system for the
+NabtoWebRTCSDK defines the versions of the dependencies which goes into the
+built libraries, this is a bad idea since it makes this library a provider of
+these libraries, software built on top of this library is then forced to use the
+same libraries, this is largely incompatible when building the software
+together with other libraries which relies on the same dependencies.
