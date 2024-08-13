@@ -430,6 +430,10 @@ void WebrtcConnection::sendDescription(rtc::optional<rtc::Description> descripti
         else if (description->type() == rtc::Description::Type::Answer)
         {
             sigStream_->signalingSendAnswer(data, metadata_);
+            if (pc_->negotiationNeeded()) {
+                // We where polite and have finished resolving a collided offer, recreate our offer
+                pc_->setLocalDescription();
+            }
         }
         else
         {
