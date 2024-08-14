@@ -260,14 +260,16 @@ void WebrtcConnection::acceptTrack(MediaTrackPtr track)
 
 void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> incoming)
 {
-    if (incoming->label() == "coap") {
+    // TODO: remove "coap" label when we are confident clients have been updated.
+    if (incoming->label() == "coap" || incoming->label() == "nabto-coap") {
         if (nabtoConnection_ == NULL) {
             nabtoConnection_ = nabto_device_virtual_connection_new(device_.get());
 
         }
         coapChannel_ = WebrtcCoapChannel::create(pc_, incoming, device_, nabtoConnection_, queue_);
     }
-    else if (incoming->label().find("stream-") == 0) {
+    // TODO: remove "stream-" label when we are confident clients have been updated
+    else if (incoming->label().find("stream-") == 0 || incoming->label().find("nabto-stream-") == 0) {
         NPLOGD << "Stream channel opened: " << incoming->label();
         NPLOGD << "Stream port: " << incoming->label().substr(7);
         try {
