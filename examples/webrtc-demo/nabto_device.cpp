@@ -39,6 +39,7 @@ NabtoDeviceApp::~NabtoDeviceApp()
     }
     coapOauthListener_.reset();
     coapChallengeListener_.reset();
+    eventsListener_.reset();
 }
 
 bool NabtoDeviceApp::init(nlohmann::json& opts)
@@ -192,6 +193,23 @@ bool NabtoDeviceApp::start()
 
     coapChallengeListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
         self->handleChallengeRequest(coap);
+    });
+
+    eventsListener_ = NabtoDeviceEventsListener::create(self, evQueue_);
+    eventsListener_->setEventCallback([self](NabtoDeviceEvent event) {
+        if (event == NABTO_DEVICE_EVENT_CLOSED) {
+            std::cout << "Device closed" << std::endl;
+        } else if (event == NABTO_DEVICE_EVENT_ATTACHED) {
+            std::cout << "Device attached to basestation" << std::endl;
+        } else if (event  == NABTO_DEVICE_EVENT_DETACHED) {
+            std::cout << "Device detached from basestation" << std::endl;
+        } else if (event == NABTO_DEVICE_EVENT_UNKNOWN_FINGERPRINT) {
+            std::cout << "The device fingerprint is not known by the basestation" << std::endl;
+        } else if (event == NABTO_DEVICE_EVENT_WRONG_PRODUCT_ID) {
+            std::cout << "The provided Product ID did not match the fingerprint" << std::endl;
+        } else if (event == NABTO_DEVICE_EVENT_WRONG_DEVICE_ID) {
+            std::cout << "The provided Device ID did not match the fingerprint" << std::endl;
+        }
     });
 
     return setupFileStream();
@@ -730,6 +748,69 @@ void NabtoDeviceCoapListener::newCoapRequest(NabtoDeviceFuture* future, NabtoDev
     self->nextCoapRequest();
 }
 
+
+NabtoDeviceEventsListenerPtr NabtoDeviceEventsListener::create(NabtoDeviceAppPtr device, nabto::EventQueuePtr queue)
+{
+    auto ptr = std::make_shared<NabtoDeviceEventsListener>(device, queue);
+    if (ptr->start()) {
+        return ptr;
+    }
+    return nullptr;
+
+}
+
+NabtoDeviceEventsListener::NabtoDeviceEventsListener(NabtoDeviceAppPtr device, nabto::EventQueuePtr queue) : device_(device), queue_(queue)
+{
+    listener_ = nabto_device_listener_new(device_->getDevice().get());
+    future_ = nabto_device_future_new(device_->getDevice().get());
+}
+
+NabtoDeviceEventsListener::~NabtoDeviceEventsListener()
+{
+    nabto_device_future_free(future_);
+    nabto_device_listener_free(listener_);
+}
+
+bool NabtoDeviceEventsListener::start()
+{
+    NabtoDeviceError ec;
+    if (listener_ == NULL ||
+        future_ == NULL ||
+        (ec = nabto_device_device_events_init_listener(device_->getDevice().get(), listener_) != NABTO_DEVICE_EC_OK))
+    {
+        NPLOGE << "Failed to listen for device events: " << nabto_device_error_get_message(ec);
+        return false;
+    }
+    me_ = shared_from_this();
+    nextEvent();
+    return true;
+
+}
+
+void NabtoDeviceEventsListener::nextEvent() {
+    nabto_device_listener_device_event(listener_, future_, &event_);
+    nabto_device_future_set_callback(future_, NabtoDeviceEventsListener::newEvent, this);
+}
+
+void NabtoDeviceEventsListener::newEvent(NabtoDeviceFuture* future, NabtoDeviceError ec, void* data) {
+    (void)future;
+    NabtoDeviceEventsListener* self = (NabtoDeviceEventsListener*)(data);
+    if (ec != NABTO_DEVICE_EC_OK) {
+        NPLOGD << "Device events failed: " << nabto_device_error_get_message(ec);
+        self->queue_->post([self]() {
+            self->me_ = nullptr;
+            self->eventCb_ = nullptr;
+            self->device_ = nullptr;
+            });
+        return;
+    }
+    std::function<void(NabtoDeviceEvent event)> cb = self->eventCb_;
+    NabtoDeviceEvent event = self->event_;
+    self->queue_->post([cb, event]() {
+        cb(event);
+        });
+    self->nextEvent();
+}
 
 
 } // Namespace

@@ -7,6 +7,9 @@
 #include <track-negotiators/h264.hpp>
 #include <track-negotiators/opus.hpp>
 
+#include <plog/Formatters/TxtFormatter.h>
+#include <plog/Appenders/ColorConsoleAppender.h>
+
 #include <rtc/global.hpp>
 #include <nlohmann/json.hpp>
 #include <signal.h>
@@ -112,6 +115,23 @@ void signal_handler(int s)
     sigContext = nullptr;
 }
 
+enum plog::Severity plogSeverity(std::string& logLevel)
+{
+    if (logLevel == "trace") {
+        return plog::Severity::debug;
+    }
+    else if (logLevel == "warn") {
+        return plog::Severity::warning;
+    }
+    else if (logLevel == "info") {
+        return plog::Severity::info;
+    }
+    else if (logLevel == "error") {
+        return plog::Severity::error;
+    }
+    return plog::Severity::none;
+
+}
 
 bool initDevice(nabto::NabtoDevicePtr device, const ProgramOptions& opts);
 
@@ -123,6 +143,15 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
+    static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
+
+    auto logLevel = opts.logLevel;
+    char* envLvl = std::getenv("NABTO_WEBRTC_LOG_LEVEL");
+    if (envLvl != NULL) {
+        logLevel = std::string(envLvl);
+    }
+    nabto::initLogger(plogSeverity(logLevel), &consoleAppender);
+
     auto device = nabto::makeNabtoDevice();
 
     if (!initDevice(device, opts)){
@@ -130,7 +159,7 @@ int main(int argc, char** argv) {
     }
 
     auto rtpVideoNegotiator_ = nabto::H264Negotiator::create();
-    nabto::RtpClientConf conf = { "from_browser", std::string(), 6002, rtpVideoNegotiator_, nullptr };
+    nabto::RtpClientConf conf = { "from_browser", "127.0.0.1", 6002, rtpVideoNegotiator_, nullptr };
 
     auto rtpVideo = nabto::RtpClient::create(conf);
 
@@ -141,15 +170,18 @@ int main(int argc, char** argv) {
         [rtpVideo](NabtoDeviceConnectionRef ref, nabto::MediaTrackPtr track)
         {
             const std::string &trackId = track->getTrackId();
+            std::cout << "Got track event for ID: " << trackId << std::endl;
             if (trackId == "from_browser") {
                 auto ok = rtpVideo->matchMedia(track);
                 if (!ok) {
+                    std::cout << "MATCH MEDIA FAILED" << std::endl;
                     // TODO
                 }
 
                 track->setCloseCallback([rtpVideo, ref]() { rtpVideo->removeConnection(ref); });
                 rtpVideo->addConnection(ref, track);
             } else {
+                std::cout << "INVALID TRACK ID ON TRACK EVENT: " << trackId << std::endl;
                 track->setErrorState(nabto::MediaTrack::ErrorState::UNKNOWN_TRACK_ID);
             }
         });

@@ -110,6 +110,13 @@ private:
 
     void handleCoapResponse(NabtoDeviceError err)
     {
+        if (err != NABTO_DEVICE_EC_OK) {
+            NPLOGD << "Coap request failed with error: " << nabto_device_error_get_message(err);
+            nabto_device_virtual_coap_request_free(coap_);
+            responeReady_ = nullptr;
+            me_ = nullptr;
+            return;
+        }
         uint16_t status;
         nabto_device_virtual_coap_request_get_response_status_code(coap_, &status);
         uint16_t cf;
