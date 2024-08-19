@@ -1,0 +1,88 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "base",
+            "binaryDir": "build/${presetName}",
+            "installDir": "build/${presetName}/install"
+        },
+        {
+            "name": "unix_base",
+            "generator": "Ninja"
+        },
+        {
+            "name": "vcpkg_base",
+            "toolchainFile": "3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            "cacheVariables": {
+                "NABTO_DEVICE_PREFER_SYSTEM_LIBS": "ON",
+                "CMAKE_MODULE_PATH": "${sourceDir}/cmake/vcpkg"
+            }
+        },
+        {
+            "name": "release",
+            "inherits": [
+                "base",
+                "unix_base",
+                "vcpkg_base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "debug",
+            "inherits": [
+                "base",
+                "unix_base",
+                "vcpkg_base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "release",
+            "configurePreset": "release",
+            "targets": [
+                "install"
+            ]
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "targets": [
+                "install"
+            ]
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "release"
+                },
+                {
+                    "type": "build",
+                    "name": "release"
+                }
+            ]
+        },
+        {
+            "name": "debug",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "debug"
+                },
+                {
+                    "type": "build",
+                    "name": "debug"
+                }
+            ]
+        }
+    ]
+}

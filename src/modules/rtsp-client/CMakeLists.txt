@@ -20,7 +20,7 @@ add_library( rtsp_client "${src}")
 find_package(CURL REQUIRED)
 find_package(LibDataChannel REQUIRED)
 
-target_link_libraries(rtsp_client
+target_link_libraries(rtsp_client PUBLIC
     track_negotiators
     rtp_client
     rtp_repacketizers
@@ -29,9 +29,8 @@ target_link_libraries(rtsp_client
     webrtc_util
 )
 if (RTSP_HAS_BASIC_AUTH)
-    target_link_libraries(rtsp_client
-    jwt-cpp::jwt-cpp
-    )
+    find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
+    target_include_directories(rtsp_client PRIVATE ${JWT_CPP_INCLUDE_DIRS})
 endif()
 
 

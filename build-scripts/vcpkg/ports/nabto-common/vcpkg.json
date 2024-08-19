@@ -1,6 +1,6 @@
 {
     "name": "nabto-common",
-    "version": "0.0.1",
+    "version-string": "0.0.0",
     "description": "Nabto Common",
     "homepage": "https://github.com/nabto/nabto-common",
     "license": "Apache-2.0",

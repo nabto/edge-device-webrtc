@@ -6,7 +6,6 @@ option(NABTO_WEBRTC_USE_VCPKG "Use vcpkg for providing dependencies" ON)
 option(NABTO_WEBRTC_BUILD_TESTS "Build code meant for testing" ON)
 
 if (NABTO_WEBRTC_USE_VCPKG)
-  set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_SOURCE_DIR}/build-scripts/vcpkg/ports")
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 endif()
 
@@ -14,12 +13,6 @@ project(EdgeDeviceWebrtc
     VERSION 0.0.1
     LANGUAGES CXX)
 
-option(NABTO_WEBRTC_PREFER_SYSTEM_LIB "Prefer system libraries over fetchcontent libraries" ON)
-option(NABTO_WEBRTC_USE_SYSTEM_PLOG "Use the system provided plog library" ${NABTO_WEBRTC_PREFER_SYSTEM_LIB})
-option(NABTO_WEBRTC_USE_SYSTEM_LIBDATACHANNEL "Use the system provided libdatachannel library" ${NABTO_WEBRTC_PREFER_SYSTEM_LIB})
-option(NABTO_WEBRTC_USE_SYSTEM_JWTCPP "Use the system provided jwt-cpp library" ${NABTO_WEBRTC_PREFER_SYSTEM_LIB})
-option(NABTO_WEBRTC_USE_SYSTEM_NABTOEMBEDDEDSDK "Use the system provided NabtoEmbeddedSDK library" ${NABTO_WEBRTC_PREFER_SYSTEM_LIB})
-option(NABTO_WEBRTC_USE_SYSTEM_NLOHMANNJSON "Use the system provided nlohmann_json library" ${NABTO_WEBRTC_PREFER_SYSTEM_LIB})
 option(NABTO_WEBRTC_BUILD_EXAMPLES "Build nabto webrtc examples" ON)
 option(NABTO_WEBRTC_BUILD_TESTS "Build nabto webrtc tests" OFF)
 option(NABTO_WEBRTC_BUILD_WITH_VCPKG_DEPENDENCIES "build with vcpkg dependencies, which lacks mbedtls and tinycbor package configuration files" ${NABTO_WEBRTC_USE_VCPKG})
@@ -40,55 +33,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-if (NOT NABTO_WEBRTC_USE_SYSTEM_NABTOEMBEDDEDSDK)
-  set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "build nabto embedded sdk examples")
-  set(DEVICE_BUILD_TESTS OFF CACHE BOOL "build nabto embedded sdk tests")
-  set(DEVICE_BUILD_APPS OFF CACHE BOOL "build nabto embedded sdk apps")
-
-  FetchContent_Declare(
-    NabtoEmbeddedSDK
-    GIT_REPOSITORY https://github.com/nabto/nabto-embedded-sdk.git
-    GIT_TAG e160f00e9ba69f24805d8c1c0cbf47acde545ed8
-    OVERRIDE_FIND_PACKAGE
-  )
-  FetchContent_MakeAvailable(NabtoEmbeddedSDK)
-endif()
-
-if (NOT NABTO_WEBRTC_USE_SYSTEM_NLOHMANNJSON)
-  FetchContent_Declare(nlohmann_json
-      URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
-      URL_MD5 127794b2c82c0c5693805feaa2a703e2
-  )
-  FetchContent_MakeAvailable(nlohmann_json)
-endif()
-
-
-
-set(JWT_BUILD_EXAMPLES OFF CACHE BOOL "build jwt cpp examples")
-
-if (NOT NABTO_WEBRTC_USE_SYSTEM_JWTCPP)
-  FetchContent_Declare(jwt-cpp GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
-                         GIT_TAG v0.7.0-rc.0)
-  FetchContent_MakeAvailable(jwt-cpp)
-else()
-  find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
-  add_library(jwt_cpp_header_only INTERFACE)
-  add_library(jwt-cpp::jwt-cpp ALIAS jwt_cpp_header_only)
-  target_link_libraries(jwt_cpp_header_only INTERFACE ${JWT_CPP_INCLUDE_DIRS})
-endif()
-
-if (NOT NABTO_WEBRTC_USE_SYSTEM_LIBDATACHANNEL)
-  set(NO_TESTS ON CACHE BOOL "disable tests")
-  set(NO_EXAMPLES ON CACHE BOOL "disable examples")
-
-  FetchContent_Declare(
-    LibDataChannel
-    GIT_REPOSITORY https://github.com/paullouisageneau/libdatachannel.git
-    GIT_TAG v0.21.2
-    OVERRIDE_FIND_PACKAGE)
-  FetchContent_MakeAvailable(LibDataChannel)
-endif()
 
 set(DEVICE_BUILD_EXAMPLES OFF CACHE BOOL "build nabto embedded sdk examples")
 set(DEVICE_BUILD_TESTS OFF CACHE BOOL "build nabto embedded sdk tests")
@@ -151,11 +95,10 @@ add_library(EdgeDeviceWebRTC::rtp_packetizers ALIAS rtp_packetizers)
 add_library(EdgeDeviceWebRTC::rtp_repacketizers ALIAS rtp_repacketizers)
 add_library(EdgeDeviceWebRTC::rtp_client ALIAS rtp_client)
 add_library(EdgeDeviceWebRTC::rtsp_client ALIAS rtsp_client)
-add_library(EdgeDeviceWebRTC::jwt_cpp_header_only ALIAS jwt_cpp_header_only)
 add_library(EdgeDeviceWebRTC::fifo_file_client ALIAS fifo_file_client)
 
 install(
-    TARGETS nabto_device_webrtc event_queue_impl webrtc_util media_streams track_negotiators rtp_packetizers rtp_repacketizers rtp_client rtsp_client jwt_cpp_header_only fifo_file_client
+    TARGETS nabto_device_webrtc event_queue_impl webrtc_util media_streams track_negotiators rtp_packetizers rtp_repacketizers rtp_client rtsp_client fifo_file_client
     EXPORT "${TARGETS_EXPORT_NAME}"
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"

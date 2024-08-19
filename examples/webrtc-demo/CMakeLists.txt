@@ -20,12 +20,11 @@ find_package(NabtoEmbeddedSDK REQUIRED)
 find_package(cxxopts REQUIRED)
 
 target_link_libraries(
-  edge_device_webrtc
+  edge_device_webrtc PRIVATE
   NabtoEmbeddedSDK::nabto_device
   NabtoEmbeddedSDK::nm_iam
   nabto_device_webrtc
   CURL::libcurl
-  jwt-cpp::jwt-cpp
   webrtc_util
   event_queue_impl
   rtp_client

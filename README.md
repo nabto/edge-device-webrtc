@@ -124,10 +124,7 @@ You need the following tools to build the example:
 The example is built using cmake from the root of this repo:
 
 ```
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ..
-make -j16 install
+cmake --workflow --preset release
 ```
 
 On macOS you may need to turn off `sctp_werror` so the full set of commands become:

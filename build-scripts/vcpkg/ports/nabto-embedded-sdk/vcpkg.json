@@ -1,6 +1,6 @@
 {
     "name": "nabto-embedded-sdk",
-    "version": "0.0.1",
+    "version": "0.0.0+b05465f002a6b00722e14ba7955758fe919a5b08",
     "description": "Nabto Embedded SDK",
     "homepage": "https://github.com/nabto/nabto-embedded-sdk",
     "license": "Apache-2.0",
