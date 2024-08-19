@@ -17,10 +17,12 @@ namespace example {
 class NabtoDeviceApp;
 class NabtoDeviceStreamListener;
 class NabtoDeviceCoapListener;
+class NabtoDeviceEventsListener;
 
 typedef std::shared_ptr<NabtoDeviceApp> NabtoDeviceAppPtr;
 typedef std::shared_ptr<NabtoDeviceStreamListener> NabtoDeviceStreamListenerPtr;
 typedef std::shared_ptr<NabtoDeviceCoapListener> NabtoDeviceCoapListenerPtr;
+typedef std::shared_ptr<NabtoDeviceEventsListener> NabtoDeviceEventsListenerPtr;
 
 class NabtoDeviceApp : public std::enable_shared_from_this <NabtoDeviceApp> {
 public:
@@ -84,6 +86,8 @@ private:
 
     NabtoDeviceCoapListenerPtr coapOauthListener_ = nullptr;
     NabtoDeviceCoapListenerPtr coapChallengeListener_ = nullptr;
+
+    NabtoDeviceEventsListenerPtr eventsListener_ = nullptr;
 
     NabtoDeviceAppPtr me_ = nullptr;
 
@@ -154,6 +158,33 @@ private:
 
     NabtoDeviceCoapListenerPtr me_ = nullptr;
 
+};
+
+
+class NabtoDeviceEventsListener : public std::enable_shared_from_this<NabtoDeviceEventsListener> {
+public:
+    static NabtoDeviceEventsListenerPtr create(NabtoDeviceAppPtr device, nabto::EventQueuePtr queue);
+    NabtoDeviceEventsListener(NabtoDeviceAppPtr device, nabto::EventQueuePtr queue);
+    ~NabtoDeviceEventsListener();
+
+    bool start();
+
+    void setEventCallback(std::function<void(NabtoDeviceEvent event)> eventCb) { eventCb_ = eventCb; }
+
+private:
+    void nextEvent();
+    static void newEvent(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
+
+    NabtoDeviceAppPtr device_;
+    nabto::EventQueuePtr queue_;
+
+    std::function<void(NabtoDeviceEvent event)> eventCb_ = nullptr;
+
+    NabtoDeviceListener* listener_ = NULL;
+    NabtoDeviceFuture* future_ = NULL;
+    NabtoDeviceEvent event_;
+
+    NabtoDeviceEventsListenerPtr  me_ = nullptr;
 };
 
 } // namespace

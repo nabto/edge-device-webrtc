@@ -135,11 +135,10 @@ int main(int argc, char** argv) {
 
     webrtc->setDatachannelEventCallback([](NabtoDeviceConnectionRef ref, nabto::DatachannelPtr channel) {
         std::cout << "Got new datachannel with label: " << channel->getLabel() << std::endl;
-        std::string data = "helloWorld";
         channel->setMessageCallback([channel](nabto::Datachannel::MessageType type, uint8_t* buffer, size_t length) {
             std::cout << "Received datachannel message! type: " << type << " message: " << std::string((char*)buffer, length) << std::endl;
+            channel->sendMessage(buffer, length);
         });
-        channel->sendMessage((uint8_t*)data.data(), data.size());
     });
 
 

@@ -260,8 +260,8 @@ void SignalingStream::hasReadObject(NabtoDeviceFuture* future, NabtoDeviceError 
 
 void SignalingStream::handleReadObject()
 {
-    if (readLength_ < objectLength_) {
-        // we did not get all the data we wanted. This means the stream is closing down. We just read object length again to get the error code and clean up.
+    if (readLength_ < objectLength_ || webrtcConnection_ == nullptr) {
+        // either we did not get all the data we wanted which means the stream is closing down or we stopped the webrtc connection due to an error. We just read object length again to get the error code and clean up.
         return readObjLength();
     }
 
