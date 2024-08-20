@@ -18,6 +18,7 @@ add_executable(edge_device_webrtc "${src}")
 find_package(CURL REQUIRED)
 find_package(NabtoEmbeddedSDK REQUIRED)
 find_package(cxxopts REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 target_link_libraries(
   edge_device_webrtc PRIVATE
@@ -32,6 +33,7 @@ target_link_libraries(
   fifo_file_client
   rtp_packetizers
   cxxopts::cxxopts
+  OpenSSL::Crypto
   )
 
 install(TARGETS edge_device_webrtc RUNTIME DESTINATION bin)

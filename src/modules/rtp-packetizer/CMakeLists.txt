@@ -8,7 +8,7 @@ add_library( rtp_packetizers "${src}")
 find_package(LibDataChannel REQUIRED)
 
 target_link_libraries(rtp_packetizers
-    LibDataChannel::LibDataChannelStatic
+    LibDataChannel::${NABTO_WEBRTC_LIBDATACHANNEL_LIBRARY_NAME}
     nabto_device_webrtc
 
 )

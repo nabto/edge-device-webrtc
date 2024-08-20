@@ -24,7 +24,7 @@ target_link_libraries(rtsp_client PUBLIC
     track_negotiators
     rtp_client
     rtp_repacketizers
-    LibDataChannel::LibDataChannelStatic
+    LibDataChannel::${NABTO_WEBRTC_LIBDATACHANNEL_LIBRARY_NAME}
     CURL::libcurl
     webrtc_util
 )

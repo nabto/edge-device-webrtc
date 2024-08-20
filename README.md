@@ -127,14 +127,6 @@ The example is built using cmake from the root of this repo:
 cmake --workflow --preset release
 ```
 
-On macOS you may need to turn off `sctp_werror` so the full set of commands become:
-```
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
-make -j16 install
-```
-
 > [!IMPORTANT]
 > If your build host has limited resources and you try to limit the build concurrency using e.g. `make -j1`, you also need to explicitly limit the vcpkg build concurrency using `export VCPKG_MAX_CONCURRENCY=1` prior to running cmake.
 

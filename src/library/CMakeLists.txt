@@ -32,7 +32,7 @@ add_library( nabto_device_webrtc "${src}")
 target_link_libraries(nabto_device_webrtc PRIVATE
     NabtoEmbeddedSDK::nabto_device
     NabtoEmbeddedSDK::nm_iam
-    LibDataChannel::LibDataChannelStatic
+    LibDataChannel::${NABTO_WEBRTC_LIBDATACHANNEL_LIBRARY_NAME}
     plog::plog
 )
 
