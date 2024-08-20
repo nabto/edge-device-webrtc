@@ -203,16 +203,34 @@ When building with unit tests, CMake will look for GStreamer dependencies. If it
 
 Additionally, the RTSP client supports both Basic and Digest authentication. These features can be disabled with the CMake options `-DRTSP_HAS_BASIC_AUTH=OFF` and `-DRTSP_HAS_DIGEST_AUTH=OFF`.
 
+### Crosscompiling
+
+It is easiest to crosscompile just using the vcpkg toolchain.
+
+For example to crosscompile for arm64 on linux it is only neccessary to use the following options
+```
+export CC=aarch64-linux-gnu-gcc
+export CXX=aarch64-linux-gnu-g++
+mkdir -p build/linux_arm64_crosscompile
+cd build/aarch64
+cmake -DCMAKE_TOOLCHAIN_FILE=`pwd`/../../3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_MODULE_PATH=`pwd`/../../cmake/vcpkg -DVCPKG_TARGET_TRIPLET=arm64-linux -DCMAKE_INSTALL_PREFIX=`pwd`/install ../../
+make install
+```
+
+The above example can also be run using `cmake --workflow --preset linux_arm64_crosscompile`
+
 ### Building without vcpkg
 
 Vcpkg is great when used to build standard software for common platforms such as
-Windows, Linux, Mac, iOS and Android. If the build is more specialized or you
-want to bring your own libraries usage of vcpkg can be disabled when invoking
-cmake by setting `NABTO_WEBRTC_USE_VCPKG` e.g. `cmake
+Windows, Linux, Mac, iOS and Android. The usage of vcpkg can be disabled when
+invoking cmake by setting `NABTO_WEBRTC_USE_VCPKG` e.g. `cmake
 -DNABTO_WEBRTC_USE_VCPKG=OFF ...`. When vcpkg is disabled it is up to the
 builder to provide the needed libraries such as openssl, curl and boost test.
 The libraries needed depends on which configurations of the software is being
 built.
+
+There is an example in the folder `cross_build/aarch64` which compiles all the
+dependencies manually.
 
 ### Building without tests
 
@@ -292,11 +310,11 @@ The Gstreamer/FFMPEG commands will only write to the FIFO when the device is rea
 ## Building the NabtoWebRTCSDK components
 
 This library consists of several components each component is built as a library
-and depends on other loibraries.
+and depends on other libraries.
 
 A user of the NabtoWebRTC libraries is in charge of defining which 3rdparty
 libraries and their versions which the NabtoWebRTC libraries should use. Often
-such decisions is handled by a package manager such as apt, vcpkg, yocto, etc.
+such decisions is handled by a package manager such as apt, vcpkg, etc.
 
 Depending on the configuration of the NabtoWebRTCSDK the following third party
 libraries is needed:
@@ -311,20 +329,4 @@ libraries is needed:
   * LibDataChannel
 
 Each of these dependencies has to be provided by the consumer of this library.
-
-We do however make it simpler to build the NabtoWebRTCSDK libraries by providing
-FetchContent integration for the following libraries:
-
-  * NabtoEmbeddedSDK
-  * MbedTLS
-  * jwt-cpp
-  * cxxopts
-  * plog
-  * LibDataChannel
-
-When the FetchContent integration is used the build system for the
-NabtoWebRTCSDK defines the versions of the dependencies which goes into the
-built libraries, this is a bad idea since it makes this library a provider of
-these libraries, software built on top of this library is then forced to use the
-same libraries, this is largely incompatible when building the software
-together with other libraries which relies on the same dependencies.
+Each of these libraries can have dependencies themselves.
