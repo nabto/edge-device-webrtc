@@ -18,7 +18,7 @@ option(NABTO_WEBRTC_BUILD_TESTS "Build nabto webrtc tests" OFF)
 option(NABTO_WEBRTC_BUILD_WITH_VCPKG_DEPENDENCIES "build with vcpkg dependencies, which lacks mbedtls and tinycbor package configuration files" ${NABTO_WEBRTC_USE_VCPKG})
 option(NABTO_WEBRTC_BUILD_TESTS "Build tests" OFF)
 option(NABTO_WEBRTC_BUILD_EXAMPLES "Build tests" ON)
-option(NABTO_WEBRTC_USE_DATACHANNEL_STATIC_LIB "Use the static libdatachannel library" OFF)
+option(NABTO_WEBRTC_USE_DATACHANNEL_STATIC_LIB "Use the static libdatachannel library" ${NABTO_WEBRTC_USE_VCPKG})
 
 set(NABTO_WEBRTC_VERSION "" CACHE STRING "Override the default nabto webrtc version from git")
 
