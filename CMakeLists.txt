@@ -18,12 +18,19 @@ option(NABTO_WEBRTC_BUILD_TESTS "Build nabto webrtc tests" OFF)
 option(NABTO_WEBRTC_BUILD_WITH_VCPKG_DEPENDENCIES "build with vcpkg dependencies, which lacks mbedtls and tinycbor package configuration files" ${NABTO_WEBRTC_USE_VCPKG})
 option(NABTO_WEBRTC_BUILD_TESTS "Build tests" OFF)
 option(NABTO_WEBRTC_BUILD_EXAMPLES "Build tests" ON)
+option(NABTO_WEBRTC_USE_DATACHANNEL_STATIC_LIB "Use the static libdatachannel library" OFF)
 
 set(NABTO_WEBRTC_VERSION "" CACHE STRING "Override the default nabto webrtc version from git")
 
 if (NABTO_WEBRTC_BUILD_WITH_VCPKG_DEPENDENCIES)
   # vcpkg dependencies for mbedtls 2 and tinycbor does not provide find_package scripts for these libraries
   set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/vcpkg;${CMAKE_MODULE_PATH}")
+endif()
+
+if (NABTO_WEBRTC_USE_DATACHANNEL_STATIC_LIB)
+  set(NABTO_WEBRTC_LIBDATACHANNEL_LIBRARY_NAME LibDataChannelStatic)
+else()
+  set(NABTO_WEBRTC_LIBDATACHANNEL_LIBRARY_NAME LibDataChannel)
 endif()
 
 include(FetchContent)
