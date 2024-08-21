@@ -330,3 +330,10 @@ libraries is needed:
 
 Each of these dependencies has to be provided by the consumer of this library.
 Each of these libraries can have dependencies themselves.
+
+
+## Linking the raw libraries into an executable
+
+An example of such a linking can be seen in the folder
+`test/distribution/direct_link_gcc` and
+`test/distribution/direct_link_webrtc_demo`
