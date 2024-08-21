@@ -2,7 +2,6 @@
 
 #include <nabto/nabto_device_experimental.h>
 #include <nabto/nabto_device_virtual.h>
-#include <modules/iam/nm_iam_serializer.h>
 
 
 CoapListenerPtr CoapListener::create(nabto::NabtoDevicePtr device, NabtoDeviceCoapMethod method, std::vector<std::string> path, nabto::EventQueuePtr queue)

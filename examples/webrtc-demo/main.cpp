@@ -17,7 +17,7 @@
 
 #include <rtc/global.hpp>
 
-#include <cxxopts/cxxopts.hpp>
+#include <cxxopts.hpp>
 #include <nlohmann/json.hpp>
 #include <signal.h>
 #include <cstdlib>
@@ -468,7 +468,7 @@ bool parse_options(int argc, char** argv, json& opts)
         }
 
 
-    } catch (const cxxopts::OptionException& e)
+    } catch (const cxxopts::exceptions::exception& e)
     {
         std::cout << "Error parsing options: " << e.what() << std::endl;
         return true;

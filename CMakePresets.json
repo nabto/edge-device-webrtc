@@ -1,0 +1,116 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "base",
+            "binaryDir": "build/${presetName}",
+            "installDir": "build/${presetName}/install"
+        },
+        {
+            "name": "unix_base",
+            "generator": "Ninja"
+        },
+        {
+            "name": "vcpkg_base",
+            "toolchainFile": "3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            "cacheVariables": {
+                "CMAKE_MODULE_PATH": "${sourceDir}/cmake/vcpkg"
+            }
+        },
+        {
+            "name": "release",
+            "inherits": [
+                "base",
+                "unix_base",
+                "vcpkg_base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "debug",
+            "inherits": [
+                "base",
+                "unix_base",
+                "vcpkg_base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "linux_arm64_crosscompile",
+            "inherits": [ "base", "unix_base", "vcpkg_base" ],
+            "environment": {
+                "CC": "aarch64-linux-gnu-gcc",
+                "CXX": "aarch64-linux-gnu-g++"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "arm64-linux"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "release",
+            "configurePreset": "release",
+            "targets": [
+                "install"
+            ]
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "targets": [
+                "install"
+            ]
+        },
+        {
+            "name": "linux_arm64_crosscompile",
+            "configurePreset": "linux_arm64_crosscompile",
+            "targets": ["install"]
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "release"
+                },
+                {
+                    "type": "build",
+                    "name": "release"
+                }
+            ]
+        },
+        {
+            "name": "debug",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "debug"
+                },
+                {
+                    "type": "build",
+                    "name": "debug"
+                }
+            ]
+        },
+        {
+            "name": "linux_arm64_crosscompile",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "linux_arm64_crosscompile"
+                },
+                {
+                    "type": "build",
+                    "name": "linux_arm64_crosscompile"
+                }
+            ]
+        }
+    ]
+}

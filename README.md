@@ -124,18 +124,7 @@ You need the following tools to build the example:
 The example is built using cmake from the root of this repo:
 
 ```
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ..
-make -j16 install
-```
-
-On macOS you may need to turn off `sctp_werror` so the full set of commands become:
-```
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dsctp_werror=OFF ..
-make -j16 install
+cmake --workflow --preset release
 ```
 
 > [!IMPORTANT]
@@ -214,16 +203,34 @@ When building with unit tests, CMake will look for GStreamer dependencies. If it
 
 Additionally, the RTSP client supports both Basic and Digest authentication. These features can be disabled with the CMake options `-DRTSP_HAS_BASIC_AUTH=OFF` and `-DRTSP_HAS_DIGEST_AUTH=OFF`.
 
+### Crosscompiling
+
+It is easiest to crosscompile just using the vcpkg toolchain.
+
+For example to crosscompile for arm64 on linux it is only neccessary to use the following options
+```
+export CC=aarch64-linux-gnu-gcc
+export CXX=aarch64-linux-gnu-g++
+mkdir -p build/linux_arm64_crosscompile
+cd build/aarch64
+cmake -DCMAKE_TOOLCHAIN_FILE=`pwd`/../../3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_MODULE_PATH=`pwd`/../../cmake/vcpkg -DVCPKG_TARGET_TRIPLET=arm64-linux -DCMAKE_INSTALL_PREFIX=`pwd`/install ../../
+make install
+```
+
+The above example can also be run using `cmake --workflow --preset linux_arm64_crosscompile`
+
 ### Building without vcpkg
 
 Vcpkg is great when used to build standard software for common platforms such as
-Windows, Linux, Mac, iOS and Android. If the build is more specialized or you
-want to bring your own libraries usage of vcpkg can be disabled when invoking
-cmake by setting `NABTO_WEBRTC_USE_VCPKG` e.g. `cmake
+Windows, Linux, Mac, iOS and Android. The usage of vcpkg can be disabled when
+invoking cmake by setting `NABTO_WEBRTC_USE_VCPKG` e.g. `cmake
 -DNABTO_WEBRTC_USE_VCPKG=OFF ...`. When vcpkg is disabled it is up to the
 builder to provide the needed libraries such as openssl, curl and boost test.
 The libraries needed depends on which configurations of the software is being
 built.
+
+There is an example in the folder `cross_build/aarch64` which compiles all the
+dependencies manually.
 
 ### Building without tests
 
@@ -300,3 +307,33 @@ You can now connect to the device from a client and see the feed.
 The Gstreamer/FFMPEG commands will only write to the FIFO when the device is reading it. This also means when the client connection is closed and the device stops reading the FIFO, the Gstreamer/FFMPEG will exit and new client connections will not be able to see the feed before the streamer is started again (`mkfifo` does not need to be run again, only the streamer command).
 
 
+## Building the NabtoWebRTCSDK components
+
+This library consists of several components each component is built as a library
+and depends on other libraries.
+
+A user of the NabtoWebRTC libraries is in charge of defining which 3rdparty
+libraries and their versions which the NabtoWebRTC libraries should use. Often
+such decisions is handled by a package manager such as apt, vcpkg, etc.
+
+Depending on the configuration of the NabtoWebRTCSDK the following third party
+libraries is needed:
+
+  * NabtoEmbeddedSDK
+  * MbedTLS
+  * OpenSSL
+  * Curl
+  * jwt-cpp
+  * cxxopts
+  * plog
+  * LibDataChannel
+
+Each of these dependencies has to be provided by the consumer of this library.
+Each of these libraries can have dependencies themselves.
+
+
+## Linking the raw libraries into an executable
+
+An example of such a linking can be seen in the folder
+`test/distribution/direct_link_gcc` and
+`test/distribution/direct_link_webrtc_demo`

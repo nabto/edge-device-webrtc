@@ -10,7 +10,7 @@
 #include <plog/Formatters/TxtFormatter.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
 
-#include <cxxopts/cxxopts.hpp>
+#include <cxxopts.hpp>
 #include <rtc/global.hpp>
 #include <nlohmann/json.hpp>
 #include <signal.h>
@@ -254,7 +254,7 @@ bool parse_options(int argc, char** argv, json& opts)
         }
         opts["rtpPort"] = result["rtp-port"].as<uint16_t>();
 
-    } catch (const cxxopts::OptionException& e)
+    } catch (const cxxopts::exceptions::exception& e)
     {
         std::cout << "Error parsing options: " << e.what() << std::endl;
         return true;

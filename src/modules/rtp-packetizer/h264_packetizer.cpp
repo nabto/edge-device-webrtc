@@ -1,8 +1,7 @@
+#include <rtc/rtc.hpp>
+
 #include "h264_packetizer.hpp"
 #include <nabto/nabto_device_webrtc.hpp>
-
-#include "rtc/message.hpp"
-#include <rtc/rtppacketizer.hpp>
 
 #include <algorithm>
 

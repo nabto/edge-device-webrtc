@@ -6,9 +6,7 @@ set(src
 add_executable(simple_webrtc_device_audio "${src}")
 
 target_link_libraries(simple_webrtc_device_audio
-    nabto_device_static
-    nabto_device_webrtc_static
-    datachannel-static
+    nabto_device_webrtc
     event_queue_impl
     rtp_client
 )

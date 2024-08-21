@@ -4,6 +4,13 @@
     "dependencies": [
       "curl",
       "boost-test",
-      "plog"
+      "plog",
+      "cxxopts",
+      {
+        "name": "libdatachannel",
+        "features": ["srtp"]
+      },
+      "jwt-cpp",
+      "nabto-embedded-sdk"
     ]
   }
