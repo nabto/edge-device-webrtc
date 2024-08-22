@@ -7,8 +7,9 @@
 #include <util/util.hpp>
 #include <media-streams/media_stream.hpp>
 #include <track-negotiators/h264.hpp>
-#include <track-negotiators/opus.hpp>
+#include <track-negotiators/pcmu.hpp>
 #include <rtp-packetizer/h264_packetizer.hpp>
+#include <rtp-packetizer/pcmu_packetizer.hpp>
 #include <rtp-repacketizer/h264_repacketizer.hpp>
 #include <rtp-client/rtp_client.hpp>
 #include <rtsp-client/rtsp_stream.hpp>
@@ -107,7 +108,7 @@ int main(int argc, char** argv) {
     nabto::FifoFileClientPtr fifo = nullptr;
     bool repacketH264 = opts["repacketH264"].get<bool>();
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
-    auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
+    auto rtpAudioNegotiator = nabto::PcmuNegotiator::create();
 
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
@@ -121,10 +122,10 @@ int main(int argc, char** argv) {
     } catch (std::exception& ex) {
         // rtspUrl was not set, try fifo
         try {
-            auto fifoPacketizer = nabto::H264PacketizerFactory::create("frontdoor-video");
+            auto fifoPacketizer = nabto::PcmuPacketizerFactory::create("frontdoor-video");
             std::string fifoPath = opts["fifoPath"].get<std::string>();
 
-            nabto::FifoFileClientConf conf = { "frontdoor-video", fifoPath, rtpVideoNegotiator, fifoPacketizer };
+            nabto::FifoFileClientConf conf = { "frontdoor-video", fifoPath, rtpAudioNegotiator, fifoPacketizer };
             fifo = nabto::FifoFileClient::create(conf);
 
             medias.push_back(fifo);
