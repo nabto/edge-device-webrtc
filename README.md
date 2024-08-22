@@ -269,19 +269,20 @@ If the software needs to be built without using CMake, the source files and
 dependencies needs to be defined seperately in whatever buildsystem which is
 then used. This is out of scope for this documentation.
 
-### H264 feed from FIFO File Descriptor
+### H264+PCMU feed from FIFO File Descriptor
 
-The demo can read a raw H264 feed from a FIFO file descriptor. This feature is advanced usage and comes with several limitations, so you must read the documentation carefully before using this. As such, this section will assume you are familiar with using the demo from more basic usage.
+The demo can read a raw H264 video and PCMU audio feeds from FIFO file descriptors. This feature is advanced usage and comes with several limitations, so you must read the documentation carefully before using this. As such, this section will assume you are familiar with using the demo from more basic usage.
 
 **limitations:**
  * This example is based on unix file descriptors
  * The example feeds requires Gstreamer or FFMPEG installed
- * The example feeds are based on v4l2 webcam at `/dev/video0`, but can be any video source.
- * The example only supports sending a H264 video feed. No downstream video, and no audio.
- * The feed must use the byte-stream format specified in Annex B of the [ITU-T H.264 Recommendation](https://www.itu.int/rec/T-REC-H.264-202108-I/en).
+ * The example video feed is based on v4l2 webcam at `/dev/video0`, but can be any video source.
+ * The example audio feed is based on pulsesrc, but can be any audio source.
+ * The example only supports sending a H264 video feed and a PCMU audio feed. No downstream feeds are supported.
+ * The video feed must use the byte-stream format specified in Annex B of the [ITU-T H.264 Recommendation](https://www.itu.int/rec/T-REC-H.264-202108-I/en).
 
 
-A test feed can be created using Gstreamer after creating the FIFO file descriptor:
+A test video feed can be created using Gstreamer after creating the FIFO file descriptor:
 
 ```
 mkfifo /tmp/video.fifo
@@ -297,10 +298,17 @@ ffmpeg -f video4linux2 -s vga -i /dev/video0 -f h264 -tune zerolatency file:///t
 
 FFMPEG will ask if you want to overwrite the file, choose yes.
 
+Similarly an audio feed can be started using:
+
+```
+mkfifo /tmp/audio.fifo
+gst-launch-1.0 -v  pulsesrc ! audio/x-raw, format=S16LE,channels=1,rate=8000 ! audioresample ! mulawenc ! filesink buffer-mode=2 location="/tmp/audio.fifo"
+```
+
 The device can be started using the file path:
 
 ```
-./examples/webrtc-demo/edge_device_webrtc -k <KEY> -d <DEVICE_ID> -p <PRODUCT_ID> -f /tmp/video.fifo
+./examples/webrtc-demo/edge_device_webrtc -k <KEY> -d <DEVICE_ID> -p <PRODUCT_ID> --fifo /tmp/video.fifo --fifo-audio /tmp/audio.fifo
 ```
 
 You can now connect to the device from a client and see the feed.
