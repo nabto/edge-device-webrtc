@@ -133,7 +133,6 @@ int main(int argc, char** argv) {
                 medias.push_back(fifoAudio);
                 std::cout << "Added fifo audio media" << std::endl;
             } catch (std::exception& ex) {
-                std::cout << "failed to add fifo audio media" << ex.what() << std::endl;
                 // ignore missing audio
             }
 
@@ -449,6 +448,9 @@ bool parse_options(int argc, char** argv, json& opts)
             if (result.count("fifo-audio")) {
                 opts["fifoAudioPath"] = result["fifo-audio"].as<std::string>();
             }
+        }
+        else if (result.count("fifo-audio")) {
+            std::cout << "fifo-audio was provided without fifo which is not supported! Will revert to RTP/RTSP" << std::endl;
         }
 
         std::string domain = result["cloud-domain"].as<std::string>();
