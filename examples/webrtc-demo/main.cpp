@@ -446,9 +446,9 @@ bool parse_options(int argc, char** argv, json& opts)
         opts["rtpPort"] = result["rtp-port"].as<uint16_t>();
         if (result.count("fifo")) {
             opts["fifoPath"] = result["fifo"].as<std::string>();
-        }
-        if (result.count("fifo-audio")) {
-            opts["fifoAudioPath"] = result["fifo-audio"].as<std::string>();
+            if (result.count("fifo-audio")) {
+                opts["fifoAudioPath"] = result["fifo-audio"].as<std::string>();
+            }
         }
 
         std::string domain = result["cloud-domain"].as<std::string>();

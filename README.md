@@ -280,6 +280,7 @@ The demo can read a raw H264 video and PCMU audio feeds from FIFO file descripto
  * The example audio feed is based on pulsesrc, but can be any audio source.
  * The example only supports sending a H264 video feed and a PCMU audio feed. No downstream feeds are supported.
  * The video feed must use the byte-stream format specified in Annex B of the [ITU-T H.264 Recommendation](https://www.itu.int/rec/T-REC-H.264-202108-I/en).
+ * The example will assume a fifo video feed is present, but audio is optional. This means the device cannot be started with `--fifo-audio ..` without also using `--fifo`
 
 
 A test video feed can be created using Gstreamer after creating the FIFO file descriptor:
