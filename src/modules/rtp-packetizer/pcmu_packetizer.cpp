@@ -14,12 +14,13 @@ std::vector<std::vector<uint8_t> > PcmuPacketizer::incoming(const std::vector<ui
     buffer_.insert(buffer_.end(), data.begin(), data.end());
     std::vector<std::vector<uint8_t> > ret;
 
+    // PCMU timestamp should match sample count in packets, so we packetize in fixed 1024 byte payloads
     while (buffer_.size() >= 1024) {
         auto msg = std::make_shared<rtc::Message>((std::byte*)buffer_.data(), (std::byte*)(buffer_.data() + 1024));
         rtc::message_vector vec;
         vec.push_back(msg);
         buffer_.erase(buffer_.begin(), buffer_.begin()+1024);
-        updateTimestamp();
+        rtpConf_->timestamp += 1024;
         packetizer_->outgoing(vec, nullptr);
 
         for (size_t i = 0; i < vec.size(); i++) {
@@ -28,20 +29,5 @@ std::vector<std::vector<uint8_t> > PcmuPacketizer::incoming(const std::vector<ui
     }
     return ret;
 }
-
-void PcmuPacketizer::updateTimestamp()
-{
-    rtpConf_->timestamp += 1024;
-    return;
-    std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()
-    );
-
-    auto startTs = rtpConf_->startTimestamp;
-    auto epochDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_).count();
-    rtpConf_->timestamp = startTs + (epochDiff * 8);
-
-}
-
 
 } // namespace

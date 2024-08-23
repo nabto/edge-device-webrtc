@@ -17,8 +17,6 @@ public:
 
     PcmuPacketizer(uint32_t ssrc, std::string& trackId, int pt) {
         rtpConf_ = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, trackId, pt, 8000);
-        // TODO: remove this workaround for https://github.com/paullouisageneau/libdatachannel/issues/1216
-        rtpConf_->playoutDelayId = 0;
         packetizer_ = std::make_shared<rtc::RtpPacketizer>(rtpConf_);
 
     }
@@ -28,11 +26,8 @@ public:
     std::vector<std::vector<uint8_t> > incoming(const std::vector<uint8_t>& data);
 
 private:
-    void updateTimestamp();
-
     std::shared_ptr<rtc::RtpPacketizationConfig> rtpConf_;
     std::shared_ptr<rtc::RtpPacketizer> packetizer_;
-    std::chrono::milliseconds start_;
     std::vector<uint8_t> buffer_;
 
 };
