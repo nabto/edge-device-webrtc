@@ -1,6 +1,7 @@
 
 set(src
     h264_packetizer.cpp
+    pcmu_packetizer.cpp
 )
 
 add_library( rtp_packetizers "${src}")

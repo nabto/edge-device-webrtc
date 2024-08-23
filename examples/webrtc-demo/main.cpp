@@ -8,7 +8,9 @@
 #include <media-streams/media_stream.hpp>
 #include <track-negotiators/h264.hpp>
 #include <track-negotiators/opus.hpp>
+#include <track-negotiators/pcmu.hpp>
 #include <rtp-packetizer/h264_packetizer.hpp>
+#include <rtp-packetizer/pcmu_packetizer.hpp>
 #include <rtp-repacketizer/h264_repacketizer.hpp>
 #include <rtp-client/rtp_client.hpp>
 #include <rtsp-client/rtsp_stream.hpp>
@@ -104,10 +106,12 @@ int main(int argc, char** argv) {
 
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
-    nabto::FifoFileClientPtr fifo = nullptr;
+    nabto::FifoFileClientPtr fifoVideo = nullptr;
+    nabto::FifoFileClientPtr fifoAudio = nullptr;
     bool repacketH264 = opts["repacketH264"].get<bool>();
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
+    // auto rtpAudioNegotiator = nabto::PcmuNegotiator::create();
 
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
@@ -121,14 +125,30 @@ int main(int argc, char** argv) {
     } catch (std::exception& ex) {
         // rtspUrl was not set, try fifo
         try {
+            try {
+                // Try add audio
+                // FIFO only supports PCMU
+                rtpAudioNegotiator = nabto::PcmuNegotiator::create();
+
+                std::string fifoPath = opts["fifoAudioPath"].get<std::string>();
+                auto fifoPacketizer = nabto::PcmuPacketizerFactory::create("frontdoor-audio");
+
+                nabto::FifoFileClientConf conf = { "frontdoor-audio", fifoPath, rtpAudioNegotiator, fifoPacketizer };
+                fifoAudio = nabto::FifoFileClient::create(conf);
+
+                medias.push_back(fifoAudio);
+                std::cout << "Added fifo audio media" << std::endl;
+            } catch (std::exception& ex) {
+                // ignore missing audio
+            }
+
             auto fifoPacketizer = nabto::H264PacketizerFactory::create("frontdoor-video");
             std::string fifoPath = opts["fifoPath"].get<std::string>();
 
             nabto::FifoFileClientConf conf = { "frontdoor-video", fifoPath, rtpVideoNegotiator, fifoPacketizer };
-            fifo = nabto::FifoFileClient::create(conf);
+            fifoVideo = nabto::FifoFileClient::create(conf);
 
-            medias.push_back(fifo);
-
+            medias.push_back(fifoVideo);
         } catch (std::exception& ex) {
             // fifoPath was not set, default to RTP.
             uint16_t port = opts["rtpPort"].get<uint16_t>();
@@ -360,7 +380,8 @@ bool parse_options(int argc, char** argv, json& opts)
             ("r,rtsp", "Use RTSP at the provided url instead of RTP (eg. rtsp://127.0.0.l:8554/video)", cxxopts::value<std::string>())
             ("rtsp-use-udp", "If set, the RTSP client will use UDP as transport for RTP data")
             ("rtp-port", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
-            ("f,fifo", "Use FIFO file descriptor at the provided path instead of RTP", cxxopts::value<std::string>())
+            ("f,fifo", "Use FIFO file descriptor at the provided path for video instead of RTP", cxxopts::value<std::string>())
+            ("fifo-audio", "Use FIFO file descriptor at the provided path for audio instead of RTP", cxxopts::value<std::string>())
             ("c,cloud-domain", "Optional. Domain for the cloud deployment. This is used to derive JWKS URL, JWKS issuer, and frontend URL", cxxopts::value<std::string>()->default_value("smartcloud.nabto.com"))
             ("H,home-dir", "Set which dir to store IAM data", cxxopts::value<std::string>())
             ("iam-reset", "If set, will reset the IAM state and exit")
@@ -430,6 +451,12 @@ bool parse_options(int argc, char** argv, json& opts)
         opts["rtpPort"] = result["rtp-port"].as<uint16_t>();
         if (result.count("fifo")) {
             opts["fifoPath"] = result["fifo"].as<std::string>();
+            if (result.count("fifo-audio")) {
+                opts["fifoAudioPath"] = result["fifo-audio"].as<std::string>();
+            }
+        }
+        else if (result.count("fifo-audio")) {
+            std::cout << "fifo-audio was provided without fifo which is not supported! Will revert to RTP/RTSP" << std::endl;
         }
 
         std::string domain = result["cloud-domain"].as<std::string>();
