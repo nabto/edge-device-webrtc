@@ -7,6 +7,7 @@
 #include <util/util.hpp>
 #include <media-streams/media_stream.hpp>
 #include <track-negotiators/h264.hpp>
+#include <track-negotiators/opus.hpp>
 #include <track-negotiators/pcmu.hpp>
 #include <rtp-packetizer/h264_packetizer.hpp>
 #include <rtp-packetizer/pcmu_packetizer.hpp>
@@ -109,7 +110,8 @@ int main(int argc, char** argv) {
     nabto::FifoFileClientPtr fifoAudio = nullptr;
     bool repacketH264 = opts["repacketH264"].get<bool>();
     auto rtpVideoNegotiator = nabto::H264Negotiator::create();
-    auto rtpAudioNegotiator = nabto::PcmuNegotiator::create();
+    auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
+    // auto rtpAudioNegotiator = nabto::PcmuNegotiator::create();
 
     try {
         std::string rtspUrl = opts["rtspUrl"].get<std::string>();
@@ -124,6 +126,10 @@ int main(int argc, char** argv) {
         // rtspUrl was not set, try fifo
         try {
             try {
+                // Try add audio
+                // FIFO only supports PCMU
+                rtpAudioNegotiator = nabto::PcmuNegotiator::create();
+
                 std::string fifoPath = opts["fifoAudioPath"].get<std::string>();
                 auto fifoPacketizer = nabto::PcmuPacketizerFactory::create("frontdoor-audio");
 
