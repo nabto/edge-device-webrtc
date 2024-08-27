@@ -38,7 +38,7 @@ async function connect()
     document.getElementById("disconnect").disabled = false;
     document.getElementById("createDc").disabled = false;
     boxLog("Connected to device. Getting video feed.")
-    webrtcConnection.coapInvoke("GET","/webrtc/get");
+    webrtcConnection.coapInvoke("POST","/webrtc/tracks");
   } catch (err) {
     boxLog(`Connect Failed: (${err.code}) ${err.message}`);
     document.getElementById("connect").disabled = false;
