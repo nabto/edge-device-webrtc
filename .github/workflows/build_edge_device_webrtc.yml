@@ -48,3 +48,12 @@ jobs:
           name: ${{matrix.executable_name}}
           path: ${{ github.workspace }}/build/${{ matrix.preset }}/install/bin/edge_device_webrtc
           if-no-files-found: warn
+      - if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ github.workspace }}/build/${{ matrix.preset }}/install/bin/edge_device_webrtc
+          asset_name: ${{ matrix.executable_name }}
+          asset_content_type: application/zip
