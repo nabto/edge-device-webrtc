@@ -59,51 +59,72 @@ docker run -v `pwd`/webrtc-home:/homedir -it --rm edge-device-webrtc edge_device
 
 Too see how to build the example for a desktop system, see section [Build example for desktop]
 
-## Cross building the example for a Linux based camera
+## Cross building for Linux based cameras
 
 The software is meant to be run on embedded systems such as Linux based cameras,
 these cameras often come with their own toolchains and libraries tailored to
 the platform.
 
-Dockerfiles are provided in `./cross_build` that demonstrate how to cross compile the example application and all dependencies. For instance, see `cross_build/aarch64/Dockerfile` for an arm64 cross build that works with e.g. Raspberry Pi. To adopt to a custom toolchain, adjust the Dockerfile to include and use the custom toolchain. Assuming the custom toolchain is available in "camera-toolchain.tar.gz", it can be installed it into the image as follows (similar to the `cross_build/sigmastar/Dockerfile` example):
+It is easiest to cross compile using the vcpkg package manager. But for more
+advanced builds is is also possible to cross compile the software without using
+the VCPKG package manager at all, then you just need to provide all the packages
+your self, see e.g. the folder ./cross_build/aarch64
 
+For example to crosscompile for 64 bit ARM on linux it is only neccessary to use the following options
 ```
-RUN apt-get update && apt-get install git build-essential cmake curl file tar -y
-COPY camera-toolchain.tar.gz /opt/
-RUN tar xfz /opt/camera-toolchain.tar.gz -C /opt/
-
-ENV CC=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
-ENV CXX=/opt/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++
-ARG OPENSSL_TARGET=linux-armv4
-```
-The `OPENSSL_TARGET` is typically `linux-aarch64` for 64-bit ARM based targets and `linux-armv4` for 32-bit.
-
-The cross build example consists of a Dockerfile which uses several layers to
-build the individual dependency libraries and then builds it into a binary.
-
-The build can be run as follows:
-
-```
-docker build -f cross_build/sigmastar/Dockerfile --progress plain -t edge_device_webrtc_sigmastar .
+export CC=aarch64-linux-gnu-gcc
+export CXX=aarch64-linux-gnu-g++
+mkdir -p build/linux_arm64_crosscompile
+cd build/linux_arm64_crosscompile
+cmake -DCMAKE_TOOLCHAIN_FILE=`pwd`/../../3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_MODULE_PATH=`pwd`/../../cmake/vcpkg -DVCPKG_TARGET_TRIPLET=arm64-linux -DCMAKE_INSTALL_PREFIX=`pwd`/install ../../
+make install
 ```
 
-> [!IMPORTANT]
-> You need to call the command from this directory to ensure the correct context is provided for docker.
+The option `-DVCPKG_TARGET_TRIPLET` is used to specify the triplet which VCPKG
+uses to build the 3rdparty dependencies that EdgeDeviceWebRTC depends on read
+more here: https://learn.microsoft.com/en-us/vcpkg/concepts/triplets or find a
+list of commonly used triplets here:
+https://github.com/microsoft/vcpkg/tree/master/triplets
 
-To access the build output, create an instance of the container and copy the binary to the current directory on the host machine:
+# Building for the Raspberry PI
+
+The Raspberry PI boards commonly runs the Raspbian OS, this OS is either running
+as 32bit or 64bit.
+
+This software can be built for the Raspberry PI either as a crosscompilation or
+a compilation directly on the target. Building the software on the RPI takes a
+long time since it is slow at compiling software so the easiest approach is to
+cross compile the software for the Raspberry PI.
+
+## Cross compiling for Raspbian OS.
+
+This guide assumes you have a Debian or Ubuntu based machine to build the software on.
+
+This guide does not build the software for Raspberry PI 1 and Raspberry PI Zero
+as they are running ARMv6 which is not the target for the 32 bit build.
+
+Install prerequisites:
 
 ```
-$ docker create --name tmp_container edge_device_webrtc_sigmastar
-$ docker cp tmp_container:/tmp/install/bin/edge_device_webrtc .
-$ file edge_device_webrtc
-edge_device_webrtc: ELF 32-bit LSB executable, ARM, EABI5 version 1 (GNU/Linux), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, BuildID[sha1]=c85e0ee63d691499630efeae4e2b00e22068cc22, for GNU/Linux 3.2.0, with debug_info, not stripped
+sudo apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
 ```
 
-#### Testing the cross build without a physical target
+Build for 32bit
+```
+cmake --workflow --preset linux_arm_crosscompile
+```
 
-The aarch64 Dockerfile (`cross_build/aarch64/Dockerfile`) has a commented out section at the bottom that shows how to run the resulting aarch64 binary through qemu; this demonstrates that the compiled binary works on something else than the system used to compile the binary.
+Build for 64bit
+```
+cmake --workflow --preset linux_arm64_crosscompile
+```
 
-If enabling the qemu section at the bottom of `cross_build/aarch64/Dockerfile`, the resulting aarch64 binary can be run by starting and interactive session with `docker run --rm -it edge_device_webrtc_aarch64`. Then the aarch64 binary can be run as `LD_LIBRARY_PATH=/tmp/example qemu-aarch64-static /tmp/example/edge_device_webrtc`.
+After the build the 32bit edge_device_webrtc executable is found at
+`build/linux_arm_crosscompile/install/bin/edge_device_webrtc` and the 64bit
+executable can be found at
+`build/linux_arm64_crosscompile/install/bin/edge_device_webrtc`
+
+The resulting binary can be copied and run on Raspberry PI.
 
 ## Building the example for desktop
 
@@ -119,6 +140,12 @@ You need the following tools to build the example:
 * [CMake](https://cmake.org/)
 * C++ compiler
 * curl zip unzip tar
+* pkg-config
+
+Install requirements on debian based linux systems:
+```
+apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config
+```
 
 ### Building
 The example is built using cmake from the root of this repo:
@@ -127,9 +154,7 @@ The example is built using cmake from the root of this repo:
 cmake --workflow --preset release
 ```
 
-> [!IMPORTANT]
-> If your build host has limited resources and you try to limit the build concurrency using e.g. `make -j1`, you also need to explicitly limit the vcpkg build concurrency using `export VCPKG_MAX_CONCURRENCY=1` prior to running cmake.
-
+The resulting binaries and libraries is located in the folder ./build/release/install
 
 ## Running the example
 
@@ -202,22 +227,6 @@ When building with unit tests, CMake will look for GStreamer dependencies. If it
 * `gstreamer1.0-plugins-ugly`
 
 Additionally, the RTSP client supports both Basic and Digest authentication. These features can be disabled with the CMake options `-DRTSP_HAS_BASIC_AUTH=OFF` and `-DRTSP_HAS_DIGEST_AUTH=OFF`.
-
-### Crosscompiling
-
-It is easiest to crosscompile just using the vcpkg toolchain.
-
-For example to crosscompile for arm64 on linux it is only neccessary to use the following options
-```
-export CC=aarch64-linux-gnu-gcc
-export CXX=aarch64-linux-gnu-g++
-mkdir -p build/linux_arm64_crosscompile
-cd build/aarch64
-cmake -DCMAKE_TOOLCHAIN_FILE=`pwd`/../../3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_MODULE_PATH=`pwd`/../../cmake/vcpkg -DVCPKG_TARGET_TRIPLET=arm64-linux -DCMAKE_INSTALL_PREFIX=`pwd`/install ../../
-make install
-```
-
-The above example can also be run using `cmake --workflow --preset linux_arm64_crosscompile`
 
 ### Building without vcpkg
 
