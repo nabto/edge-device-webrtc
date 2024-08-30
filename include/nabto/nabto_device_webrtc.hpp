@@ -241,8 +241,8 @@ public:
      * Message types when sending/receiving datachannel messages
      */
     enum MessageType {
-        MESSAGE_TYPE_STRING,
-        MESSAGE_TYPE_BINARY
+        MESSAGE_TYPE_BINARY,
+        MESSAGE_TYPE_STRING
     };
 
     /**
