@@ -138,7 +138,6 @@ void FifoFileClient::doAddConnection(NabtoDeviceConnectionRef ref, FifoTrack tra
         NPLOGD << "    adding Track receiver";
         auto self = shared_from_this();
 
-        // TODO: what should filename be? Should we have two more cmd options for this? or should we just append something like .out to the upstream pipe?
         auto path = filePath_ + ".out";
         fdRecv_ = open(path.c_str(), O_RDWR, O_NONBLOCK);
 
