@@ -323,6 +323,8 @@ The device can be started using the file path:
 You can now connect to the device from a client and see the feed.
 The Gstreamer/FFMPEG commands will only write to the FIFO when the device is reading it. This also means when the client connection is closed and the device stops reading the FIFO, the Gstreamer/FFMPEG will exit and new client connections will not be able to see the feed before the streamer is started again (`mkfifo` does not need to be run again, only the streamer command).
 
+To use the 2-way audio feature, you must use a client with 2-way audio support. The demo website does NOT have this support. For a browser client, use the `examples/webrtc-demo/web-client`. With this client, once you have opened a connection and the feed from the device, you must click `Add Upstream Audio` before the browser will start sending audio data to the device.
+
 
 ## Building the NabtoWebRTCSDK components
 
