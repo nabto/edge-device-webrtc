@@ -278,9 +278,10 @@ The demo can read a raw H264 video and PCMU audio feeds from FIFO file descripto
  * The example feeds requires Gstreamer or FFMPEG installed
  * The example video feed is based on v4l2 webcam at `/dev/video0`, but can be any video source.
  * The example audio feed is based on pulsesrc, but can be any audio source.
- * The example only supports sending a H264 video feed and a PCMU audio feed. No downstream feeds are supported.
+ * The example supports a one-way H264 video feed and a two-way PCMU audio feed.
  * The video feed must use the byte-stream format specified in Annex B of the [ITU-T H.264 Recommendation](https://www.itu.int/rec/T-REC-H.264-202108-I/en).
  * The example will assume a fifo video feed is present, but audio is optional. This means the device cannot be started with `--fifo-audio ..` without also using `--fifo`
+ * The example assumes the audio feed from the client should be written to the file: `<--fifo-audio option>.out` eg. if `--fifo-audio foo.fifo` it will write to `foo.fifo.out`.
 
 
 A test video feed can be created using Gstreamer after creating the FIFO file descriptor:
@@ -304,6 +305,13 @@ Similarly an audio feed can be started using:
 ```
 mkfifo /tmp/audio.fifo
 gst-launch-1.0 -v  pulsesrc ! audio/x-raw, format=S16LE,channels=1,rate=8000 ! audioresample ! mulawenc ! filesink buffer-mode=2 location="/tmp/audio.fifo"
+```
+
+Downstream audio fifo should also be created and can then be played back:
+
+```
+mkfifo /tmp/audio.fifo.out
+gst-launch-1.0 filesrc location="audio.fifo.out" ! queue ! audio/x-mulaw, rate=8000, channels=1 ! mulawdec ! audioconvert ! autoaudiosink sync=false
 ```
 
 The device can be started using the file path:
