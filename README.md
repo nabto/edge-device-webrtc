@@ -311,7 +311,7 @@ Downstream audio fifo should also be created and can then be played back:
 
 ```
 mkfifo /tmp/audio.fifo.out
-gst-launch-1.0 filesrc location="audio.fifo.out" ! queue ! audio/x-mulaw, rate=8000, channels=1 ! mulawdec ! audioconvert ! autoaudiosink sync=false
+gst-launch-1.0 filesrc location="/tmp/audio.fifo.out" ! queue ! audio/x-mulaw, rate=8000, channels=1 ! mulawdec ! audioconvert ! autoaudiosink sync=false
 ```
 
 The device can be started using the file path:
