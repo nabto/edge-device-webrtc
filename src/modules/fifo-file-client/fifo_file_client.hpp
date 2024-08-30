@@ -67,6 +67,7 @@ private:
     std::thread thread_;
 
     int fd_;
+    int fdRecv_;
 
 };
 } // namespace

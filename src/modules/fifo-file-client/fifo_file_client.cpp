@@ -110,6 +110,10 @@ void FifoFileClient::stop()
         else {
             stopped_ = true;
             close(fd_);
+            if (fdRecv_) {
+                close(fdRecv_);
+                fdRecv_ = 0;
+            }
         }
     }
     if (!stopped && thread_.joinable()) {
@@ -128,7 +132,41 @@ void FifoFileClient::doAddConnection(NabtoDeviceConnectionRef ref, FifoTrack tra
     if (stopped_) {
         start();
     }
-    // TODO: should file descriptors support downstream data? If so, setup track receive callback here.
+
+    if (negotiator_->direction() != TrackNegotiator::SEND_ONLY) {
+        // We are also gonna receive data
+        NPLOGD << "    adding Track receiver";
+        auto self = shared_from_this();
+
+        auto path = filePath_ + ".out";
+        fdRecv_ = open(path.c_str(), O_RDWR, O_NONBLOCK);
+
+        NPLOGI << "file opened at: " << path << " fd: " << fdRecv_;
+
+
+        track.track->setReceiveCallback([self, track](uint8_t* buffer, size_t length) {
+            auto rtp = reinterpret_cast<rtc::RtpHeader*>(buffer);
+
+            uint8_t pt = rtp->payloadType();
+            if (pt != self->negotiator_->payloadType()) {
+                // This does not match the payload type we negotiated. This is probably RTCP traffic. We just ignore it.
+                return;
+            }
+
+            size_t headerLen = rtp->getSize() + rtp->getExtensionHeaderSize();
+            if (length < headerLen) {
+                NPLOGD << "Received invalid packet size: " << length << " < " << headerLen;
+                return;
+            }
+
+            uint8_t* payload = buffer + headerLen;
+
+            auto ret = write(self->fdRecv_, payload, length - headerLen);
+            if (ret < length - headerLen) {
+                // TODO: what if we cannot write all data?
+            }
+        });
+    }
 
 }
 
