@@ -110,6 +110,10 @@ void FifoFileClient::stop()
         else {
             stopped_ = true;
             close(fd_);
+            if (fdRecv_) {
+                close(fdRecv_);
+                fdRecv_ = 0;
+            }
         }
     }
     if (!stopped && thread_.joinable()) {
