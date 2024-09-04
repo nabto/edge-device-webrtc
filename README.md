@@ -14,7 +14,7 @@ The example application can be tried as follows:
 
 3. [Provide dependencies manually](#provide-dependencies-manually): Build the example application and provide all dependencies yourself instead of using vcpkg. For advanced use only.
 
-You can see how to run the resulting executable from approaches 2 in the [Running](#running-the-example) section.
+You can see how to run the resulting executable from approach 2 in the [Running](#running-the-example) section.
 
 For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html).
 
