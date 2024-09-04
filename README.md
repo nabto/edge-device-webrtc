@@ -109,12 +109,14 @@ Install prerequisites:
 sudo apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
 ```
 
-Build for 32bit
+Build for 32bit:
+
 ```
 cmake --workflow --preset linux_arm_crosscompile
 ```
 
-Build for 64bit
+Build for 64bit:
+
 ```
 cmake --workflow --preset linux_arm64_crosscompile
 ```
@@ -154,7 +156,7 @@ The example is built using cmake from the root of this repo:
 cmake --workflow --preset release
 ```
 
-The resulting binaries and libraries is located in the folder ./build/release/install
+The resulting binaries and libraries are located in the folder `./build/release/install`.
 
 ## Running the example
 
