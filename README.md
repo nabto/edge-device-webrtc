@@ -9,7 +9,7 @@ Note that the example applications use the RTP client in `./src/modules/rtp-clie
 Below, 3 different approaches to building the example application are shown:
 
 1. [Demo Docker container for quick desktop test](#demo-docker-container-for-quick-desktop-test): Get started instantly with no tool or build hassle, you just need Docker installed
-2. [Cross building the example for a Linux based camera](#cross-building-the-example-for-a-linux-based-camera): Cross build the example application for Linux based camera using a Docker based build container you can customize with your own specific toolchain
+2. [Cross building for Linux based cameras](#cross-building-the-example-for-linux-based-cameras): Cross build the example application for Linux based cameras using a Docker based build container you can customize with your own specific toolchain
 3. [Building the example for desktop](#building-the-example-for-desktop): Build the example application using build tools in your development environment
 
 > [!TIP]
@@ -28,7 +28,7 @@ This Github repo references various 3rd party components as submodules. So remem
 git clone --recursive https://github.com/nabto/edge-device-webrtc.git
 ```
 
-## Demo Docker container for quick desktop test
+# Demo Docker container for quick desktop test
 
 For demo purposes, this example can be run in a Docker container. This requires Docker to be installed on your system, but ensures all dependencies are installed and working.
 After cloning this repo as shown above, the demo can be build using:
@@ -59,7 +59,7 @@ docker run -v `pwd`/webrtc-home:/homedir -it --rm edge-device-webrtc edge_device
 
 Too see how to build the example for a desktop system, see section [Build example for desktop]
 
-## Cross building for Linux based cameras
+# Cross building for Linux based cameras
 
 The software is meant to be run on embedded systems such as Linux based cameras,
 these cameras often come with their own toolchains and libraries tailored to
