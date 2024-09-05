@@ -126,6 +126,7 @@
         {
             "name": "raspberry_pi_native",
             "configurePreset": "raspberry_pi_native",
+            "jobs": 1,
             "targets": ["install"]
         }
     ],
