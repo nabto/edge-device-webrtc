@@ -14,7 +14,7 @@ The example application can be tried as follows:
 
 3. [Provide dependencies manually](#provide-dependencies-manually): Build the example application and provide all dependencies yourself instead of using vcpkg. For advanced use only.
 
-You can see how to run the resulting executable from approach 2 in the [Running](#running-the-example) section.
+You can see how to run the resulting executable from approaches 2 and 3 in the [Running](#running-the-example) section.
 
 For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html).
 
@@ -78,7 +78,7 @@ sudo apt-get install cmake git ninja-build build-essential curl zip unzip tar pk
    g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
 ```
 
-If your toolchain is not available from a package manager, if e.g. you have gotten it from a video chipset vendor, you must manually install and how to invoke the C and C++ compiler from the vendors' instructions. Then set the `CC` and `CXX` environment variables, respectively, as outlined below.
+If your toolchain is not available from a package manager, if e.g. you have gotten it from a video chipset vendor, you must manually install it and learn how to invoke the C and C++ compiler from the vendors' instructions. Then set the `CC` and `CXX` environment variables, respectively, as outlined below.
 
 
 # Build using `vcpkg`
@@ -129,7 +129,7 @@ Also update `CC` and `CXX` as needed.
 
 ## Using a custom triplet for architectures not officially supported
 
-If you need to support an architecture that is not officially supported or part of the community repository, it is quite straight forward to make your own. For instance, to support mips32, create a `triplets` subdirectory in the repo root (at the same level as `vcpkg.json`).
+If you need to build for an architecture that is not officially supported or part of the community repository, it is quite straight forward to make your own. For instance, to support `mips32`, create a `triplets` subdirectory in the repo root (at the same level as `vcpkg.json`).
 
 ```
 mkdir triplets
@@ -161,12 +161,12 @@ make install
 
 # Specific `vcpkg` build examples
 
-## Building for the Raspberry PI
+## Building for the Raspberry Pi
 
-The Raspberry PI boards commonly runs the Raspbian OS, this OS is either running
+The Raspberry Pi boards commonly runs the Raspbian OS, this OS is either running
 as 32bit or 64bit. We have precompiled binaries available under [releases in github](https://github.com/nabto/edge-device-webrtc/releases).
 
-The WebRTC example can be built for the Raspberry PI either as a cross-compilation or
+The WebRTC example can be built for the Raspberry Pi either as a cross-compilation or
 a compilation directly on the Raspberry Pi by following the [desktop build guidelines](#building-the-example-for-desktop). Building the software on the device takes a long time since it is slow at compiling so the easiest approach is to
 cross compile as outlined in the following section.
 
@@ -174,7 +174,7 @@ cross compile as outlined in the following section.
 
 This guide assumes you have a Debian or Ubuntu based machine to crossbuild the software on.
 
-This guide does not build the software for Raspberry PI 1 and Raspberry PI Zero
+This guide does not build the software for Raspberry Pi 1 and Raspberry Pi Zero
 as they are running ARMv6 which is not the target for the 32 bit build.
 
 First install prerequisites, the [Build prequisites](#build-prerequisites) section has an exact example for Raspberry Pi you can use.
@@ -193,12 +193,12 @@ Build for 64-bit ARM, including Raspberry Pi 64-bit:
 cmake --workflow --preset linux_arm64_crosscompile
 ```
 
-After the build the 32bit edge_device_webrtc executable is found at
-`build/linux_arm_crosscompile/install/bin/edge_device_webrtc` and the 64bit
+After the build, the 32-bit `edge_device_webrtc` executable is found at
+`build/linux_arm_crosscompile/install/bin/edge_device_webrtc` and the 64-bit
 executable can be found at
 `build/linux_arm64_crosscompile/install/bin/edge_device_webrtc`
 
-The resulting binary can be copied and run on Raspberry PI.
+The resulting binary can be copied and run on the Raspberry Pi.
 
 Alternatively, the Raspberry Pi build can of course also be done as a [general cross build](#build-using-vcpkg).
 
@@ -300,9 +300,9 @@ Additionally, the RTSP client supports both Basic and Digest authentication. The
 ### Building without vcpkg
 
 Vcpkg is great when used to build standard software for common platforms such as
-Windows, Linux, Mac, iOS and Android. The usage of vcpkg can be disabled when
+Windows, Linux, Mac, iOS and Android. The usage of `vcpkg` can be disabled when
 invoking cmake by setting `NABTO_WEBRTC_USE_VCPKG` e.g. `cmake
--DNABTO_WEBRTC_USE_VCPKG=OFF ...`. When vcpkg is disabled it is up to the
+-DNABTO_WEBRTC_USE_VCPKG=OFF ...`. When `vcpkg` is disabled it is up to the
 builder to provide the needed libraries such as openssl, curl and boost test.
 The libraries needed depends on which configurations of the software is being
 built. See below for how to disable specific features - if a feature is not needed, you may skip some dependencies.
