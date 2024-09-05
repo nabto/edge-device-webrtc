@@ -16,7 +16,7 @@ The example application can be tried as follows:
 
 4. [Cross-build for Raspberry Pi](#cross-build-for-raspberry-pi)
 
-5. [Cross-build for embedded systems](#cross-build-for-embedded-systems): Build the example application and all dependencies using [`vcpkg`](https://vcpkg.io/en/) for dependency management.
+5. [Cross-build for embedded systems](#cross-build-for-embedded-systems): Build the example application and all dependencies using [`vcpkg`](https://vcpkg.io/en/) for dependency management. **_CHOOSE THIS APPROACH IF BUILDING FOR A LINUX BASED CAMERA_**
 
 6. [Provide dependencies manually](#provide-dependencies-manually): Build the example application and provide all dependencies yourself instead of using `vcpkg`. For advanced use only.
 
