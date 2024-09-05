@@ -22,11 +22,12 @@ The example application can be tried as follows:
 
 You can see how to run the resulting executables in the [Running](#running-the-example) section.
 
+[!TIP]
+> **To build a binary to be installed on a camera, pick [approach 5](#cross-build-for-embedded-systems)**.
 
 For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html).
 
-## Obtaining the Source> [!TIP]
-> **To build a binary to be installed on a camera, pick [approach 5](#cross-build-for-embedded-systems)**.
+## Obtaining the Source>
 
 This Github repo uses [`vcpkg`](https://vcpkg.io/en/) through a submodule. So if using approach 2 above, remember to clone recursively:
 
@@ -91,6 +92,7 @@ If your toolchain is not available from a package manager, if e.g. you have gott
 
 ## Build for desktop systems
 
+[!TIP]
 > **To build a binary to be installed on a camera, instead see the [cross-build section](#cross-build-for-embedded-systems)**.
 
 This section describes how to build for desktop Linux, macOS and Windows systems. The purpose is to build for testing and development in a simpler environment than an actual embedded system. If you want to build software to use _on_ an embedded system, please see the [cross-build](#cross-build-for-embedded-systems) section.
