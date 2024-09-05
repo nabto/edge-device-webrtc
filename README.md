@@ -56,6 +56,31 @@ mkdir webrtc-home
 docker run -v `pwd`/webrtc-home:/homedir -it --rm edge-device-webrtc edge_device_webrtc -r rtsp://127.0.0.1:8554/video -H /homedir -d <YOUR_DEVICE_ID> -p <YOUR_PRODUCT_ID> -k <RAW_KEY_CREATED_ABOVE>
 ```
 
+# Build prerequisites
+
+You will need the following tools to build the WebRTC example application:
+
+* Git
+* [CMake](https://cmake.org/)
+* [Ninja](https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages)
+* curl
+* zip
+* unzip
+* tar
+* pkg-config
+
+And then of course a relevant toolchain and/or [cross-toolchain](https://en.wikipedia.org/wiki/Cross_compiler). Most of the above (except perhaps the toolchain) can be installed using the platform standard package manager (like `apt` on Debian flavor Linux systems) or defacto standard package manager (like `homebrew` on macOS). Note that cross-compilation is often not well supported on modern macOS systems, even through Docker, due to toolchains being x86 based.
+
+For instance, to cross-build on a Debian system for 32-bit and 64-bit Raspberry Pi systems, you can install all dependencies as follows:
+
+```
+sudo apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config \
+   g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
+```
+
+If your toolchain is not available from a package manager, if e.g. you have gotten it from a video chipset vendor, you must manually install and how to invoke the C and C++ compiler from the vendors' instructions. Then set the `CC` and `CXX` environment variables, respectively, as outlined below.
+
+
 # Build using `vcpkg`
 
 `vcpkg` is an open-source package manager designed to simplify managing C/C++ libraries on various platforms. It simplifies downloading, building and integrating dependencies into projects, reducing the complexity of managing libraries manually and ensuring consistency across different environments. [Read more about `vcpkg`](https://vcpkg.io/en/).
@@ -67,6 +92,8 @@ The triplet is specified to cmake as follows:
 ```
 -DVCPKG_TARGET_TRIPLET=arm64-linux
 ```
+
+In addition to configuring `vcpkg` with a triplet, you must point the build system to the C and C++ compiler for the target platform through the environment variables `CC` and `CXX`.
 
 The full build command for building for an ARM 64-bit based linux system then looks as follows:
 
@@ -132,38 +159,35 @@ make install
 ```
 
 
-# Specific build examples
+# Specific `vcpkg` build examples
 
 ## Building for the Raspberry PI
 
 The Raspberry PI boards commonly runs the Raspbian OS, this OS is either running
-as 32bit or 64bit.
+as 32bit or 64bit. We have precompiled binaries available under [releases in github](https://github.com/nabto/edge-device-webrtc/releases).
 
-This software can be built for the Raspberry PI either as a cross-compilation or
-a compilation directly on the target by following the above guidelines. Building the software on the RPI takes a
-long time since it is slow at compiling software so the easiest approach is to
-cross compile the software for the Raspberry PI.
+The WebRTC example can be built for the Raspberry PI either as a cross-compilation or
+a compilation directly on the Raspberry Pi by following the [desktop build guidelines](#building-the-example-for-desktop). Building the software on the device takes a long time since it is slow at compiling so the easiest approach is to
+cross compile as outlined in the following section.
 
-## Cross compiling for Raspbian OS
+### Cross compiling for Raspbian OS
 
-This guide assumes you have a Debian or Ubuntu based machine to build the software on.
+This guide assumes you have a Debian or Ubuntu based machine to crossbuild the software on.
 
 This guide does not build the software for Raspberry PI 1 and Raspberry PI Zero
 as they are running ARMv6 which is not the target for the 32 bit build.
 
-Install prerequisites:
+First install prerequisites, the [Build prequisites](#build-prerequisites) section has an exact example for Raspberry Pi you can use.
 
-```
-sudo apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
-```
+We have prepared specifc targets for a simple build experience.
 
-Build for 32bit:
+Build for 32-bit ARM, including Raspberry Pi 32-bit:
 
 ```
 cmake --workflow --preset linux_arm_crosscompile
 ```
 
-Build for 64bit:
+Build for 64-bit ARM, including Raspberry Pi 64-bit:
 
 ```
 cmake --workflow --preset linux_arm64_crosscompile
@@ -176,29 +200,11 @@ executable can be found at
 
 The resulting binary can be copied and run on Raspberry PI.
 
+Alternatively, the Raspberry Pi build can of course also be done as a [general cross build](#build-using-vcpkg).
+
 ## Building the example for desktop
 
-If building for the desktop, e.g. for development or testing without Docker, build scripts are provided that build dependencies through [vcpkg](https://vcpkg.io/en/).
-
-> [!IMPORTANT]
-> For embedded systems, it is simpler to build using a Docker container as outlined above. The default vcpkg build will fail for embedded systems and is not supported.
-
-### Tools
-You need the following tools to build the example:
-
-* Git
-* [CMake](https://cmake.org/)
-* C++ compiler
-* curl zip unzip tar
-* pkg-config
-
-Install requirements on debian based linux systems:
-```
-apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config
-```
-
-### Building
-The example is built using cmake from the root of this repo:
+First, install the prequisites as outlined in [above](#build-prerequisites). Replace the cross toolchain with a standard toolchain providing a C and C++ compiler. Likely these are already available on your host.
 
 ```
 cmake --workflow --preset release
@@ -207,14 +213,21 @@ cmake --workflow --preset release
 The resulting binaries and libraries are located in the folder `./build/release/install`.
 
 
-
 # Provide dependencies manually
 
-It is easiest to cross compile using the vcpkg package manager (see [above](build-example-and-dependencies)) as all dependencies are then built automatically. But for more advanced builds is is also possible to cross compile the software without using the vcpkg package manager at all, then you just need to provide all the dependencies yourself, see e.g. the folder `./cross_build/aarch64`.
+It is easiest to cross compile using the `vcpkg` package manager (see [above](#build-using-vcpkg)) as all dependencies are then built automatically. But for more advanced builds is is also possible to cross compile the software without using the `vcpkg` package manager at all, then you just need to provide all the dependencies yourself, including openssl, curl and boost.
+
+To disable `vcpkg`, invoke cmake by setting `NABTO_WEBRTC_USE_VCPKG`:
+
+```
+cmake -DNABTO_WEBRTC_USE_VCPKG=OFF ...
+```
+
+For an example of such build, see the Docker based build in the folder `./cross_build/aarch64`.
 
 # Running the example
 
-To start the device you must first either have RTP feeds or an RTSP server started. If you do not already have these, we have [guides available](https://docs.nabto.com/developer/platforms/embedded/linux-ipc/webrtc-example.html#feeds) for starting both simulated RTP and RTSP feeds.
+To start the device you must first either have RTP feeds or an RTSP server started. Or have a direct H264 and/or audio source that can be [fed through a fifo](#h264-feed-from-fifo-file-descriptor). If you do not have any video source but would like to try this WebRTC example anyway, we have [guides available](https://docs.nabto.com/developer/platforms/embedded/linux-ipc/webrtc-example.html#feeds) for starting both simulated RTP and RTSP feeds.
 
 Before starting the example, you need a device configured in the Nabto Cloud Console. This requires you to configure a fingerprint. To obtain this, run the example application with the `--create-key` argument:
 
@@ -292,7 +305,7 @@ invoking cmake by setting `NABTO_WEBRTC_USE_VCPKG` e.g. `cmake
 -DNABTO_WEBRTC_USE_VCPKG=OFF ...`. When vcpkg is disabled it is up to the
 builder to provide the needed libraries such as openssl, curl and boost test.
 The libraries needed depends on which configurations of the software is being
-built.
+built. See below for how to disable specific features - if a feature is not needed, you may skip some dependencies.
 
 There is an example in the folder `cross_build/aarch64` which compiles all the
 dependencies manually.
