@@ -10,18 +10,25 @@ The example application can be tried as follows:
 
 1. [Quick desktop test using pre-built Docker image](#quick-desktop-test-using-pre-built-docker-image): Get started instantly with no tool or build hassle, you just need Docker installed
 
-2. [Build using `vcpkg`](#build-using-vcpkg): Build the example application and all dependencies using [vcpkg](https://vcpkg.io/en/) for dependency management. For desktop systems and Linux based cameras.
+2. [Build for desktop systems](#build-for-desktop-systems)
 
-3. [Provide dependencies manually](#provide-dependencies-manually): Build the example application and provide all dependencies yourself instead of using vcpkg. For advanced use only.
+3. [Build on Raspberry Pi](#build-on-raspberry-pi)
 
-You can see how to run the resulting executable from approaches 2 and 3 in the [Running](#running-the-example) section.
+4. [Cross-build for Raspberry Pi](#cross-build-for-raspberry-pi)
+
+5. [Cross-build for embedded systems](#cross-build-for-embedded-systems): Build the example application and all dependencies using [`vcpkg`](https://vcpkg.io/en/) for dependency management.
+
+6. [Provide dependencies manually](#provide-dependencies-manually): Build the example application and provide all dependencies yourself instead of using `vcpkg`. For advanced use only.
+
+You can see how to run the resulting executables in the [Running](#running-the-example) section.
+
 
 For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html).
 
+## Obtaining the Source> [!TIP]
+> **To build a binary to be installed on a camera, pick [approach 5](#cross-build-for-embedded-systems)**.
 
-## Obtaining the Source
-
-This Github repo uses [vcpkg](https://vcpkg.io/en/) through a submodule. So if using approach 2 above, remember to clone recursively:
+This Github repo uses [`vcpkg`](https://vcpkg.io/en/) through a submodule. So if using approach 2 above, remember to clone recursively:
 
 ```
 git clone --recursive https://github.com/nabto/edge-device-webrtc.git
@@ -56,9 +63,11 @@ mkdir webrtc-home
 docker run -v `pwd`/webrtc-home:/homedir -it --rm edge-device-webrtc edge_device_webrtc -r rtsp://127.0.0.1:8554/video -H /homedir -d <YOUR_DEVICE_ID> -p <YOUR_PRODUCT_ID> -k <RAW_KEY_CREATED_ABOVE>
 ```
 
-# Build prerequisites
+# Building
 
-You will need the following tools to build the WebRTC example application:
+## Prerequisites
+
+You will need the following tools to build the WebRTC example application (note: see [special prerequisites](tbd) if building _on_ a Raspberry Pi):
 
 * Git
 * [CMake](https://cmake.org/)
@@ -71,19 +80,99 @@ You will need the following tools to build the WebRTC example application:
 
 And then of course a relevant toolchain and/or [cross-toolchain](https://en.wikipedia.org/wiki/Cross_compiler). Most of the above (except perhaps the toolchain) can be installed using the platform standard package manager (like `apt` on Debian flavor Linux systems) or defacto standard package manager (like `homebrew` on macOS). Note that cross-compilation is often not well supported on modern macOS systems, even through Docker, due to toolchains being x86 based.
 
-For instance, to cross-build on a Debian system for 32-bit and 64-bit Raspberry Pi systems, you can install all dependencies as follows:
+For instance, to cross-build on a Debian system for 64-bit ARM system, you can install all dependencies as follows:
 
 ```
 sudo apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config \
-   g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
+   g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
 ```
 
 If your toolchain is not available from a package manager, if e.g. you have gotten it from a video chipset vendor, you must manually install it and learn how to invoke the C and C++ compiler from the vendors' instructions. Then set the `CC` and `CXX` environment variables, respectively, as outlined below.
 
+## Build for desktop systems
 
-# Build using `vcpkg`
+> **To build a binary to be installed on a camera, instead see the [cross-build section](#cross-build-for-embedded-systems)**.
 
-`vcpkg` is an open-source package manager designed to simplify managing C/C++ libraries on various platforms. It simplifies downloading, building and integrating dependencies into projects, reducing the complexity of managing libraries manually and ensuring consistency across different environments. [Read more about `vcpkg`](https://vcpkg.io/en/).
+This section describes how to build for desktop Linux, macOS and Windows systems. The purpose is to build for testing and development in a simpler environment than an actual embedded system. If you want to build software to use _on_ an embedded system, please see the [cross-build](#cross-build-for-embedded-systems) section.
+
+First install prerequisites as outlined [above](#prerequisites).
+
+Then simply execute:
+
+```
+cmake --workflow --preset release
+```
+
+After a successful build, the resulting binary can be found here:
+
+```
+./build/release/install/bin/edge_device_webrtc
+```
+
+## Build on Raspberry Pi
+
+The Raspberry Pi boards commonly runs the Raspbian OS, this OS is either running
+as 32-bit or 64-bit. We have precompiled binaries available under [releases in github](https://github.com/nabto/edge-device-webrtc/releases).
+
+The Raspberry PI is incredibly slow when using it for compiling software, but
+often it is the simplest approach if a linux machine is not available for
+cross-compiling the software on. To speedup the compilation, this compilation
+depends on system libraries boost curl and openssl instead of compiling all the
+dependencies.
+
+For a much faster build process, we also support a simple [cross-build for Raspberry Pi](#cross-compiling-for-raspbian-os).
+
+### Prerequisites
+
+Install the build tools:
+```
+sudo apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config
+```
+
+Install the libraries:
+```
+sudo apt-get install libcurl4-openssl-dev libssl-dev libboost-test-dev
+```
+
+Build the software:
+```
+cmake --workflow --preset raspberry_pi_native
+```
+
+The resulting `edge_device_webrtc` binary is located at `build/raspberry_pi_native/install/bin/edge_device_webrtc`
+
+
+## Cross-build for Raspberry Pi
+
+This guide assumes you have a Debian or Ubuntu based machine to crossbuild the software on.
+
+This guide does not build the software for Raspberry Pi 1 and Raspberry Pi Zero
+as they are running ARMv6 which is not the target for the 32 bit build.
+
+First install prerequisites, the [build prequisites](#prerequisites) section has an exact example for Raspberry Pi you can use.
+
+We have prepared specifc targets for a simple build experience.
+
+Build for 32-bit ARM, including Raspberry Pi 32-bit:
+
+```
+cmake --workflow --preset linux_arm_crosscompile
+```
+
+Build for 64-bit ARM, including Raspberry Pi 64-bit:
+
+```
+cmake --workflow --preset linux_arm64_crosscompile
+```
+
+After the build, the 32-bit `edge_device_webrtc` executable is found at
+`build/linux_arm_crosscompile/install/bin/edge_device_webrtc` and the 64-bit
+executable can be found at
+`build/linux_arm64_crosscompile/install/bin/edge_device_webrtc`
+
+## Cross-build for embedded systems
+
+Our build system is based on `vcpkg`. This is an open-source package manager designed to simplify managing C/C++ libraries on various platforms. It simplifies downloading, building and integrating dependencies into projects, reducing the complexity of managing libraries manually and ensuring consistency across different environments. [Read more about `vcpkg`](https://vcpkg.io/en/). As an alternative to this standard build system, you can [provide all dependencies yourself](#provide-dependencies-manually).
 
 `vcpkg` uses [_triplets_](https://learn.microsoft.com/en-us/vcpkg/concepts/triplets) to define the target architecture, platform and library linkage which is crucial for cross-compiling dependencies for embedded systems. A triplet looks like `arm64-linux-dynamic`. The linkage configuration is often omitted and a default is used based on the specified architecture and platform. So to cross compile for e.g. an ARM 64-bit based Linux system, you often just specify `arm64-linux`.
 
@@ -109,7 +198,7 @@ cmake -DCMAKE_TOOLCHAIN_FILE=`pwd`/../../3rdparty/vcpkg/scripts/buildsystems/vcp
 make install
 ```
 
-## Choosing an existing triplet
+### Choosing an existing triplet
 
 The following table shows official and community triplets often relevant for IP cameras:
 
@@ -127,7 +216,7 @@ So to build for an ARM 32-bit linux system, change the triplet configuration in 
 
 Also update `CC` and `CXX` as needed.
 
-## Using a custom triplet for architectures not officially supported
+### Using a custom triplet for architectures not officially supported
 
 If you need to build for an architecture that is not officially supported or part of the community repository, it is quite straight forward to make your own. For instance, to support `mips32`, create a `triplets` subdirectory in the repo root (at the same level as `vcpkg.json`).
 
@@ -158,91 +247,9 @@ cmake -DCMAKE_TOOLCHAIN_FILE=`pwd`/../../3rdparty/vcpkg/scripts/buildsystems/vcp
 make install
 ```
 
+## Provide dependencies manually
 
-# Specific `vcpkg` build examples
-
-## Building for the Raspberry Pi
-
-The Raspberry Pi boards commonly runs the Raspbian OS, this OS is either running
-as 32bit or 64bit. We have precompiled binaries available under [releases in github](https://github.com/nabto/edge-device-webrtc/releases).
-
-The WebRTC example can be built for the Raspberry Pi either as a cross-compilation or
-a compilation directly on the Raspberry Pi by following the [Building the example on a Raspberry PI guidelines](#building-the-example-on-a-raspberry-pi). Building the software on the device takes a long time since it is slow at compiling so the easiest approach is to
-cross compile as outlined in the following section.
-
-### Cross compiling for Raspbian OS
-
-This guide assumes you have a Debian or Ubuntu based machine to crossbuild the software on.
-
-This guide does not build the software for Raspberry Pi 1 and Raspberry Pi Zero
-as they are running ARMv6 which is not the target for the 32 bit build.
-
-First install prerequisites, the [Build prequisites](#build-prerequisites) section has an exact example for Raspberry Pi you can use.
-
-We have prepared specifc targets for a simple build experience.
-
-Build for 32-bit ARM, including Raspberry Pi 32-bit:
-
-```
-cmake --workflow --preset linux_arm_crosscompile
-```
-
-Build for 64-bit ARM, including Raspberry Pi 64-bit:
-
-```
-cmake --workflow --preset linux_arm64_crosscompile
-```
-
-After the build, the 32-bit `edge_device_webrtc` executable is found at
-`build/linux_arm_crosscompile/install/bin/edge_device_webrtc` and the 64-bit
-executable can be found at
-`build/linux_arm64_crosscompile/install/bin/edge_device_webrtc`
-
-The resulting binary can be copied and run on the Raspberry Pi.
-
-Alternatively, the Raspberry Pi build can of course also be done as a [general cross build](#build-using-vcpkg).
-
-## Building the example on a Raspberry PI
-
-The Raspberry PI is incredible slow when using it for compiling software, but
-often it is the simplest approach if a linux machine is not awailable for
-crosscompiling the software on. To speedup the compilation this compilation
-depends on system libraries boost curl and openssl instead of compiling all the
-dependencies itself.
-
-## Prerequisite:
-
-Install the build tools:
-```
-sudo apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config
-```
-
-Install the Libraries:
-```
-sudo apt-get install libcurl4-openssl-dev libssl-dev libboost-test-dev
-```
-
-Build the software
-```
-cmake --workflow --preset raspberry_pi_native
-```
-
-The resulting edge_device_webrtc is located at `build/raspberry_pi_native/install/bin/edge_device_webrtc`
-
-## Building the example for desktop
-
-First, install the prequisites as outlined in [above](#build-prerequisites). Replace the cross toolchain with a standard toolchain providing a C and C++ compiler. Likely these are already available on your host.
-
-```
-cmake --workflow --preset release
-```
-
-The resulting binaries and libraries are located in the folder `./build/release/install`.
-
-
-# Provide dependencies manually
-
-It is easiest to cross compile using the `vcpkg` package manager (see [above](#build-using-vcpkg)) as all dependencies are then built automatically. But for more advanced builds is is also possible to cross compile the software without using the `vcpkg` package manager at all, then you just need to provide all the dependencies yourself, including openssl, curl and boost.
+It is easiest to cross compile using the `vcpkg` package manager (see [above](#cross-build-for-embedded-systems)) as all dependencies are then built automatically. But for more advanced builds, it is also possible to cross-compile the software without using the `vcpkg` package manager at all, then you just need to provide all the dependencies yourself, including openssl, curl and boost.
 
 To disable `vcpkg`, invoke cmake by setting `NABTO_WEBRTC_USE_VCPKG`:
 
@@ -324,7 +331,7 @@ When building with unit tests, CMake will look for GStreamer dependencies. If it
 
 Additionally, the RTSP client supports both Basic and Digest authentication. These features can be disabled with the CMake options `-DRTSP_HAS_BASIC_AUTH=OFF` and `-DRTSP_HAS_DIGEST_AUTH=OFF`.
 
-### Building without vcpkg
+### Building without `vcpkg`
 
 Vcpkg is great when used to build standard software for common platforms such as
 Windows, Linux, Mac, iOS and Android. The usage of `vcpkg` can be disabled when
@@ -419,7 +426,7 @@ and depends on other libraries.
 
 A user of the NabtoWebRTC libraries is in charge of defining which 3rdparty
 libraries and their versions which the NabtoWebRTC libraries should use. Often
-such decisions is handled by a package manager such as apt, vcpkg, etc.
+such decisions is handled by a package manager such as apt, `vcpkg`, etc.
 
 Depending on the configuration of the NabtoWebRTCSDK the following third party
 libraries is needed:
