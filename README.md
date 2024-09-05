@@ -174,7 +174,7 @@ executable can be found at
 
 ## Cross-build for embedded systems
 
-Our build system is based on `vcpkg`. This is an open-source package manager designed to simplify managing C/C++ libraries on various platforms. It simplifies downloading, building and integrating dependencies into projects, reducing the complexity of managing libraries manually and ensuring consistency across different environments. [Read more about `vcpkg`](https://vcpkg.io/en/). As an alternative to this standard build system, you can [provide all dependencies yourself](#provide-dependencies-manually).
+Our build system is based on `vcpkg`. This is an open-source package manager designed to simplify managing C/C++ libraries on various platforms. It simplifies downloading, building and integrating dependencies into projects, reducing the complexity of managing libraries manually and ensuring consistency across different environments. [Read more about vcpkg](https://vcpkg.io/en/). As an alternative to this standard build system, you can [provide all dependencies yourself](#provide-dependencies-manually).
 
 `vcpkg` uses [_triplets_](https://learn.microsoft.com/en-us/vcpkg/concepts/triplets) to define the target architecture, platform and library linkage which is crucial for cross-compiling dependencies for embedded systems. A triplet looks like `arm64-linux-dynamic`. The linkage configuration is often omitted and a default is used based on the specified architecture and platform. So to cross compile for e.g. an ARM 64-bit based Linux system, you often just specify `arm64-linux`.
 
