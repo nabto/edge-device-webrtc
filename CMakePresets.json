@@ -76,6 +76,16 @@
                 "CMAKE_OSX_ARCHITECTURES": "arm64",
                 "VCPKG_TARGET_TRIPLET": "arm64-osx"
             }
+        },
+        {
+            "name": "raspberry_pi_native",
+            "inherits": [ "base", "unix_base", "vcpkg_base" ],
+            "cacheVariables": {
+                "VCPKG_FORCE_SYSTEM_BINARIES": "ON",
+                "VCPKG_MAX_CONCURRENCY": "ON",
+                "VCPKG_OVERLAY_PORTS": "${sourceDir}/build-scripts/raspberry_pi_native/ports",
+                "NABTO_WEBRTC_BUILD_TESTS": "OFF"
+            }
         }
     ],
     "buildPresets": [
@@ -111,6 +121,11 @@
         {
             "name": "mac_arm64",
             "configurePreset": "mac_arm64",
+            "targets": ["install"]
+        },
+        {
+            "name": "raspberry_pi_native",
+            "configurePreset": "raspberry_pi_native",
             "targets": ["install"]
         }
     ],
@@ -192,6 +207,20 @@
                     "name": "mac_arm64"
                 }
             ]
+        },
+        {
+            "name": "raspberry_pi_native",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "raspberry_pi_native"
+                },
+                {
+                    "type": "build",
+                    "name": "raspberry_pi_native"
+                }
+            ]
         }
+
     ]
 }

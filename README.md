@@ -167,7 +167,7 @@ The Raspberry Pi boards commonly runs the Raspbian OS, this OS is either running
 as 32bit or 64bit. We have precompiled binaries available under [releases in github](https://github.com/nabto/edge-device-webrtc/releases).
 
 The WebRTC example can be built for the Raspberry Pi either as a cross-compilation or
-a compilation directly on the Raspberry Pi by following the [desktop build guidelines](#building-the-example-for-desktop). Building the software on the device takes a long time since it is slow at compiling so the easiest approach is to
+a compilation directly on the Raspberry Pi by following the [Building the example on a Raspberry PI guidelines](#building-the-example-on-a-raspberry-pi). Building the software on the device takes a long time since it is slow at compiling so the easiest approach is to
 cross compile as outlined in the following section.
 
 ### Cross compiling for Raspbian OS
@@ -201,6 +201,33 @@ executable can be found at
 The resulting binary can be copied and run on the Raspberry Pi.
 
 Alternatively, the Raspberry Pi build can of course also be done as a [general cross build](#build-using-vcpkg).
+
+## Building the example on a Raspberry PI
+
+The Raspberry PI is incredible slow when using it for compiling software, but
+often it is the simplest approach if a linux machine is not awailable for
+crosscompiling the software on. To speedup the compilation this compilation
+depends on system libraries boost curl and openssl instead of compiling all the
+dependencies itself.
+
+## Prerequisite:
+
+Install the build tools:
+```
+sudo apt-get install cmake git ninja-build build-essential curl zip unzip tar pkg-config
+```
+
+Install the Libraries:
+```
+sudo apt-get install libcurl4-openssl-dev libssl-dev libboost-test-dev
+```
+
+Build the software
+```
+cmake --workflow --preset raspberry_pi_native
+```
+
+The resulting edge_device_webrtc is located at `build/raspberry_pi_native/install/bin/edge_device_webrtc`
 
 ## Building the example for desktop
 
