@@ -253,7 +253,9 @@ make install
 
 It is easiest to cross compile using the `vcpkg` package manager (see [above](#cross-build-for-embedded-systems)) as all dependencies are then built automatically. But for more advanced builds, it is also possible to cross-compile the software without using the `vcpkg` package manager at all, then you just need to provide all the dependencies yourself, including openssl, curl and boost.
 
-To disable `vcpkg`, invoke cmake by setting `NABTO_WEBRTC_USE_VCPKG`:
+The specific libraries needed depends on which configurations of the software is being built. See the [advanced section](#advanced-build-topics) for how to disable specific features - if a feature is not needed, you may skip some dependencies.
+
+To bring your own dependencies and disable `vcpkg`, invoke cmake by setting `NABTO_WEBRTC_USE_VCPKG`:
 
 ```
 cmake -DNABTO_WEBRTC_USE_VCPKG=OFF ...
@@ -333,18 +335,6 @@ When building with unit tests, CMake will look for GStreamer dependencies. If it
 
 Additionally, the RTSP client supports both Basic and Digest authentication. These features can be disabled with the CMake options `-DRTSP_HAS_BASIC_AUTH=OFF` and `-DRTSP_HAS_DIGEST_AUTH=OFF`.
 
-### Building without `vcpkg`
-
-Vcpkg is great when used to build standard software for common platforms such as
-Windows, Linux, Mac, iOS and Android. The usage of `vcpkg` can be disabled when
-invoking cmake by setting `NABTO_WEBRTC_USE_VCPKG` e.g. `cmake
--DNABTO_WEBRTC_USE_VCPKG=OFF ...`. When `vcpkg` is disabled it is up to the
-builder to provide the needed libraries such as openssl, curl and boost test.
-The libraries needed depends on which configurations of the software is being
-built. See below for how to disable specific features - if a feature is not needed, you may skip some dependencies.
-
-There is an example in the folder `cross_build/aarch64` which compiles all the
-dependencies manually.
 
 ### Building without tests
 
