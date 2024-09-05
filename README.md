@@ -23,7 +23,7 @@ The example application can be tried as follows:
 You can see how to run the resulting executables in the [Running](#running-the-example) section.
 
 > [!TIP]
-> **To build a binary to be installed on a camera, pick [approach 5](#cross-build-for-embedded-systems)**.
+> **To build a binary to be installed on a camera, pick [approach 5](#cross-build-for-embedded-systems)** "Cross-build for embedded systems".
 
 For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html).
 
