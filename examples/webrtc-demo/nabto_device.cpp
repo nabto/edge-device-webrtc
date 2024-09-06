@@ -6,7 +6,7 @@
 #include <nabto/nabto_device_virtual.h>
 #include <modules/iam/nm_iam_serializer.h>
 
-#if defined(HAVE_FILESYSTEM_H)
+#if defined(HAVE_FILESYSTEM_CREATE_DIRECTORIES)
 #include <filesystem>
 #endif
 
@@ -606,7 +606,7 @@ void NabtoDeviceApp::iamLogger(void* data, enum nn_log_severity severity, const 
 }
 
 void NabtoDeviceApp::createHomeDir(const std::string& homedir) {
-#if HAVE_FILESYSTEM_H
+#if HAVE_FILESYSTEM_CREATE_DIRECTORIES
     std::filesystem::create_directories(homedir);
 #else
     NPLOGD << "Cannot create homedir " << homedir << " since the toolchain does not provide std::filesystem";
