@@ -79,6 +79,10 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
         iamConfPath_ = homedir + "/iam_config.json";
         iamStatePath_ = homedir + "/iam_state.json";
         createHomeDir(homedir);
+        if (!directoryExists(homedir)) {
+            NPLOGE << "The directory " << homedir << " does not exists. Try to create it manually and ensure the user has access to the directory.";
+            return false;
+        }
 
     } catch (std::exception& e) {
         // ignore missing optional option
@@ -613,6 +617,15 @@ void NabtoDeviceApp::createHomeDir(const std::string& homedir) {
 #endif
 }
 
+bool NabtoDeviceApp::directoryExists(const std::string& dir) {
+    struct stat sb;
+
+    if (stat(dir.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))
+    {
+        return true;
+    }
+    return false;
+}
 
 NabtoDeviceStreamListenerPtr NabtoDeviceStreamListener::create(NabtoDeviceAppPtr device, nabto::EventQueuePtr queue)
 {

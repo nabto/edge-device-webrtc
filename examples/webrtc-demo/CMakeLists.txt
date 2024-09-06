@@ -2,9 +2,9 @@
 # In gcc 8 std::filesystem::create_directories was an experimental feature so it needed to be linked with stdc++fs
 # In older gcc versions filesystem is not available at all.
 # See https://gitlab.kitware.com/cmake/cmake/-/issues/17834 for a longer discussion.
-try_compile(FILESYSTEM_CREATE_DIRECTORIES_SUCCEDED ${CMAKE_BINARY_DIR}/compile_tests ${CMAKE_CURRENT_LIST_DIR}/filesystem_create_directories_test.cpp)
+try_compile(HAVE_FILESYSTEM_CREATE_DIRECTORIES ${CMAKE_BINARY_DIR}/compile_tests ${CMAKE_CURRENT_LIST_DIR}/filesystem_create_directories_test.cpp)
 
-if(FILESYSTEM_CREATE_DIRECTORIES_SUCCEDED)
+if(HAVE_FILESYSTEM_CREATE_DIRECTORIES)
   add_definitions(-DHAVE_FILESYSTEM_CREATE_DIRECTORIES)
 else()
   message(
