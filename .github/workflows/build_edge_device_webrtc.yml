@@ -1,0 +1,64 @@
+name: Build edge_device_webrtc
+
+on:
+  push:
+  release:
+    types: [published]
+
+jobs:
+  build-and-test:
+    timeout-minutes: 30
+    name: Build
+    permissions:
+      contents: write
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        include:
+        - os: ubuntu-22.04
+          preset: linux_arm_crosscompile
+          executable_name: edge_device_webrtc_linux_arm
+        - os: ubuntu-22.04
+          preset: linux_arm64_crosscompile
+          executable_name: edge_device_webrtc_linux_arm64
+        - os: ubuntu-22.04
+          preset: release
+          executable_name: edge_device_webrtc_linux_x86_64
+        - os: macos-14
+          preset: mac_arm64
+          executable_name: edge_device_webrtc_mac_arm64
+        - os: macos-14
+          preset: mac_x86_64
+          executable_name: edge_device_webrtc_mac_x86_64
+
+    steps:
+      - if: matrix.os == 'ubuntu-22.04'
+        name: Install extra software
+        run: sudo apt-get update && sudo apt-get install -y ninja-build build-essential curl zip unzip tar pkg-config g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
+      - if: matrix.os == 'macos-14'
+        name: Install Ninja
+        run: brew install ninja
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Build
+        run: cmake --workflow --preset ${{ matrix.preset }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.executable_name}}
+          path: ${{ github.workspace }}/build/${{ matrix.preset }}/install/bin/edge_device_webrtc
+          if-no-files-found: warn
+      - if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ github.workspace }}/build/${{ matrix.preset }}/install/bin/edge_device_webrtc
+          asset_name: ${{ matrix.executable_name }}
+          asset_content_type: application/zip

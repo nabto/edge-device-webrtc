@@ -49,6 +49,45 @@
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "arm64-linux"
             }
+        },
+        {
+            "name": "linux_arm_crosscompile",
+            "inherits": [ "base", "unix_base", "vcpkg_base" ],
+            "environment": {
+                "CC": "arm-linux-gnueabihf-gcc",
+                "CXX": "arm-linux-gnueabihf-g++"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "arm-linux"
+            }
+        },
+        {
+            "name": "mac_x86_64",
+            "inherits": [ "base", "unix_base", "vcpkg_base" ],
+            "cacheVariables": {
+                "CMAKE_OSX_ARCHITECTURES": "x86_64",
+                "VCPKG_TARGET_TRIPLET": "x64-osx"
+            }
+        },
+        {
+            "name": "mac_arm64",
+            "inherits": [ "base", "unix_base", "vcpkg_base" ],
+            "cacheVariables": {
+                "CMAKE_OSX_ARCHITECTURES": "arm64",
+                "VCPKG_TARGET_TRIPLET": "arm64-osx"
+            }
+        },
+        {
+            "name": "raspberry_pi_native",
+            "inherits": [ "base", "unix_base", "vcpkg_base" ],
+	    "environment": {
+                "VCPKG_FORCE_SYSTEM_BINARIES": "ON",
+                "VCPKG_MAX_CONCURRENCY": "1"
+	    },
+            "cacheVariables": {
+                "VCPKG_OVERLAY_PORTS": "${sourceDir}/build-scripts/raspberry_pi_native/ports",
+                "NABTO_WEBRTC_BUILD_TESTS": "OFF"
+            }
         }
     ],
     "buildPresets": [
@@ -69,6 +108,27 @@
         {
             "name": "linux_arm64_crosscompile",
             "configurePreset": "linux_arm64_crosscompile",
+            "targets": ["install"]
+        },
+        {
+            "name": "linux_arm_crosscompile",
+            "configurePreset": "linux_arm_crosscompile",
+            "targets": ["install"]
+        },
+        {
+            "name": "mac_x86_64",
+            "configurePreset": "mac_x86_64",
+            "targets": ["install"]
+        },
+        {
+            "name": "mac_arm64",
+            "configurePreset": "mac_arm64",
+            "targets": ["install"]
+        },
+        {
+            "name": "raspberry_pi_native",
+            "configurePreset": "raspberry_pi_native",
+            "jobs": 1,
             "targets": ["install"]
         }
     ],
@@ -111,6 +171,59 @@
                     "name": "linux_arm64_crosscompile"
                 }
             ]
+        },
+        {
+            "name": "linux_arm_crosscompile",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "linux_arm_crosscompile"
+                },
+                {
+                    "type": "build",
+                    "name": "linux_arm_crosscompile"
+                }
+            ]
+        },
+        {
+            "name": "mac_x86_64",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "mac_x86_64"
+                },
+                {
+                    "type": "build",
+                    "name": "mac_x86_64"
+                }
+            ]
+        },
+        {
+            "name": "mac_arm64",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "mac_arm64"
+                },
+                {
+                    "type": "build",
+                    "name": "mac_arm64"
+                }
+            ]
+        },
+        {
+            "name": "raspberry_pi_native",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "raspberry_pi_native"
+                },
+                {
+                    "type": "build",
+                    "name": "raspberry_pi_native"
+                }
+            ]
         }
+
     ]
 }
