@@ -42,6 +42,12 @@ public:
     ~WebrtcConnection();
 
 
+    // signaling v2
+    void handleCandidate(rtc::Candidate cand);
+    void handleDescription(rtc::Description desc, std::string metadata);
+
+    // signaling v1
+
     void handleOfferAnswer(const std::string &data, const nlohmann::json& metadata );
 
     void handleIce(const std::string& data);
@@ -77,6 +83,22 @@ public:
             return ref == me;
         }
         return false;
+    }
+
+    void setPolite(bool polite)
+    {
+        polite_ = polite;
+    }
+
+    bool getPolite()
+    {
+        return polite_;
+    }
+
+    std::string getId()
+    {
+        // TODO: make proper id
+        return "THIS VERY UNIQUE STRING";
     }
 
 private:

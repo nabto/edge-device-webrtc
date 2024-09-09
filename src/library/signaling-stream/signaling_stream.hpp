@@ -21,9 +21,9 @@ public:
         TURN_RESPONSE
     };
 
-    static SignalingStreamPtr create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb);
+    static SignalingStreamPtr create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, bool isV2);
 
-    SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb);
+    SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, bool isV2);
 
     ~SignalingStream();
 
@@ -33,6 +33,10 @@ public:
     void signalingSendOffer(const std::string& data, const nlohmann::json& metadata);
     void signalingSendAnswer(const std::string& data, const nlohmann::json& metadata);
     void signalingSendIce(const std::string& data, const nlohmann::json& metadata);
+
+    // Signaling v2
+    void signalingSendDescription(const rtc::Description& desc, const nlohmann::json& metadata);
+    void signalingSendCandidate(const rtc::Candidate& cand);
 
     bool isConnection(NabtoDeviceConnectionRef ref)
     {
@@ -87,6 +91,7 @@ private:
     void handleReadObject();
 
     void sendTurnServers();
+    void sendSetupResponse(nlohmann::json req);
 
     void closeStream();
     static void streamClosed(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
@@ -101,6 +106,7 @@ private:
     TrackEventCallback trackCb_;
     CheckAccessCallback accessCb_;
     DatachannelEventCallback datachannelCb_;
+    bool isV2_ = false;
     NabtoDeviceFuture* future_;
     NabtoDeviceFuture* writeFuture_;
 

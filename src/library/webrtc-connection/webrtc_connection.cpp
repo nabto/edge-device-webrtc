@@ -39,6 +39,32 @@ void WebrtcConnection::stop()
     // sigStream_ = nullptr;
 }
 
+void WebrtcConnection::handleCandidate(rtc::Candidate cand)
+{
+    NPLOGD << "Got ICE: " << cand;
+    try {
+        pc_->addRemoteCandidate(cand);
+    } catch (std::logic_error& ex) {
+        if (!this->ignoreOffer_) {
+            NPLOGE << "Failed to add remote ICE candidate with logic error: " << ex.what();
+        }
+    }
+}
+
+void WebrtcConnection::handleDescription(rtc::Description desc, std::string metadata)
+{
+    NPLOGD << "Got Description: " << desc;
+    if (!pc_) {
+        createPeerConnection();
+    }
+    try {
+        handleSignalingMessage(desc, metadata);
+    } catch (std::invalid_argument& ex) {
+        NPLOGE << "Got invalid argument: " << ex.what();
+    }
+}
+
+
 void WebrtcConnection::handleOfferAnswer(const std::string& data, const nlohmann::json& metadata) {
     NPLOGD << "Got Offer/Answer: " << data;
      if (!pc_) {
@@ -182,10 +208,12 @@ void WebrtcConnection::createPeerConnection()
                     self->updateMetaTracks();
                     if (description->type() == rtc::Description::Type::Offer) {
                         NPLOGD << "Sending offer: " << std::string(description.value());
+                        // TODO: switch to new function
                         self->sigStream_->signalingSendOffer(data, self->metadata_);
                     }
                     else {
                         NPLOGD << "Sending answer: " << std::string(description.value());
+                        // TODO: switch to new function
                         self->sigStream_->signalingSendAnswer(data, self->metadata_);
                     }
                 }
@@ -347,7 +375,9 @@ void WebrtcConnection::createTracks(const std::vector<MediaTrackPtr>& tracks)
 }
 
 void WebrtcConnection::updateMetaTracks() {
+    // TODO: fix metadata handling
     bool hasError = false;
+    try {
     for (auto m : mediaTracks_) {
         auto error = m->getImpl()->getErrorState();
 
@@ -385,8 +415,10 @@ void WebrtcConnection::updateMetaTracks() {
         }
         metadata_["tracks"] = metaTracks;
     }
-
     metadata_["status"] = hasError ? "FAILED" : "OK";
+    } catch (std::exception& ex) {
+        NPLOGE << "METATRACK EXCEPTION: " << ex.what();
+    }
 }
 
 std::string WebrtcConnection::trackErrorToString(enum MediaTrack::ErrorState state) {
@@ -430,25 +462,14 @@ void WebrtcConnection::sendDescription(rtc::optional<rtc::Description> descripti
     if (description)
     {
         updateMetaTracks();
-        nlohmann::json message = {
-            {"type", description->typeString()},
-            {"sdp", std::string(description.value())}};
-        auto data = message.dump();
-        if (description->type() == rtc::Description::Type::Offer)
-        {
-            sigStream_->signalingSendOffer(data, metadata_);
-        }
-        else if (description->type() == rtc::Description::Type::Answer)
-        {
-            sigStream_->signalingSendAnswer(data, metadata_);
+
+        sigStream_->signalingSendDescription(description.value(), metadata_);
+
+        if (description->type() == rtc::Description::Type::Answer) {
             if (pc_->negotiationNeeded()) {
                 // We where polite and have finished resolving a collided offer, recreate our offer
                 pc_->setLocalDescription();
             }
-        }
-        else
-        {
-            NPLOGE << "Something happened which should not happen, please debug the code.";
         }
     }
 }

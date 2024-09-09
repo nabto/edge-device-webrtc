@@ -4,14 +4,14 @@
 
 namespace nabto {
 
-SignalingStreamPtr SignalingStream::create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb)
+SignalingStreamPtr SignalingStream::create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, bool isV2)
 {
-    return std::make_shared<SignalingStream>(device, stream, manager, queue, trackCb, accessCb, datachannelCb);
+    return std::make_shared<SignalingStream>(device, stream, manager, queue, trackCb, accessCb, datachannelCb, isV2);
 
 }
 
-SignalingStream::SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb)
-    :device_(device), stream_(stream), manager_(manager), queue_(queue), trackCb_(trackCb), datachannelCb_(datachannelCb), accessCb_(accessCb)
+SignalingStream::SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, bool isV2)
+    :device_(device), stream_(stream), manager_(manager), queue_(queue), trackCb_(trackCb), datachannelCb_(datachannelCb), accessCb_(accessCb), isV2_(isV2)
 {
     future_ = nabto_device_future_new(device.get());
     writeFuture_ = nabto_device_future_new(device.get());
@@ -268,20 +268,42 @@ void SignalingStream::handleReadObject()
     nlohmann::json obj;
     try {
         obj = nlohmann::json::parse(objectBuffer_, objectBuffer_ + objectLength_);
-        enum ObjectType type = static_cast<enum ObjectType>(obj["type"].get<int>());
-        if (type == WEBRTC_OFFER || type == WEBRTC_ANSWER) {
-            auto offer = obj["data"].get<std::string>();
-            nlohmann::json metadata = obj["metadata"];
-            webrtcConnection_->handleOfferAnswer(offer, metadata);
-        } else if (type == WEBRTC_ICE) {
-            auto ice = obj["data"].get<std::string>();
-            webrtcConnection_->handleIce(ice);
-        }
-        else if (type == TURN_REQUEST) {
-            sendTurnServers();
-        }
-        else {
-            NPLOGE << "Unknown object type: " << type;
+
+        if (isV2_) {
+            std::string type = obj["type"].get<std::string>();
+            if (type == "SETUP_REQUEST") {
+                sendSetupResponse(obj);
+            } else if (type == "CANDIDATE") {
+                rtc::Candidate cand(obj["candidate"]["candidate"].get<std::string>(), obj["candidate"]["sdpMid"].get<std::string>());
+                webrtcConnection_->handleCandidate(cand);
+            } else if (type == "DESCRIPTION") {
+                rtc::Description desc(obj["description"]["sdp"].get<std::string>(), obj["description"]["type"].get<std::string>());
+                std::string metadata = "";
+                try {
+                    metadata = obj["metadata"].get<std::string>();
+                } catch (std::exception& ex) {
+                    // ignore
+                }
+                webrtcConnection_->handleDescription(desc, metadata);
+            } else {
+                NPLOGE << "Received invalid signaling message: " << type;
+            }
+        } else {
+            enum ObjectType type = static_cast<enum ObjectType>(obj["type"].get<int>());
+            if (type == WEBRTC_OFFER || type == WEBRTC_ANSWER) {
+                auto offer = obj["data"].get<std::string>();
+                nlohmann::json metadata = obj["metadata"];
+                webrtcConnection_->handleOfferAnswer(offer, metadata);
+            } else if (type == WEBRTC_ICE) {
+                auto ice = obj["data"].get<std::string>();
+                webrtcConnection_->handleIce(ice);
+            }
+            else if (type == TURN_REQUEST) {
+                sendTurnServers();
+            }
+            else {
+                NPLOGE << "Unknown object type: " << type;
+            }
         }
     }
     catch (nlohmann::json::parse_error& ex) {
@@ -296,6 +318,35 @@ void SignalingStream::handleReadObject()
     return readObjLength();
 }
 
+void SignalingStream::signalingSendDescription(const rtc::Description& desc, const nlohmann::json& metadata)
+{
+    if (isV2_) {
+        nlohmann::json description = {
+            {"type", desc.typeString()},
+            {"sdp", std::string(desc)}
+        };
+        nlohmann::json message = {
+            {"type", "DESCRIPTION"},
+            {"description", description},
+            {"metadata", metadata}
+        };
+        auto obj = message.dump();
+        sendSignalligObject(obj);
+    } else {
+        nlohmann::json message = {
+            {"type", desc.typeString()},
+            {"sdp", std::string(desc)}
+        };
+        auto data = message.dump();
+        if (desc.type() == rtc::Description::Type::Offer)
+        {
+            signalingSendOffer(data, metadata);
+        } else if (desc.type() == rtc::Description::Type::Answer) {
+            signalingSendAnswer(data, metadata);
+        }
+
+    }
+}
 
 void SignalingStream::signalingSendOffer(const std::string& data, const nlohmann::json& metadata)
 {
@@ -320,6 +371,11 @@ void SignalingStream::signalingSendAnswer(const std::string& data, const nlohman
 
 }
 
+void SignalingStream::signalingSendCandidate(const rtc::Candidate& cand)
+{
+
+}
+
 void SignalingStream::signalingSendIce(const std::string& data, const nlohmann::json& metadata)
 {
     nlohmann::json msg = {
@@ -331,6 +387,39 @@ void SignalingStream::signalingSendIce(const std::string& data, const nlohmann::
     sendSignalligObject(obj);
 }
 
+void SignalingStream::sendSetupResponse(nlohmann::json req)
+{
+    try {
+        bool polite = req["polite"].get<bool>();
+        webrtcConnection_->setPolite(!polite);
+    }catch(std::exception& ex) {
+        // ignore
+    }
+
+    nlohmann::json resp = {
+        {"type", "SETUP_RESPONSE"},
+        {"polite", !webrtcConnection_->getPolite()},
+        {"id", webrtcConnection_->getId()},
+        {"iceServers", nlohmann::json::array()}
+    };
+    for (auto t : turnServers_) {
+        nlohmann::json ice = {
+            {"urls", nlohmann::json::array()}
+        };
+        if (!t.username.empty()) {
+            ice["username"] = t.username;
+        }
+        if (!t.credential.empty()) {
+            ice["credential"] = t.credential;
+        }
+        for (auto u : t.urls) {
+            ice["urls"].push_back(u);
+        }
+        resp["iceServers"].push_back(ice);
+    }
+    auto str = resp.dump();
+    sendSignalligObject(str);
+}
 
 void SignalingStream::sendTurnServers()
 {

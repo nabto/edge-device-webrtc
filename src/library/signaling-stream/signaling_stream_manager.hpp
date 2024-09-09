@@ -36,6 +36,7 @@ private:
     NabtoCoapListenerPtr coapInfoListener_ = nullptr;
 
     NabtoStreamListenerPtr streamListener_;
+    NabtoStreamListenerPtr streamListenerV2_;
 
     std::vector<SignalingStreamWeakPtr> streams_;
     SignalingStreamManagerPtr me_ = nullptr;
