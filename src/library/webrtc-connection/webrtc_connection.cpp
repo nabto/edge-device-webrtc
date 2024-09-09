@@ -171,12 +171,8 @@ void WebrtcConnection::createPeerConnection()
         NPLOGD << "Got local candidate: " << cand;
         self->queue_->post([self, cand]() {
             if (self->canTrickle_) {
-                nlohmann::json candidate;
-                candidate["sdpMid"] = cand.mid();
-                candidate["candidate"] = cand.candidate();
-                auto data = candidate.dump();
                 self->updateMetaTracks();
-                self->sigStream_->signalingSendIce(data, self->metadata_);
+                self->sigStream_->signalingSendCandidate(cand, self->metadata_);
             }
         });
     });

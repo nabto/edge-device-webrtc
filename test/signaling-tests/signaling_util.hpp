@@ -309,6 +309,20 @@ public:
             });
     }
 
+    void readStreamObject(std::function<void (uint8_t* buff, size_t len)> cb)
+    {
+        auto self = shared_from_this();
+        stream_->readAll(4, [self, cb](NabtoDeviceError ec, uint8_t* buff, size_t len) {
+            BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
+            uint32_t l = *((uint32_t*)buff);
+            std::cout << "Reading " << l << " bytes" << std::endl;
+            self->stream_->readAll(l, [self, cb, l](NabtoDeviceError ec, uint8_t* buff, size_t len) {
+                BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
+                cb(buff, len);
+            });
+        });
+    }
+
     void run() {
         eventQueue_->addWork();
         eventQueue_->run();

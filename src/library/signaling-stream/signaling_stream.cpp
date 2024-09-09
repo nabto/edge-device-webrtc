@@ -371,9 +371,26 @@ void SignalingStream::signalingSendAnswer(const std::string& data, const nlohman
 
 }
 
-void SignalingStream::signalingSendCandidate(const rtc::Candidate& cand)
+void SignalingStream::signalingSendCandidate(const rtc::Candidate& cand, nlohmann::json& metadata)
 {
-
+    if (isV2_) {
+        nlohmann::json candidate = {
+            {"candidate", cand.candidate()},
+            {"sdpMid", cand.mid()}
+        };
+        nlohmann::json message = {
+            {"type", "CANDIDATE"},
+            {"candidate", candidate}
+        };
+        auto obj = message.dump();
+        sendSignalligObject(obj);
+    } else {
+        nlohmann::json candidate;
+        candidate["sdpMid"] = cand.mid();
+        candidate["candidate"] = cand.candidate();
+        auto data = candidate.dump();
+        signalingSendIce(data, metadata);
+    }
 }
 
 void SignalingStream::signalingSendIce(const std::string& data, const nlohmann::json& metadata)

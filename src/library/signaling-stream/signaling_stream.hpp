@@ -36,7 +36,7 @@ public:
 
     // Signaling v2
     void signalingSendDescription(const rtc::Description& desc, const nlohmann::json& metadata);
-    void signalingSendCandidate(const rtc::Candidate& cand);
+    void signalingSendCandidate(const rtc::Candidate& cand, nlohmann::json& metadata);
 
     bool isConnection(NabtoDeviceConnectionRef ref)
     {
