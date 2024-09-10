@@ -317,7 +317,7 @@ BOOST_AUTO_TEST_CASE(recv_metadata, *boost::unit_test::timeout(180))
 BOOST_AUTO_TEST_CASE(answer_an_offer, *boost::unit_test::timeout(180))
 {
     nlohmann::json offerData = {
-        {"sdp", "v=0\r\no=- 4001653510419693843 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:9aLM\r\na=ice-pwd:jtaHrFFgBekhsoOD+0pS3PaI\r\na=ice-options:trickle\r\na=fingerprint:sha-256 28:E0:2D:E0:11:02:A0:1A:39:8C:86:B2:19:11:5D:98:F3:8C:79:8F:56:08:52:E2:30:25:35:C9:67:FE:93:B7\r\na=setup:actpass\r\na=mid:0\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n"},
+        {"sdp", "v=0\r\no=- 4001653510419693843 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:9aLM\r\na=ice-pwd:jtaHrFFgBekhsoOD+0pS3PaI\r\na=ice-options:ice2,trickle\r\na=fingerprint:sha-256 28:E0:2D:E0:11:02:A0:1A:39:8C:86:B2:19:11:5D:98:F3:8C:79:8F:56:08:52:E2:30:25:35:C9:67:FE:93:B7\r\na=setup:actpass\r\na=mid:0\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n"},
         {"type", "offer"}
     };
     auto td = nabto::test::TestDevice::create();

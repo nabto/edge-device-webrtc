@@ -41,6 +41,7 @@ public:
     WebrtcConnection(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb);
     ~WebrtcConnection();
 
+    void init();
 
     // signaling v2
     void handleCandidate(rtc::Candidate cand);

@@ -16,7 +16,11 @@ namespace nabto {
 
 WebrtcConnectionPtr WebrtcConnection::create(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb)
 {
-    return std::make_shared<WebrtcConnection>(sigStream, device, turnServers, queue, trackCb, accessCb, datachannelCb);
+    auto ptr = std::make_shared<WebrtcConnection>(sigStream, device, turnServers, queue, trackCb, accessCb, datachannelCb);
+    if (ptr) {
+        ptr->init();
+    }
+    return ptr;
 }
 
 WebrtcConnection::WebrtcConnection(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb)
@@ -30,6 +34,11 @@ WebrtcConnection::~WebrtcConnection()
     if (nabtoConnection_) {
         nabto_device_virtual_connection_free(nabtoConnection_);
     }
+}
+
+void WebrtcConnection::init()
+{
+    createPeerConnection();
 }
 
 void WebrtcConnection::stop()
@@ -69,9 +78,14 @@ void WebrtcConnection::handleCandidate(rtc::Candidate cand)
 void WebrtcConnection::handleDescription(rtc::Description desc)
 {
     NPLOGD << "Got Description: " << desc;
-    if (!pc_) {
-        createPeerConnection();
+    auto ice = desc.iceOptions();
+    canTrickle_ = false;
+    for (auto& i : ice) {
+        if (i == "trickle") {
+            canTrickle_ = true;
+        }
     }
+
     try {
         // TODO: remove metadata from v2 but maybe keep for v1
         nlohmann::json metadata;
@@ -84,9 +98,6 @@ void WebrtcConnection::handleDescription(rtc::Description desc)
 
 void WebrtcConnection::handleOfferAnswer(const std::string& data, const nlohmann::json& metadata) {
     NPLOGD << "Got Offer/Answer: " << data;
-     if (!pc_) {
-        createPeerConnection();
-    }
     try {
         nlohmann::json sdp = nlohmann::json::parse(data);
         rtc::Description remDesc(sdp["sdp"].get<std::string>(), sdp["type"].get<std::string>());
@@ -348,9 +359,6 @@ NabtoDeviceConnectionRef WebrtcConnection::getConnectionRef() {
 
 void WebrtcConnection::createTracks(const std::vector<MediaTrackPtr>& tracks)
 {
-    if (!pc_) {
-        createPeerConnection();
-    }
     for (auto t : tracks) {
         auto sdp = t->getSdp();
         rtc::Description::Media media(sdp);
