@@ -23,9 +23,9 @@ void NabtoDeviceWebrtcImpl::stop()
     // TODO: impl stop()
 }
 
-bool NabtoDeviceWebrtcImpl::connectionAddMediaTracks(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks)
+bool NabtoDeviceWebrtcImpl::connectionAddMediaTracks(const std::string& webrtcConnectionId, const std::vector<MediaTrackPtr>& tracks)
 {
-    return ssm_->connectionAddMediaTracks(ref, tracks);
+    return ssm_->connectionAddMediaTracks(webrtcConnectionId, tracks);
 }
 
 void NabtoDeviceWebrtcImpl::setTrackEventCallback(TrackEventCallback cb)

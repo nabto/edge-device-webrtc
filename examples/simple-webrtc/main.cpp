@@ -113,6 +113,29 @@ int main(int argc, char** argv) {
 
         NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
 
+        uint16_t ct;
+        char* payload;
+        size_t payloadLen;
+        std::string webrtcConnectionId;
+        if (
+            nabto_device_coap_request_get_content_format(coap, &ct) != NABTO_DEVICE_EC_OK ||
+            ct != NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON ||
+            nabto_device_coap_request_get_payload(coap, (void**)&payload, &payloadLen) != NABTO_DEVICE_EC_OK
+            ) {
+            nabto_device_coap_error_response(coap, 400, "Invalid Request. Missing/invalid payload/content format");
+            return;
+        } else {
+            try {
+                auto jsonStr = std::string(payload, payloadLen);
+                nlohmann::json jsonPl = nlohmann::json::parse(jsonStr);
+                webrtcConnectionId = jsonPl["webrtcConnectionId"].get<std::string>();
+            } catch (nlohmann::json::exception& ex) {
+                nabto_device_coap_error_response(coap, 400, "Invalid Request. JSON parse error");
+                nabto_device_coap_request_free(coap);
+                return;
+            }
+        }
+
         std::vector<nabto::MediaTrackPtr> list;
 
         auto media = rtpVideo->createMedia(trackId);
@@ -122,7 +145,7 @@ int main(int argc, char** argv) {
         rtpVideo->addConnection(ref, media);
         list.push_back(media);
 
-        if (!webrtc->connectionAddMediaTracks(ref, list)) {
+        if (!webrtc->connectionAddMediaTracks(webrtcConnectionId, list)) {
             std::cout << "Failed to add medias to connection" << std::endl;
             nabto_device_coap_error_response(coap, 500, "Internal Server Error");
             return;

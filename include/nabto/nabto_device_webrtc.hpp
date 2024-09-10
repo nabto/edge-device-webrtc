@@ -331,7 +331,7 @@ public:
      * @param tracks [in] List of tracks to add
      * @returns False if the Nabto Connection referenced does not have a Signaling Stream open
     */
-    bool connectionAddMediaTracks(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks);
+    bool connectionAddMediaTracks(const std::string& webrtcConnectionId, const std::vector<MediaTrackPtr>& tracks);
 
     /**
      * Set callback to be called when the Client has added a track to the PeerConnection. (ie. a WebRTC Offer containing new tracks was received)

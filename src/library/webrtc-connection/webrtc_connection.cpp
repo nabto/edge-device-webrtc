@@ -199,21 +199,9 @@ void WebrtcConnection::createPeerConnection()
             self->queue_->post([self, state]() {
                 if (state == rtc::PeerConnection::GatheringState::Complete && !self->canTrickle_) {
                     auto description = self->pc_->localDescription();
-                    nlohmann::json message = {
-                        {"type", description->typeString()},
-                        {"sdp", std::string(description.value())} };
-                    auto data = message.dump();
+                    NPLOGD << "Sending description: " << std::string(description.value());
                     self->updateMetaTracks();
-                    if (description->type() == rtc::Description::Type::Offer) {
-                        NPLOGD << "Sending offer: " << std::string(description.value());
-                        // TODO: switch to new function
-                        self->sigStream_->signalingSendOffer(data, self->metadata_);
-                    }
-                    else {
-                        NPLOGD << "Sending answer: " << std::string(description.value());
-                        // TODO: switch to new function
-                        self->sigStream_->signalingSendAnswer(data, self->metadata_);
-                    }
+                    self->sigStream_->signalingSendDescription(description.value(), self->metadata_);
                 }
             });
         });

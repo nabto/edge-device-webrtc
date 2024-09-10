@@ -113,15 +113,11 @@ bool SignalingStreamManager::start()
 }
 
 
-bool SignalingStreamManager::connectionAddMediaTracks(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks)
+bool SignalingStreamManager::connectionAddMediaTracks(const std::string& id, const std::vector<MediaTrackPtr>& tracks)
 {
-    SignalingStreamPtr stream = nullptr;
-
-    for (auto p : streams_) {
-        auto ptr = p.lock();
-        if (ptr && ptr->isConnection(ref)) {
-            return ptr->createTracks(tracks);
-        }
+    SignalingStreamPtr stream = findStream(id);
+    if (stream) {
+        return stream->createTracks(tracks);
     }
     return false;
 }

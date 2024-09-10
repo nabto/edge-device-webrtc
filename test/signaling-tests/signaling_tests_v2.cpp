@@ -269,7 +269,6 @@ BOOST_AUTO_TEST_CASE(recv_metadata, *boost::unit_test::timeout(180))
     std::vector<uint8_t> req;
     std::vector<uint8_t> req2;
     td->makeConnectionSigV2Stream([td, &req, &req2](NabtoDeviceVirtualConnection* conn, std::shared_ptr<nabto::test::VirtualStream> stream) {
-        // TODO: techically the protocol states this setup request must be the first message, but the device don't actually care
         nlohmann::json turnReqjson = {
             {"type", "SETUP_REQUEST"}
         };

@@ -228,10 +228,12 @@ int main(int argc, char** argv) {
                 nabto_device_coap_error_response(coap, 400, "Invalid Request. Missing/invalid payload/content format");
             } else {
                 std::vector<std::string> tracks;
+                std::string webrtcConnectionId;
                 try {
                     auto jsonStr = std::string(payload, payloadLen);
                     nlohmann::json jsonPl = nlohmann::json::parse(jsonStr);
                     tracks = jsonPl["tracks"].get<std::vector<std::string>>();
+                    webrtcConnectionId = jsonPl["webrtcConnectionId"].get<std::string>();
                 } catch (nlohmann::json::exception& ex) {
                     nabto_device_coap_error_response(coap, 400, "Invalid Request. JSON parse error");
                     nabto_device_coap_request_free(coap);
@@ -254,7 +256,7 @@ int main(int argc, char** argv) {
                         }
                     }
                 }
-                if (!webrtc->connectionAddMediaTracks(ref, list)) {
+                if (!webrtc->connectionAddMediaTracks(webrtcConnectionId, list)) {
                     std::cout << "Failed to add medias to connection" << std::endl;
                     nabto_device_coap_error_response(coap, 500, "Internal Server Error");
                     nabto_device_coap_request_free(coap);
@@ -299,57 +301,6 @@ int main(int argc, char** argv) {
             nabto_device_coap_request_free(coap);
         }
     });
-
-
-    // TODO: remove this legacy coap listener
-    auto coapVideoListener = example::NabtoDeviceCoapListener::create(device, NABTO_DEVICE_COAP_GET, coapVideoPath, eventQueue);
-
-    coapVideoListener->setCoapCallback([webrtc, device, medias](NabtoDeviceCoapRequest* coap) {
-
-        NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
-
-        if (nm_iam_check_access(device->getIam(), ref, "Webrtc:VideoStream", NULL)) {
-
-            bool found = false;
-            std::vector<nabto::MediaTrackPtr> list;
-            std::string t1 = "frontdoor-video";
-            std::string t2 = "frontdoor-audio";
-
-            for (auto m : medias) {
-                nabto::MediaTrackPtr media = nullptr;
-                if (m->isTrack(t1)) {
-                    media = m->createMedia(t1);
-                } else if (m->isTrack(t2) ) {
-                    media = m->createMedia(t2);
-                } else {
-                    continue;
-                }
-                found = true;
-                media->setCloseCallback([m, ref]() {
-                    m->removeConnection(ref);
-                });
-                m->addConnection(ref, media);
-                list.push_back(media);
-            }
-            if (!webrtc->connectionAddMediaTracks(ref, list)) {
-                std::cout << "Failed to add medias to connection" << std::endl;
-                nabto_device_coap_error_response(coap, 500, "Internal Server Error");
-            } else if (found) {
-                nabto_device_coap_response_set_code(coap, 201);
-                nabto_device_coap_response_ready(coap);
-            } else {
-                std::cout << "Failed to find track for video feed" << std::endl;
-                nabto_device_coap_error_response(coap, 404, "No such feed");
-            }
-        } else {
-            std::cout << "Got CoAP video stream request but IAM rejected it" << std::endl;
-            nabto_device_coap_error_response(coap, 401, NULL);
-        }
-
-        nabto_device_coap_request_free(coap);
-
-        });
-
 
     sigContext = std::make_shared<SigIntContext>(eventQueue, device);
     signal(SIGINT, &signal_handler);

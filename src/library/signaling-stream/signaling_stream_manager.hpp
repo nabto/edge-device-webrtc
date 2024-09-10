@@ -20,7 +20,7 @@ public:
     ~SignalingStreamManager();
 
     bool start();
-    bool connectionAddMediaTracks(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks);
+    bool connectionAddMediaTracks(const std::string& id, const std::vector<MediaTrackPtr>& tracks);
     void setTrackEventCallback(TrackEventCallback cb);
     void setDatachannelEventCallback(DatachannelEventCallback cb);
     void setMetadataEventCallback(MetadataEventCallback cb);
