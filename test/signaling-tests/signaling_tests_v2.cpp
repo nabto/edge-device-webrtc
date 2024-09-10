@@ -239,6 +239,7 @@ BOOST_AUTO_TEST_CASE(send_metadata, *boost::unit_test::timeout(180))
         stream->write(req, [stream, td, conn, &req2](NabtoDeviceError ec) {
             BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
             td->readStreamObject([stream, td, conn, &req2](uint8_t* buff, size_t len) {
+
                 nlohmann::json metaReq = {
                     {"type", "METADATA"},
                     {"metadata", "foobar"}
@@ -277,8 +278,16 @@ BOOST_AUTO_TEST_CASE(recv_metadata, *boost::unit_test::timeout(180))
         stream->write(req, [stream, td, conn, &req2](NabtoDeviceError ec) {
             BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
             td->readStreamObject([stream, td, conn, &req2](uint8_t* buff, size_t len) {
-                // TODO: fix connection id string
-                td->sendMetadata("THIS VERY UNIQUE STRING", "foobar");
+                auto resp = nabto::test::streamBufferToJson(buff, len);
+
+                auto type = resp["type"].get<std::string>();
+                BOOST_TEST(type == "SETUP_RESPONSE");
+
+                auto polite = resp["polite"].get<bool>();
+                BOOST_TEST(polite == true); // Default is true
+
+                auto id = resp["id"].get<std::string>();
+                td->sendMetadata(id, "foobar");
 
                 td->readStreamObject([stream, td, conn, &req2](uint8_t* buff, size_t len) {
                     try {
