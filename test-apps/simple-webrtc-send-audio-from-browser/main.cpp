@@ -91,8 +91,8 @@ int main(int argc, char** argv) {
                     // TODO
                 }
 
-                track->setCloseCallback([rtpVideo, ref]() { rtpVideo->removeConnection(ref); });
-                rtpVideo->addConnection(ref, track);
+                track->setCloseCallback([rtpVideo, id]() { rtpVideo->removeConnection(id); });
+                rtpVideo->addConnection(id, track);
             } else {
                 track->setErrorState(nabto::MediaTrack::ErrorState::UNKNOWN_TRACK_ID);
             }

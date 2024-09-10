@@ -51,8 +51,8 @@ public:
 
     bool isTrack(const std::string& trackId);
     bool matchMedia(MediaTrackPtr media);
-    void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
-    void removeConnection(NabtoDeviceConnectionRef ref);
+    void addConnection(const std::string& webrtcConnectionId, MediaTrackPtr media);
+    void removeConnection(const std::string& webrtcConnectionId);
 
     MediaTrackPtr createMedia(const std::string& trackId) {
         if (trackId == config_.trackIdBase + "-audio") {
@@ -82,7 +82,7 @@ private:
     std::mutex mutex_;
     size_t counter_ = 0;
 
-    std::map<NabtoDeviceConnectionRef, RtspConnection> connections_;
+    std::map<std::string, RtspConnection> connections_;
 };
 
 } // namespace

@@ -30,7 +30,7 @@ public:
 
     ~TcpRtpClient();
 
-    void setConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack);
+    void setConnection(const std::string& webrtcConnectionId, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack);
 
     void stop() {
         {

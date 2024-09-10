@@ -55,8 +55,8 @@ public:
     bool close(std::function<void()> cb);
     void stop();
 
-    void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack);
-    void removeConnection(NabtoDeviceConnectionRef ref);
+    void addConnection(const std::string& webrtcConnectionId, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack);
+    void removeConnection(const std::string& webrtcConnectionId);
 
 private:
     void setupRtsp();

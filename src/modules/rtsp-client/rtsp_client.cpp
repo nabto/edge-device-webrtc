@@ -159,26 +159,26 @@ bool RtspClient::close(std::function<void()> cb)
     return teardown(cb);
 }
 
-void RtspClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack)
+void RtspClient::addConnection(const std::string& webrtcConnectionId, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack)
 {
     if (tcpClient_ != nullptr) {
-        tcpClient_->setConnection(ref, videoTrack, audioTrack);
+        tcpClient_->setConnection(webrtcConnectionId, videoTrack, audioTrack);
     }
     if (videoStream_ != nullptr && videoTrack != nullptr) {
-        videoStream_->addConnection(ref, videoTrack);
+        videoStream_->addConnection(webrtcConnectionId, videoTrack);
     }
     if (audioStream_ != nullptr && audioTrack != nullptr) {
-        audioStream_->addConnection(ref, audioTrack);
+        audioStream_->addConnection(webrtcConnectionId, audioTrack);
     }
 }
 
-void RtspClient::removeConnection(NabtoDeviceConnectionRef ref)
+void RtspClient::removeConnection(const std::string& webrtcConnectionId)
 {
     if (videoStream_ != nullptr) {
-        videoStream_->removeConnection(ref);
+        videoStream_->removeConnection(webrtcConnectionId);
     }
     if (audioStream_ != nullptr) {
-        audioStream_->removeConnection(ref);
+        audioStream_->removeConnection(webrtcConnectionId);
     }
 }
 

@@ -37,8 +37,8 @@ public:
     ~FifoFileClient();
 
     bool isTrack(const std::string& trackId);
-    void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
-    void removeConnection(NabtoDeviceConnectionRef ref);
+    void addConnection(const std::string& webrtcConnectionId, MediaTrackPtr media);
+    void removeConnection(const std::string& webrtcConnectionId);
     bool matchMedia(MediaTrackPtr media);
 
     MediaTrackPtr createMedia(const std::string& trackId) {
@@ -53,7 +53,7 @@ public:
 private:
     void start();
     void stop();
-    void doAddConnection(NabtoDeviceConnectionRef ref, FifoTrack track);
+    void doAddConnection(const std::string& webrtcConnectionId, FifoTrack track);
     static void fifoRunner(FifoFileClient* self);
 
     std::string trackId_;
@@ -61,7 +61,7 @@ private:
 
     bool stopped_ = true;
     std::mutex mutex_;
-    std::map<NabtoDeviceConnectionRef, FifoTrack> mediaTracks_;
+    std::map<std::string, FifoTrack> mediaTracks_;
     TrackNegotiatorPtr negotiator_;
     RtpPacketizerFactoryPtr packetizer_;
     std::thread thread_;

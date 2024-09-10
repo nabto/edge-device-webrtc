@@ -196,9 +196,9 @@ int main(int argc, char** argv) {
                     return;
                 }
                 NabtoDeviceConnectionRef ref = connRef;
-                m->addConnection(ref, track);
-                track->setCloseCallback([m, ref]() {
-                    m->removeConnection(ref);
+                m->addConnection(id, track);
+                track->setCloseCallback([m, id]() {
+                    m->removeConnection(id);
                     });
             }
         }
@@ -245,10 +245,10 @@ int main(int argc, char** argv) {
                         if (m->isTrack(feed)) {
                             found = true;
                             auto media = m->createMedia(feed);
-                            media->setCloseCallback([m, ref]() {
-                                m->removeConnection(ref);
+                            media->setCloseCallback([m, webrtcConnectionId]() {
+                                m->removeConnection(webrtcConnectionId);
                                 });
-                            m->addConnection(ref, media);
+                            m->addConnection(webrtcConnectionId, media);
                             list.push_back(media);
                         }
                     }

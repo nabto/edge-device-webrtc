@@ -21,8 +21,8 @@ public:
 
 
     virtual bool isTrack(const std::string& trackId) = 0;
-    virtual void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media) = 0;
-    virtual void removeConnection(NabtoDeviceConnectionRef ref) = 0;
+    virtual void addConnection(const std::string& webrtcConnectionId, MediaTrackPtr media) = 0;
+    virtual void removeConnection(const std::string& webrtcConnectionId) = 0;
 
     virtual bool matchMedia(MediaTrackPtr media) = 0;
 

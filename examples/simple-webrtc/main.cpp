@@ -111,8 +111,6 @@ int main(int argc, char** argv) {
     coapListener->setCoapCallback([webrtc, device, rtpVideo, rtpVideoNegotiator](NabtoDeviceCoapRequest* coap) {
         std::cout << "Got new coap request" << std::endl;
 
-        NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
-
         uint16_t ct;
         char* payload;
         size_t payloadLen;
@@ -139,10 +137,10 @@ int main(int argc, char** argv) {
         std::vector<nabto::MediaTrackPtr> list;
 
         auto media = rtpVideo->createMedia(trackId);
-        media->setCloseCallback([rtpVideo, ref]() {
-            rtpVideo->removeConnection(ref);
+        media->setCloseCallback([rtpVideo, webrtcConnectionId]() {
+            rtpVideo->removeConnection(webrtcConnectionId);
         });
-        rtpVideo->addConnection(ref, media);
+        rtpVideo->addConnection(webrtcConnectionId, media);
         list.push_back(media);
 
         if (!webrtc->connectionAddMediaTracks(webrtcConnectionId, list)) {

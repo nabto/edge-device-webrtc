@@ -46,7 +46,7 @@ bool FifoFileClient::matchMedia(MediaTrackPtr media)
     return true;
 }
 
-void FifoFileClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
+void FifoFileClient::addConnection(const std::string& webrtcConnectionId, MediaTrackPtr media)
 {
     auto sdp = media->getSdp();
 
@@ -63,10 +63,10 @@ void FifoFileClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr m
         packetizer_->createPacketizer(ssrc, pt)
     };
 
-    doAddConnection(ref, track);
+    doAddConnection(webrtcConnectionId, track);
 }
 
-void FifoFileClient::removeConnection(NabtoDeviceConnectionRef ref)
+void FifoFileClient::removeConnection(const std::string& webrtcConnectionId)
 {
     NPLOGD << "Removing Nabto Connection from fifo";
     size_t mediaTracksSize = 0;
@@ -74,7 +74,7 @@ void FifoFileClient::removeConnection(NabtoDeviceConnectionRef ref)
         std::lock_guard<std::mutex> lock(mutex_);
 
         try {
-            mediaTracks_.erase(ref);
+            mediaTracks_.erase(webrtcConnectionId);
         } catch (std::out_of_range& ex) {
             NPLOGE << "Tried to remove non-existing connection";
         }
@@ -123,11 +123,11 @@ void FifoFileClient::stop()
     NPLOGD << "FIFO Client thread joined";
 }
 
-void FifoFileClient::doAddConnection(NabtoDeviceConnectionRef ref, FifoTrack track)
+void FifoFileClient::doAddConnection(const std::string& webrtcConnectionId, FifoTrack track)
 {
 
     std::lock_guard<std::mutex> lock(mutex_);
-    mediaTracks_[ref] = track;
+    mediaTracks_[webrtcConnectionId] = track;
     NPLOGD << "Adding fifo connection";
     if (stopped_) {
         start();

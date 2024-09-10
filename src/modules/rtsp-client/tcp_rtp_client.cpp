@@ -27,7 +27,7 @@ TcpRtpClient::TcpRtpClient(const TcpRtpClientConf& conf)
 TcpRtpClient::~TcpRtpClient() {}
 
 
-void TcpRtpClient::setConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack)
+void TcpRtpClient::setConnection(const std::string& webrtcConnectionId, MediaTrackPtr videoTrack, MediaTrackPtr audioTrack)
 {
     NPLOGD << "TcpRtpClient setConnection";
     if (videoTrack != nullptr) {

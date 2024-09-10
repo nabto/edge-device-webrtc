@@ -87,9 +87,9 @@ public:
                                            std::vector<nabto::MediaTrackPtr> list;
 
                                            auto media = rtpVideo->createMedia(config.trackId_);
-                                           media->setCloseCallback([rtpVideo, ref]()
-                                                                   { rtpVideo->removeConnection(ref); });
-                                           rtpVideo->addConnection(ref, media);
+                                           media->setCloseCallback([rtpVideo, webrtcConnectionId]()
+                                                                   { rtpVideo->removeConnection(webrtcConnectionId); });
+                                           rtpVideo->addConnection(webrtcConnectionId, media);
                                            list.push_back(media);
 
                                            if (!webrtc->connectionAddMediaTracks(webrtcConnectionId, list))
@@ -205,8 +205,8 @@ int main(int argc, char** argv) {
                     // TODO
                 }
 
-                track->setCloseCallback([rtpVideo, ref]() { rtpVideo->removeConnection(ref); });
-                rtpVideo->addConnection(ref, track);
+                track->setCloseCallback([rtpVideo, id]() { rtpVideo->removeConnection(id); });
+                rtpVideo->addConnection(id, track);
             } else {
                 std::cout << "INVALID TRACK ID ON TRACK EVENT: " << trackId << std::endl;
                 track->setErrorState(nabto::MediaTrack::ErrorState::UNKNOWN_TRACK_ID);

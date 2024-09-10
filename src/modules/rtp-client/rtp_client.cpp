@@ -57,7 +57,7 @@ bool RtpClient::matchMedia(MediaTrackPtr media)
 }
 
 
-void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
+void RtpClient::addConnection(const std::string& webrtcConnectionId, MediaTrackPtr media)
 {
 
     auto sdp = media->getSdp();
@@ -75,15 +75,15 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media)
         negotiator_->payloadType(),
         pt
     };
-    addConnection(ref, track);
+    addConnection(webrtcConnectionId, track);
 }
 
 
 
-void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
+void RtpClient::addConnection(const std::string& webrtcConnectionId, RtpTrack track)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    mediaTracks_[ref] = track;
+    mediaTracks_[webrtcConnectionId] = track;
     NPLOGD << "Adding RTP connection pt " << track.srcPayloadType << "->" << track.dstPayloadType;
     if (stopped_) {
         start();
@@ -113,7 +113,7 @@ void RtpClient::addConnection(NabtoDeviceConnectionRef ref, RtpTrack track)
     }
 }
 
-void RtpClient::removeConnection(NabtoDeviceConnectionRef ref)
+void RtpClient::removeConnection(const std::string& webrtcConnectionId)
 {
     NPLOGD << "Removing Nabto Connection from RTP";
     size_t mediaTracksSize = 0;
@@ -121,7 +121,7 @@ void RtpClient::removeConnection(NabtoDeviceConnectionRef ref)
         std::lock_guard<std::mutex> lock(mutex_);
 
         try {
-            mediaTracks_.erase(ref);
+            mediaTracks_.erase(webrtcConnectionId);
         }
         catch (std::out_of_range& ex) {
             NPLOGE << "Tried to remove non-existing connection";

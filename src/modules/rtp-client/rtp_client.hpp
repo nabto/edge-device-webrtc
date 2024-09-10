@@ -35,8 +35,8 @@ public:
     ~RtpClient();
 
     bool isTrack(const std::string& trackId);
-    void addConnection(NabtoDeviceConnectionRef ref, MediaTrackPtr media);
-    void removeConnection(NabtoDeviceConnectionRef ref);
+    void addConnection(const std::string& webrtcConnectionId, MediaTrackPtr media);
+    void removeConnection(const std::string& webrtcConnectionId);
     bool matchMedia(MediaTrackPtr media);
 
     TrackNegotiatorPtr getTrackNegotiator() { return negotiator_; }
@@ -53,14 +53,14 @@ public:
 private:
     void start();
     void stop();
-    void addConnection(NabtoDeviceConnectionRef ref, RtpTrack track);
+    void addConnection(const std::string& webrtcConnectionId, RtpTrack track);
     static void rtpVideoRunner(RtpClient* self);
 
     std::string trackId_;
     bool stopped_ = true;
     std::mutex mutex_;
 
-    std::map<NabtoDeviceConnectionRef, RtpTrack> mediaTracks_;
+    std::map<std::string, RtpTrack> mediaTracks_;
 
     uint16_t videoPort_ = 6000;
     uint16_t remotePort_ = 6002;

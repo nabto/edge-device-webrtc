@@ -83,9 +83,9 @@ public:
                                            std::vector<nabto::MediaTrackPtr> list;
 
                                            auto media = rtpVideo->createMedia(config.trackId_);
-                                           media->setCloseCallback([rtpVideo, ref]()
-                                                                   { rtpVideo->removeConnection(ref); });
-                                           rtpVideo->addConnection(ref, media);
+                                           media->setCloseCallback([rtpVideo, webrtcConnectionId]()
+                                               { rtpVideo->removeConnection(webrtcConnectionId); });
+                                           rtpVideo->addConnection(webrtcConnectionId, media);
                                            list.push_back(media);
 
                                            if (!webrtc->connectionAddMediaTracks(webrtcConnectionId, list))
