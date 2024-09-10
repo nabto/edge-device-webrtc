@@ -47,7 +47,6 @@ void WebrtcFileStreamChannel::streamOpened(NabtoDeviceFuture* fut, NabtoDeviceEr
     WebrtcFileStreamChannel* self = (WebrtcFileStreamChannel*)data;
     if (ec != NABTO_DEVICE_EC_OK) {
         NPLOGE << "Stream open failed";
-        // TODO: handle error
         return;
     }
     NPLOGD << "Nabto stream opened";
@@ -74,7 +73,6 @@ void WebrtcFileStreamChannel::streamReadCb(NabtoDeviceFuture* fut, NabtoDeviceEr
         return;
     } else if (ec != NABTO_DEVICE_EC_OK) {
         NPLOGE << "Stream read failed with: " << nabto_device_error_get_message(ec);
-        // TODO: handle error
         return;
     }
     NPLOGD << "Read " << self->readLen_ << "bytes from nabto stream";

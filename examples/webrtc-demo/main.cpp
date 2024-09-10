@@ -27,9 +27,6 @@
 
 using nlohmann::json;
 
-// TODO: remove legacy endpoint
-const char* coapVideoPath[] = { "webrtc", "video", "frontdoor", NULL };
-
 const char* coapTracksPath[] = { "webrtc", "tracks", NULL };
 const char* coapTracksDefaultPath[] = { "webrtc", "tracks", "default", NULL };
 

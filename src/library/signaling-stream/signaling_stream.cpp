@@ -30,7 +30,6 @@ void SignalingStream::start()
     const char* identifier = "foobar";
     auto dev = device_.get();
 
-    // TODO: maybe request new turn servers for the client when it asks instead of reusing these
     iceReq_ = nabto_device_ice_servers_request_new(dev);
     auto iceFut = nabto_device_future_new(dev);
     nabto_device_ice_servers_request_send(identifier, iceReq_, iceFut);

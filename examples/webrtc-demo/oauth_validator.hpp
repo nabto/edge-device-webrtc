@@ -107,7 +107,6 @@ public:
                 return;
             }
             NPLOGD << "Token valid!";
-            // TODO: succeed
             cb(true, subject);
         });
 
@@ -266,8 +265,6 @@ private:
             std::string rsaKey;
             if (!keyToRsa(jwk, rsaKey)) {
                 NPLOGE << "keyToRsa failed";
-                // cb(false, "");
-                // TODO: fail
                 return verifier;
             }
             return verifier.allow_algorithm(jwt::algorithm::rs256(rsaKey, "", "", ""));
@@ -278,8 +275,6 @@ private:
             std::string pubKey;
             if (!keyToEcdsa(jwk, pubKey)) {
                 NPLOGE << "keyToEcdsa failed";
-                // cb(false, "");
-                // TODO: fail
                 return verifier;
             }
 
