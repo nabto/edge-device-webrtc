@@ -100,8 +100,7 @@ public:
 
     std::string getId()
     {
-        // TODO: make proper id
-        return "THIS VERY UNIQUE STRING";
+        return id_;
     }
 
 private:
@@ -121,6 +120,7 @@ private:
     void maybeNegotiationNeeded();
     void onNegotiationNeeded();
     void handleSignalingMessage(rtc::optional<rtc::Description> description, const nlohmann::json& metadata);
+    std::string makeRandomId();
 
     SignalingStreamPtr sigStream_;
     NabtoDevicePtr device_;
@@ -131,6 +131,7 @@ private:
     CheckAccessCallback accessCb_;
     EventQueueWork queueWork_;
     enum ConnectionState state_ = CREATED;
+    std::string id_;
 
     nlohmann::json metadata_;
     std::function<void(enum ConnectionState)> eventHandler_;

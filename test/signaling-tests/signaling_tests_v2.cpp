@@ -111,8 +111,7 @@ BOOST_AUTO_TEST_CASE(setup_request_polite, *boost::unit_test::timeout(180))
                     BOOST_TEST(polite == true);
 
                     auto id = resp["id"].get<std::string>();
-                    // TODO: make proper id
-                    BOOST_TEST(id == "THIS VERY UNIQUE STRING");
+                    BOOST_TEST(id.size() == 8);
 
                     auto iceservs = resp["iceServers"].get<std::vector<nlohmann::json> >();
                     BOOST_TEST(iceservs.size() == 0);
@@ -158,8 +157,7 @@ BOOST_AUTO_TEST_CASE(setup_request_impolite, *boost::unit_test::timeout(180))
                     BOOST_TEST(polite == false);
 
                     auto id = resp["id"].get<std::string>();
-                    // TODO: make proper id
-                    BOOST_TEST(id == "THIS VERY UNIQUE STRING");
+                    BOOST_TEST(id.size() == 8);
 
                     auto iceservs = resp["iceServers"].get<std::vector<nlohmann::json> >();
                     BOOST_TEST(iceservs.size() == 0);
@@ -204,8 +202,7 @@ BOOST_AUTO_TEST_CASE(setup_request_unspec_polite, *boost::unit_test::timeout(180
                     BOOST_TEST(polite == true); // Default is true
 
                     auto id = resp["id"].get<std::string>();
-                    // TODO: make proper id
-                    BOOST_TEST(id == "THIS VERY UNIQUE STRING");
+                    BOOST_TEST(id.size() == 8);
 
                     auto iceservs = resp["iceServers"].get<std::vector<nlohmann::json> >();
                     BOOST_TEST(iceservs.size() == 0);

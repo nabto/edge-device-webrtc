@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 #include <iostream>
+#include <random>
 
 namespace nabto {
 
@@ -21,7 +22,7 @@ WebrtcConnectionPtr WebrtcConnection::create(SignalingStreamPtr sigStream, Nabto
 WebrtcConnection::WebrtcConnection(SignalingStreamPtr sigStream, NabtoDevicePtr device, std::vector<struct TurnServer>& turnServers, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb)
     : sigStream_(sigStream), device_(device), turnServers_(turnServers), queue_(queue), trackCb_(trackCb), datachannelCb_(datachannelCb), accessCb_(accessCb), queueWork_(queue)
 {
-
+    id_ = makeRandomId();
 }
 
 WebrtcConnection::~WebrtcConnection()
@@ -37,6 +38,20 @@ void WebrtcConnection::stop()
         pc_->close();
     }
     // sigStream_ = nullptr;
+}
+
+std::string WebrtcConnection::makeRandomId()
+{
+    std::random_device random_device;
+    std::mt19937 generator(random_device());
+    std::uniform_int_distribution<> distribution('a', 'z');
+
+    uint8_t key[8];
+    for (size_t i = 0; i < 8; i++) {
+        key[i] = distribution(generator);
+    }
+    return std::string(key, key+8);
+
 }
 
 void WebrtcConnection::handleCandidate(rtc::Candidate cand)
