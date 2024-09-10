@@ -44,14 +44,18 @@ typedef std::function<void()> QueueEvent;
  * @param connRef [in] The Nabto Connection the track event originates from
  * @param track [in]   The track created by this event
 */
-typedef std::function<void(NabtoDeviceConnectionRef connRef, MediaTrackPtr track)> TrackEventCallback;
+typedef std::function<void(std::string webrtcConnectionId, MediaTrackPtr track)> TrackEventCallback;
 
 /**
  * Datachannel Event callback definition
  * @param connRef [in] The Nabto Connection the datachannel event originates from
  * @param channel [in]   The datachannel created by this event
 */
-typedef std::function<void(NabtoDeviceConnectionRef connRef, DatachannelPtr channel)> DatachannelEventCallback;
+typedef std::function<void(std::string webrtcConnectionId, DatachannelPtr channel)> DatachannelEventCallback;
+
+
+typedef std::function<void(std::string webrtcConnectionId, std::string metadata)> MetadataEventCallback;
+
 
 /**
  * Check access callback invoked when an access decision must be made.
@@ -60,7 +64,7 @@ typedef std::function<void(NabtoDeviceConnectionRef connRef, DatachannelPtr chan
  * @param action [in]  The action being requested
  * @return True if the action should be allowed
 */
-typedef std::function<bool(NabtoDeviceConnectionRef connRef, const std::string& action)> CheckAccessCallback;
+typedef std::function<bool(NabtoDeviceConnectionRef ref, const std::string& action)> CheckAccessCallback;
 
 /**
  * Callback invoked when a media track has data available.
@@ -346,6 +350,13 @@ public:
      * @param cb [in] The callback to set
     */
     void setDatachannelEventCallback(DatachannelEventCallback cb);
+
+
+    bool connectionSendMetadata(std::string id, std::string metadata);
+
+    void setMetadataEventCallback(MetadataEventCallback cb);
+
+    NabtoDeviceConnectionRef getNabtoConnectionRef(std::string webrtcConnectionId);
 
     /**
      * Set Callback to be called to check if some action is allowed by the current connection.

@@ -81,8 +81,9 @@ int main(int argc, char** argv) {
 
     auto webrtc = nabto::NabtoDeviceWebrtc::create(eventQueue, device);
     webrtc->setTrackEventCallback(
-        [rtpVideo](NabtoDeviceConnectionRef ref, nabto::MediaTrackPtr track)
+        [rtpVideo, webrtc](std::string id, nabto::MediaTrackPtr track)
         {
+            auto ref = webrtc->getNabtoConnectionRef(id);
             const std::string &trackId = track->getTrackId();
             if (trackId == "frontdoor-audio") {
                 auto ok = rtpVideo->matchMedia(track);

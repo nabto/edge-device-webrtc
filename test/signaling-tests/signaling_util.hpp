@@ -41,7 +41,7 @@ public:
     ~VirtualCoap() {
         nabto_device_virtual_coap_request_free(req_);
         nabto_device_future_free(future_);
-        std::cout << "COAP destroyed" << std::endl;
+        // std::cout << "COAP destroyed" << std::endl;
     }
 
     void execute(std::function<void(NabtoDeviceError ec)> cb) {
@@ -99,7 +99,7 @@ public:
         }
         nabto_device_virtual_stream_free(stream_);
         nabto_device_future_free(future_);
-        std::cout << "Stream destroyed" << std::endl;
+        // std::cout << "Stream destroyed" << std::endl;
     }
 
     void open(uint32_t port, std::function<void(NabtoDeviceError ec)> cb) {
@@ -110,7 +110,7 @@ public:
     }
 
     void write(std::vector<uint8_t>& data, std::function<void(NabtoDeviceError ec)> cb) {
-        std::cout << "stream write" << std::endl;
+        // std::cout << "stream write" << std::endl;
         writeCb_ = cb;
         auto fut = nabto_device_future_new(device_.get());
         nabto_device_virtual_stream_write(stream_, fut, data.data(), data.size());
@@ -118,7 +118,7 @@ public:
     }
 
     void readAll(size_t len, std::function<void(NabtoDeviceError ec, uint8_t* buff, size_t len)> cb) {
-        std::cout << "stream read all: " << len << std::endl;
+        // std::cout << "stream read all: " << len << std::endl;
         readCb_ = cb;
         if (readBuffer_) {
             free(readBuffer_);
@@ -131,21 +131,21 @@ public:
     }
 
     void close(std::function<void(NabtoDeviceError ec)> cb) {
-        std::cout << "stream close" << std::endl;
+        // std::cout << "stream close" << std::endl;
         closeCb_ = cb;
         nabto_device_virtual_stream_close(stream_, future_);
         nabto_device_future_set_callback(future_, streamClosed, this);
     }
 
     void abort() {
-        std::cout << "stream abort" << std::endl;
+        // std::cout << "stream abort" << std::endl;
         nabto_device_virtual_stream_abort(stream_);
     }
 
 private:
     static void streamOpened(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
     {
-        std::cout << "stream opened" << std::endl;
+        // std::cout << "stream opened" << std::endl;
         VirtualStream* self = (VirtualStream*)userData;
         self->openCb_(ec);
         self->openCb_ = nullptr;
@@ -153,7 +153,7 @@ private:
 
     static void streamClosed(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
     {
-        std::cout << "stream closed" << std::endl;
+        // std::cout << "stream closed" << std::endl;
         VirtualStream* self = (VirtualStream*)userData;
         self->closeCb_(ec);
         self->closeCb_ = nullptr;
@@ -161,7 +161,7 @@ private:
 
     static void streamWritten(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
     {
-        std::cout << "stream written" << std::endl;
+        // std::cout << "stream written" << std::endl;
         nabto_device_future_free(future);
         VirtualStream* self = (VirtualStream*)userData;
         auto cb = self->writeCb_;
@@ -171,7 +171,7 @@ private:
 
     static void streamRead(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData)
     {
-        std::cout << "stream readen" << std::endl;
+        // std::cout << "stream readen" << std::endl;
         nabto_device_future_free(future);
         VirtualStream* self = (VirtualStream*)userData;
         auto cb = self->readCb_;
@@ -196,6 +196,12 @@ private:
 
 class TestDevice : public std::enable_shared_from_this<TestDevice> {
 public:
+    static std::shared_ptr<TestDevice> create() {
+        auto td = std::make_shared<nabto::test::TestDevice>();
+        td->init();
+        return td;
+    }
+
     TestDevice() :
         device_(nabto::makeNabtoDevice()),
         eventQueue_(nabto::EventQueueImpl::create())
@@ -241,27 +247,36 @@ public:
         }
 
         webrtc_ = nabto::NabtoDeviceWebrtc::create(eventQueue_, device_);
+    }
 
-        webrtc_->setCheckAccessCallback([](NabtoDeviceConnectionRef ref, std::string action) -> bool {
+    void init() {
+        auto self = shared_from_this();
+        webrtc_->setCheckAccessCallback([self](NabtoDeviceConnectionRef ref, std::string action) -> bool {
             // TODO: custom test callback
             return true;
             });
 
-        webrtc_->setTrackEventCallback([](NabtoDeviceConnectionRef connRef, nabto::MediaTrackPtr track) {
+        webrtc_->setTrackEventCallback([self](std::string id, nabto::MediaTrackPtr track) {
             // TODO: custom test callback
             });
+
+        webrtc_->setMetadataEventCallback([self](std::string id, std::string metadata) {
+            self->lastRecvMetadata_ = metadata;
+        });
 
     }
 
     ~TestDevice() {
 
-        std::cout << "TestDevice destroyed" << std::endl;
+        // std::cout << "TestDevice destroyed" << std::endl;
         auto fut = rtc::Cleanup();
         fut.wait();
         fut.get();
     }
 
     nabto::NabtoDevicePtr getDevice() { return device_; }
+
+    std::string getLastMetadata() { return lastRecvMetadata_; }
 
     NabtoDeviceVirtualConnection* makeConnection()
     {
@@ -315,12 +330,17 @@ public:
         stream_->readAll(4, [self, cb](NabtoDeviceError ec, uint8_t* buff, size_t len) {
             BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
             uint32_t l = *((uint32_t*)buff);
-            std::cout << "Reading " << l << " bytes" << std::endl;
+            // std::cout << "Reading " << l << " bytes" << std::endl;
             self->stream_->readAll(l, [self, cb, l](NabtoDeviceError ec, uint8_t* buff, size_t len) {
                 BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
                 cb(buff, len);
             });
         });
+    }
+
+    bool sendMetadata(std::string id, std::string data)
+    {
+        return webrtc_->connectionSendMetadata(id, data);
     }
 
     void run() {
@@ -329,7 +349,7 @@ public:
     }
 
     void close(std::function<void()> cb) {
-        std::cout << "device close" << std::endl;
+        // std::cout << "device close" << std::endl;
         closeCb_ = cb;
         NabtoDeviceFuture* fut = nabto_device_future_new(device_.get());
         nabto_device_close(device_.get(), fut);
@@ -337,10 +357,10 @@ public:
     }
 
     void stop() {
-        std::cout << "device stop" << std::endl;
+        // std::cout << "device stop" << std::endl;
         auto self = shared_from_this();
         eventQueue_->post([self]() {
-            std::cout << "device stop synced" << std::endl;
+            // std::cout << "device stop synced" << std::endl;
             self->stream_ = nullptr;
             self->coap_ = nullptr;
             nabto_device_stop(self->device_.get());
@@ -353,7 +373,7 @@ public:
     }
 
     static void deviceClosed(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData) {
-        std::cout << "device closed" << std::endl;
+        // std::cout << "device closed" << std::endl;
         nabto_device_future_free(future);
         TestDevice* self = (TestDevice*)userData;
         self->stop();
@@ -385,6 +405,8 @@ public:
     std::shared_ptr<VirtualCoap> coap_ = nullptr;
     NabtoDeviceVirtualConnection* conn_ = NULL;
     std::function<void()> closeCb_;
+
+    std::string lastRecvMetadata_;
 
 };
 

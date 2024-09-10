@@ -6,7 +6,7 @@ BOOST_AUTO_TEST_SUITE(signaling_api_v2)
 
 BOOST_AUTO_TEST_CASE(get_stream_port, *boost::unit_test::timeout(180))
 {
-    auto td = std::make_shared<nabto::test::TestDevice>();
+    auto td = nabto::test::TestDevice::create();
     auto conn = td->makeConnection();
 
     auto coap = nabto::test::VirtualCoap(td->getDevice(), conn, NABTO_DEVICE_COAP_GET, "/p2p/webrtc-info");
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(get_stream_port, *boost::unit_test::timeout(180))
 
 BOOST_AUTO_TEST_CASE(open_signaling_stream, *boost::unit_test::timeout(180))
 {
-    auto td = std::make_shared<nabto::test::TestDevice>();
+    auto td = nabto::test::TestDevice::create();
     auto conn = td->makeConnection();
 
     auto coap = nabto::test::VirtualCoap(td->getDevice(), conn, NABTO_DEVICE_COAP_GET, "/p2p/webrtc-info");
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(open_signaling_stream, *boost::unit_test::timeout(180))
 
 BOOST_AUTO_TEST_CASE(open_signaling_stream_helper, *boost::unit_test::timeout(180))
 {
-    auto td = std::make_shared<nabto::test::TestDevice>();
+    auto td = nabto::test::TestDevice::create();
     td->makeConnectionSigV2Stream([td](NabtoDeviceVirtualConnection* conn, std::shared_ptr<nabto::test::VirtualStream> stream) {
         stream->abort();
         td->close([conn]() {
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(open_signaling_stream_helper, *boost::unit_test::timeout(18
 
 BOOST_AUTO_TEST_CASE(setup_request_polite, *boost::unit_test::timeout(180))
 {
-    auto td = std::make_shared<nabto::test::TestDevice>();
+    auto td = nabto::test::TestDevice::create();
     std::vector<uint8_t> req;
     td->makeConnectionSigV2Stream([td, &req](NabtoDeviceVirtualConnection* conn, std::shared_ptr<nabto::test::VirtualStream> stream) {
         nlohmann::json turnReqjson = {
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(setup_request_polite, *boost::unit_test::timeout(180))
 
 BOOST_AUTO_TEST_CASE(setup_request_impolite, *boost::unit_test::timeout(180))
 {
-    auto td = std::make_shared<nabto::test::TestDevice>();
+    auto td = nabto::test::TestDevice::create();
     std::vector<uint8_t> req;
     td->makeConnectionSigV2Stream([td, &req](NabtoDeviceVirtualConnection* conn, std::shared_ptr<nabto::test::VirtualStream> stream) {
         nlohmann::json turnReqjson = {
@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE(setup_request_impolite, *boost::unit_test::timeout(180))
 
 BOOST_AUTO_TEST_CASE(setup_request_unspec_polite, *boost::unit_test::timeout(180))
 {
-    auto td = std::make_shared<nabto::test::TestDevice>();
+    auto td = nabto::test::TestDevice::create();
     std::vector<uint8_t> req;
     td->makeConnectionSigV2Stream([td, &req](NabtoDeviceVirtualConnection* conn, std::shared_ptr<nabto::test::VirtualStream> stream) {
         nlohmann::json turnReqjson = {
@@ -224,6 +224,90 @@ BOOST_AUTO_TEST_CASE(setup_request_unspec_polite, *boost::unit_test::timeout(180
 
 }
 
+BOOST_AUTO_TEST_CASE(send_metadata, *boost::unit_test::timeout(180))
+{
+    auto td = nabto::test::TestDevice::create();
+    std::vector<uint8_t> req;
+    std::vector<uint8_t> req2;
+    td->makeConnectionSigV2Stream([td, &req, &req2](NabtoDeviceVirtualConnection* conn, std::shared_ptr<nabto::test::VirtualStream> stream) {
+        // TODO: techically the protocol states this setup request must be the first message, but the device don't actually care
+        nlohmann::json turnReqjson = {
+            {"type", "SETUP_REQUEST"}
+        };
+        req = nabto::test::jsonToStreamBuffer(turnReqjson);
+
+        stream->write(req, [stream, td, conn, &req2](NabtoDeviceError ec) {
+            BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
+            td->readStreamObject([stream, td, conn, &req2](uint8_t* buff, size_t len) {
+                nlohmann::json metaReq = {
+                    {"type", "METADATA"},
+                    {"metadata", "foobar"}
+                };
+                req2 = nabto::test::jsonToStreamBuffer(metaReq);
+                stream->write(req2, [stream, td, conn](NabtoDeviceError ec) {
+                    BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
+                    stream->abort();
+                    td->close([conn, td]() {
+                        auto lastMd = td->getLastMetadata();
+                        BOOST_TEST(lastMd == "foobar");
+                        nabto_device_virtual_connection_free(conn);
+                        });
+
+                    });
+                });
+            });
+        });
+
+    td->run();
+
+}
+
+BOOST_AUTO_TEST_CASE(recv_metadata, *boost::unit_test::timeout(180))
+{
+    auto td = nabto::test::TestDevice::create();
+    std::vector<uint8_t> req;
+    std::vector<uint8_t> req2;
+    td->makeConnectionSigV2Stream([td, &req, &req2](NabtoDeviceVirtualConnection* conn, std::shared_ptr<nabto::test::VirtualStream> stream) {
+        // TODO: techically the protocol states this setup request must be the first message, but the device don't actually care
+        nlohmann::json turnReqjson = {
+            {"type", "SETUP_REQUEST"}
+        };
+        req = nabto::test::jsonToStreamBuffer(turnReqjson);
+
+        stream->write(req, [stream, td, conn, &req2](NabtoDeviceError ec) {
+            BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
+            td->readStreamObject([stream, td, conn, &req2](uint8_t* buff, size_t len) {
+                // TODO: fix connection id string
+                td->sendMetadata("THIS VERY UNIQUE STRING", "foobar");
+
+                td->readStreamObject([stream, td, conn, &req2](uint8_t* buff, size_t len) {
+                    try {
+                        auto resp = nabto::test::streamBufferToJson(buff, len);
+
+                        auto type = resp["type"].get<std::string>();
+                        BOOST_TEST(type == "METADATA");
+
+                        auto data = resp["metadata"].get<std::string>();
+                        BOOST_TEST(data == "foobar");
+
+                    } catch (std::exception& ex) {
+                        BOOST_TEST(ex.what() == "");
+                    }
+
+                    stream->abort();
+                    td->close([conn, td]() {
+                        nabto_device_virtual_connection_free(conn);
+                    });
+
+                });
+            });
+        });
+    });
+
+    td->run();
+
+}
+
 
 BOOST_AUTO_TEST_CASE(answer_an_offer, *boost::unit_test::timeout(180))
 {
@@ -231,7 +315,7 @@ BOOST_AUTO_TEST_CASE(answer_an_offer, *boost::unit_test::timeout(180))
         {"sdp", "v=0\r\no=- 4001653510419693843 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:9aLM\r\na=ice-pwd:jtaHrFFgBekhsoOD+0pS3PaI\r\na=ice-options:trickle\r\na=fingerprint:sha-256 28:E0:2D:E0:11:02:A0:1A:39:8C:86:B2:19:11:5D:98:F3:8C:79:8F:56:08:52:E2:30:25:35:C9:67:FE:93:B7\r\na=setup:actpass\r\na=mid:0\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n"},
         {"type", "offer"}
     };
-    auto td = std::make_shared<nabto::test::TestDevice>();
+    auto td = nabto::test::TestDevice::create();
     std::vector<uint8_t> req;
 
     td->makeConnectionSigV2Stream([td, &req, &offerData](NabtoDeviceVirtualConnection* conn, std::shared_ptr<nabto::test::VirtualStream> stream) {
@@ -243,7 +327,7 @@ BOOST_AUTO_TEST_CASE(answer_an_offer, *boost::unit_test::timeout(180))
             stream->readAll(4, [stream, td, conn](NabtoDeviceError ec, uint8_t* buff, size_t len) {
                 BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
                 uint32_t l = *((uint32_t*)buff);
-                std::cout << "Reading " << l << " bytes" << std::endl;
+                // std::cout << "Reading " << l << " bytes" << std::endl;
                 stream->readAll(l, [stream, td, conn, l](NabtoDeviceError ec, uint8_t* buff, size_t len) {
                     BOOST_TEST(ec == NABTO_DEVICE_EC_OK);
                     try {
@@ -282,7 +366,7 @@ BOOST_AUTO_TEST_CASE(send_candidates, *boost::unit_test::timeout(180))
         {"sdp", "v=0\r\no=- 4001653510419693843 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:9aLM\r\na=ice-pwd:jtaHrFFgBekhsoOD+0pS3PaI\r\na=ice-options:trickle\r\na=fingerprint:sha-256 28:E0:2D:E0:11:02:A0:1A:39:8C:86:B2:19:11:5D:98:F3:8C:79:8F:56:08:52:E2:30:25:35:C9:67:FE:93:B7\r\na=setup:actpass\r\na=mid:0\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n"},
         {"type", "offer"}
     };
-    auto td = std::make_shared<nabto::test::TestDevice>();
+    auto td = nabto::test::TestDevice::create();
     std::vector<uint8_t> req;
 
     td->makeConnectionSigV2Stream([td, &req, &offerData](NabtoDeviceVirtualConnection* conn, std::shared_ptr<nabto::test::VirtualStream> stream) {

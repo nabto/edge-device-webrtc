@@ -46,6 +46,21 @@ void NabtoDeviceWebrtc::setDatachannelEventCallback(DatachannelEventCallback cb)
     impl_->setDatachannelEventCallback(cb);
 }
 
+void NabtoDeviceWebrtc::setMetadataEventCallback(MetadataEventCallback cb)
+{
+    impl_->setMetadataEventCallback(cb);
+}
+
+bool NabtoDeviceWebrtc::connectionSendMetadata(std::string id, std::string metadata)
+{
+    return impl_->connectionSendMetadata(id, metadata);
+}
+
+NabtoDeviceConnectionRef NabtoDeviceWebrtc::getNabtoConnectionRef(std::string webrtcConnectionId)
+{
+    return impl_->getNabtoConnectionRef(webrtcConnectionId);
+}
+
 void NabtoDeviceWebrtc::setCheckAccessCallback(CheckAccessCallback cb)
 {
     impl_->setCheckAccessCallback(cb);

@@ -34,14 +34,17 @@ bool SignalingStreamManager::start()
             NPLOGD << "Creating Signaling stream for client fp: " << (fp == NULL ? "NO FP" : fp);
             nabto_device_string_free(fp);
             SignalingStreamPtr s = SignalingStream::create(self->device_, stream, self, self->queue_,
-                [self](NabtoDeviceConnectionRef connRef, MediaTrackPtr track) {
+                [self](std::string connRef, MediaTrackPtr track) {
                     self->trackCb_(connRef, track);
                 },
                 [self](NabtoDeviceConnectionRef ref, std::string action) -> bool {
                     return self->accessCb_(ref, action);
                 },
-                [self](NabtoDeviceConnectionRef connRef, DatachannelPtr channel) {
+                [self](std::string  connRef, DatachannelPtr channel) {
                     self->datachannelCb_(connRef, channel);
+                },
+                [self](std::string id, std::string metadata){
+                    self->metadataCb_(id, metadata);
                 }, false);
             self->streams_.push_back(s);
             s->start();
@@ -61,14 +64,17 @@ bool SignalingStreamManager::start()
             NPLOGD << "Creating V2 Signaling stream for client fp: " << (fp == NULL ? "NO FP" : fp);
             nabto_device_string_free(fp);
             SignalingStreamPtr s = SignalingStream::create(self->device_, stream, self, self->queue_,
-                [self](NabtoDeviceConnectionRef connRef, MediaTrackPtr track) {
+                [self](std::string connRef, MediaTrackPtr track) {
                     self->trackCb_(connRef, track);
                 },
                 [self](NabtoDeviceConnectionRef ref, std::string action) -> bool {
                     return self->accessCb_(ref, action);
                 },
-                [self](NabtoDeviceConnectionRef connRef, DatachannelPtr channel) {
+                [self](std::string connRef, DatachannelPtr channel) {
                     self->datachannelCb_(connRef, channel);
+                },
+                [self](std::string id, std::string metadata) {
+                    self->metadataCb_(id, metadata);
                 }, true);
             self->streams_.push_back(s);
             s->start();
@@ -130,9 +136,48 @@ void SignalingStreamManager::setDatachannelEventCallback(DatachannelEventCallbac
     datachannelCb_ = cb;
 }
 
+void SignalingStreamManager::setMetadataEventCallback(MetadataEventCallback cb)
+{
+    metadataCb_ = cb;
+}
+
+bool SignalingStreamManager::connectionSendMetadata(std::string id, std::string metadata)
+{
+    auto stream = findStream(id);
+    if (stream) {
+        stream->signalingSendMetadata(metadata);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+NabtoDeviceConnectionRef SignalingStreamManager::getNabtoConnectionRef(std::string webrtcConnectionId)
+{
+    auto stream = findStream(webrtcConnectionId);
+    if (stream) {
+        return stream->getSignalingConnectionRef();
+    } else {
+        return 0;
+    }
+}
+
 void SignalingStreamManager::setCheckAccessCallback(CheckAccessCallback cb)
 {
     accessCb_ = cb;
+}
+
+
+SignalingStreamPtr SignalingStreamManager::findStream(std::string id)
+{
+    for (auto p : streams_) {
+        auto ptr = p.lock();
+        if (ptr && ptr->isConnection(id)) {
+            return ptr;
+        }
+    }
+    return nullptr;
+
 }
 
 } // namespace

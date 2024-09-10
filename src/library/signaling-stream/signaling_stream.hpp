@@ -21,9 +21,9 @@ public:
         TURN_RESPONSE
     };
 
-    static SignalingStreamPtr create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, bool isV2);
+    static SignalingStreamPtr create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, MetadataEventCallback metadataCb, bool isV2);
 
-    SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, bool isV2);
+    SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, MetadataEventCallback metadataCb, bool isV2);
 
     ~SignalingStream();
 
@@ -37,6 +37,7 @@ public:
     // Signaling v2
     void signalingSendDescription(const rtc::Description& desc, const nlohmann::json& metadata);
     void signalingSendCandidate(const rtc::Candidate& cand, nlohmann::json& metadata);
+    void signalingSendMetadata(const std::string metadata);
 
     bool isConnection(NabtoDeviceConnectionRef ref)
     {
@@ -50,6 +51,11 @@ public:
             return me == ref;
         }
     }
+
+    bool isConnection(std::string id) {
+        return (webrtcConnection_->getId() == id);
+    }
+
 
     bool createTracks(const std::vector<MediaTrackPtr>& tracks)
     {
@@ -65,6 +71,18 @@ public:
             return true;
         }
         return false;
+    }
+
+    NabtoDeviceConnectionRef getNabtoConnectionRef()
+    {
+        NabtoDeviceConnectionRef ref = 0;
+        if (webrtcConnection_ != nullptr) {
+            ref = webrtcConnection_->getConnectionRef();
+        }
+        if (ref == 0) {
+            ref = getSignalingConnectionRef();
+        }
+        return ref;
     }
 
     NabtoDeviceConnectionRef getSignalingConnectionRef()
@@ -106,6 +124,8 @@ private:
     TrackEventCallback trackCb_;
     CheckAccessCallback accessCb_;
     DatachannelEventCallback datachannelCb_;
+    MetadataEventCallback metadataCb_;
+
     bool isV2_ = false;
     NabtoDeviceFuture* future_;
     NabtoDeviceFuture* writeFuture_;

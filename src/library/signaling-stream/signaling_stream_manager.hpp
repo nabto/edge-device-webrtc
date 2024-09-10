@@ -23,14 +23,22 @@ public:
     bool connectionAddMediaTracks(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks);
     void setTrackEventCallback(TrackEventCallback cb);
     void setDatachannelEventCallback(DatachannelEventCallback cb);
+    void setMetadataEventCallback(MetadataEventCallback cb);
     void setCheckAccessCallback(CheckAccessCallback cb);
 
+    bool connectionSendMetadata(std::string id, std::string metadata);
+    NabtoDeviceConnectionRef getNabtoConnectionRef(std::string webrtcConnectionId);
+
 private:
+
+    SignalingStreamPtr findStream(std::string id);
+
     NabtoDevicePtr device_;
     EventQueuePtr queue_;
 
     TrackEventCallback trackCb_;
     DatachannelEventCallback datachannelCb_;
+    MetadataEventCallback metadataCb_;
     CheckAccessCallback accessCb_;
 
     NabtoCoapListenerPtr coapInfoListener_ = nullptr;

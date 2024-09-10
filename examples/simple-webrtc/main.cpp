@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
         nabto_device_coap_request_free(coap);
     });
 
-    webrtc->setDatachannelEventCallback([](NabtoDeviceConnectionRef ref, nabto::DatachannelPtr channel) {
+    webrtc->setDatachannelEventCallback([](std::string id, nabto::DatachannelPtr channel) {
         std::cout << "Got new datachannel with label: " << channel->getLabel() << std::endl;
         channel->setMessageCallback([channel](nabto::Datachannel::MessageType type, uint8_t* buffer, size_t length) {
             std::cout << "Received datachannel message! type: " << type << " message: " << std::string((char*)buffer, length) << std::endl;

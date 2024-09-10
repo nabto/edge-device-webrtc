@@ -44,7 +44,8 @@ public:
 
     // signaling v2
     void handleCandidate(rtc::Candidate cand);
-    void handleDescription(rtc::Description desc, std::string metadata);
+    void handleDescription(rtc::Description desc);
+    // void handleMetadata(std::string metadata);
 
     // signaling v1
 
@@ -85,6 +86,8 @@ public:
         return false;
     }
 
+    NabtoDeviceConnectionRef getConnectionRef();
+
     void setPolite(bool polite)
     {
         polite_ = polite;
@@ -111,7 +114,6 @@ private:
     MediaTrackPtr createMediaTrack(std::shared_ptr<rtc::Track> track);
     DatachannelPtr createDatachannel(std::shared_ptr<rtc::DataChannel> channel);
 
-    NabtoDeviceConnectionRef getConnectionRef();
     void updateMetaTracks();
     std::string trackErrorToString(enum MediaTrack::ErrorState state);
 

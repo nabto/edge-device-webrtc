@@ -172,11 +172,13 @@ int main(int argc, char** argv) {
     std::cout << "Nabto Device WebRTC version: " << nabto::NabtoDeviceWebrtc::version() << std::endl;
 
     auto webrtc = nabto::NabtoDeviceWebrtc::create(eventQueue, device->getDevice());
-    webrtc->setCheckAccessCallback([device](NabtoDeviceConnectionRef ref, std::string action) -> bool {
+    webrtc->setCheckAccessCallback([device, webrtc](NabtoDeviceConnectionRef ref, std::string action) -> bool {
         return nm_iam_check_access(device->getIam(), ref, action.c_str(), NULL);
     });
 
-    webrtc->setTrackEventCallback([device, medias, rtsp](NabtoDeviceConnectionRef connRef, nabto::MediaTrackPtr track) {
+    webrtc->setTrackEventCallback([device, medias, rtsp, webrtc](std::string id, nabto::MediaTrackPtr track) {
+        auto connRef = webrtc->getNabtoConnectionRef(id);
+
         if (!nm_iam_check_access(device->getIam(), connRef, "Webrtc:VideoStream", NULL)) {
             track->setErrorState(nabto::MediaTrack::ErrorState::ACCESS_DENIED);
             return;

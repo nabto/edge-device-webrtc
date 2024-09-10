@@ -17,6 +17,9 @@ public:
     bool connectionAddMediaTracks(NabtoDeviceConnectionRef ref, const std::vector<MediaTrackPtr>& tracks);
     void setTrackEventCallback(TrackEventCallback cb);
     void setDatachannelEventCallback(DatachannelEventCallback cb);
+    void setMetadataEventCallback(MetadataEventCallback cb);
+    bool connectionSendMetadata(std::string id, std::string metadata);
+    NabtoDeviceConnectionRef getNabtoConnectionRef(std::string webrtcConnectionId);
     void setCheckAccessCallback(CheckAccessCallback cb);
 
 private:

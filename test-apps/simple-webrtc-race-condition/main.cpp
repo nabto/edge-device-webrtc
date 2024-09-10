@@ -168,8 +168,9 @@ int main(int argc, char** argv) {
 
     auto webrtc = nabto::NabtoDeviceWebrtc::create(eventQueue, device);
     webrtc->setTrackEventCallback(
-        [rtpVideo](NabtoDeviceConnectionRef ref, nabto::MediaTrackPtr track)
+        [rtpVideo, webrtc](std::string id, nabto::MediaTrackPtr track)
         {
+            auto ref = webrtc->getNabtoConnectionRef(id);
             const std::string &trackId = track->getTrackId();
             std::cout << "Got track event for ID: " << trackId << std::endl;
             if (trackId == "from_browser") {

@@ -4,14 +4,14 @@
 
 namespace nabto {
 
-SignalingStreamPtr SignalingStream::create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, bool isV2)
+SignalingStreamPtr SignalingStream::create(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, MetadataEventCallback metadataCb, bool isV2)
 {
-    return std::make_shared<SignalingStream>(device, stream, manager, queue, trackCb, accessCb, datachannelCb, isV2);
+    return std::make_shared<SignalingStream>(device, stream, manager, queue, trackCb, accessCb, datachannelCb, metadataCb, isV2);
 
 }
 
-SignalingStream::SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, bool isV2)
-    :device_(device), stream_(stream), manager_(manager), queue_(queue), trackCb_(trackCb), datachannelCb_(datachannelCb), accessCb_(accessCb), isV2_(isV2)
+SignalingStream::SignalingStream(NabtoDevicePtr device, NabtoDeviceStream* stream, SignalingStreamManagerPtr manager, EventQueuePtr queue, TrackEventCallback trackCb, CheckAccessCallback accessCb, DatachannelEventCallback datachannelCb, MetadataEventCallback metadataCb, bool isV2)
+    :device_(device), stream_(stream), manager_(manager), queue_(queue), trackCb_(trackCb), datachannelCb_(datachannelCb), metadataCb_(metadataCb), accessCb_(accessCb), isV2_(isV2)
 {
     future_ = nabto_device_future_new(device.get());
     writeFuture_ = nabto_device_future_new(device.get());
@@ -187,7 +187,7 @@ void SignalingStream::hasReadObjLen(NabtoDeviceFuture* future, NabtoDeviceError 
     // nabto_device_future_free(future);
     if (ec == NABTO_DEVICE_EC_EOF) {
         // make a nice shutdown
-        printf("Read reached EOF closing nicely\n");
+        NPLOGD << "Read reached EOF closing nicely";
         self->queue_->post([self]() {
             self->reading_ = false;
             self->closeStream();
@@ -236,7 +236,7 @@ void SignalingStream::hasReadObject(NabtoDeviceFuture* future, NabtoDeviceError 
     SignalingStream* self = (SignalingStream*)userData;
     if (ec == NABTO_DEVICE_EC_EOF) {
         // make a nice shutdown
-        printf("Read reached EOF closing nicely\n");
+        NPLOGD << "Read reached EOF closing nicely";
         self->queue_->post([self]() {
             self->reading_ = false;
             self->closeStream();
@@ -278,13 +278,14 @@ void SignalingStream::handleReadObject()
                 webrtcConnection_->handleCandidate(cand);
             } else if (type == "DESCRIPTION") {
                 rtc::Description desc(obj["description"]["sdp"].get<std::string>(), obj["description"]["type"].get<std::string>());
-                std::string metadata = "";
-                try {
-                    metadata = obj["metadata"].get<std::string>();
-                } catch (std::exception& ex) {
-                    // ignore
+                webrtcConnection_->handleDescription(desc);
+            } else if (type == "METADATA") {
+                if (metadataCb_) {
+                    std::string metadata = obj["metadata"].get<std::string>();
+                    metadataCb_(webrtcConnection_->getId(), metadata);
+                } else {
+                    NPLOGD << "Received metadata without callback";
                 }
-                webrtcConnection_->handleDescription(desc, metadata);
             } else {
                 NPLOGE << "Received invalid signaling message: " << type;
             }
@@ -316,6 +317,16 @@ void SignalingStream::handleReadObject()
     free(objectBuffer_);
     objectBuffer_ = NULL;
     return readObjLength();
+}
+
+void SignalingStream::signalingSendMetadata(const std::string metadata)
+{
+    nlohmann::json msg = {
+        {"type", "METADATA"},
+        {"metadata", metadata}
+    };
+    auto data = msg.dump();
+    sendSignalligObject(data);
 }
 
 void SignalingStream::signalingSendDescription(const rtc::Description& desc, const nlohmann::json& metadata)

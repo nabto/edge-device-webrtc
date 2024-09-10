@@ -51,13 +51,15 @@ void WebrtcConnection::handleCandidate(rtc::Candidate cand)
     }
 }
 
-void WebrtcConnection::handleDescription(rtc::Description desc, std::string metadata)
+void WebrtcConnection::handleDescription(rtc::Description desc)
 {
     NPLOGD << "Got Description: " << desc;
     if (!pc_) {
         createPeerConnection();
     }
     try {
+        // TODO: remove metadata from v2 but maybe keep for v1
+        nlohmann::json metadata;
         handleSignalingMessage(desc, metadata);
     } catch (std::invalid_argument& ex) {
         NPLOGE << "Got invalid argument: " << ex.what();
@@ -273,7 +275,7 @@ void WebrtcConnection::acceptTrack(MediaTrackPtr track)
 {
     if (trackCb_) {
         NPLOGD << "accepttrack with callback";
-        trackCb_(getConnectionRef(), track);
+        trackCb_(getId(), track);
         if (track->getImpl()->getErrorState() != MediaTrack::ErrorState::OK) {
             NPLOGD << "track callback set a track error, not listening for messages";
             return;
@@ -320,7 +322,7 @@ void WebrtcConnection::handleDatachannelEvent(std::shared_ptr<rtc::DataChannel> 
     } else {
         auto chan = createDatachannel(incoming);
         datachannels_.push_back(chan);
-        datachannelCb_(getConnectionRef(), chan);
+        datachannelCb_(getId(), chan);
     }
 
 }
