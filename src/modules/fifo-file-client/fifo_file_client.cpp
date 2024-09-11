@@ -48,6 +48,10 @@ bool FifoFileClient::matchMedia(MediaTrackPtr media)
 
 void FifoFileClient::addConnection(const std::string& webrtcConnectionId, MediaTrackPtr media)
 {
+    if (mediaTracks_.find(webrtcConnectionId) != mediaTracks_.end()) {
+        NPLOGI << "addConnection called with already added connection ID";
+        return;
+    }
     auto sdp = media->getSdp();
 
     rtc::Description::Media desc(sdp);

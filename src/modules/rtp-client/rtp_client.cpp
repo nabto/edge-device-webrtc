@@ -59,7 +59,10 @@ bool RtpClient::matchMedia(MediaTrackPtr media)
 
 void RtpClient::addConnection(const std::string& webrtcConnectionId, MediaTrackPtr media)
 {
-
+    if (mediaTracks_.find(webrtcConnectionId) != mediaTracks_.end()) {
+        NPLOGI << "addConnection called with already added connection ID";
+        return;
+    }
     auto sdp = media->getSdp();
     rtc::Description::Media desc(sdp);
     auto pts = desc.payloadTypes();
