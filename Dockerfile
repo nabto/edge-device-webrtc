@@ -35,6 +35,7 @@ RUN cmake --workflow --preset release
 
 RUN mkdir -p /usr/local/bin
 RUN cp build/release/install/bin/edge_device_webrtc /usr/local/bin/
+RUN cp build/release/install/bin/simple_webrtc_device /usr/local/bin/
 
 WORKDIR /homedir
 COPY demo-scripts/entrypoint.sh /workspace/entrypoint.sh
