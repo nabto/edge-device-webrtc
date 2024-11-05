@@ -81,7 +81,7 @@ Response Payload field `response` is a JWT token of the format:
             x: string,
             y: string
         },
-        typ: "JWS
+        typ: "JWS"
     },
     payload: {
         client_fingerprint: string,
