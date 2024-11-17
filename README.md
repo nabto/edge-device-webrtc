@@ -235,7 +235,7 @@ set(VCPKG_LIBRARY_LINKAGE static)
 set(VCPKG_CMAKE_SYSTEM_NAME Linux)
 ```
 
-Then add `-DVCPKG_OVERLAY_TRIPLETS=./triplets` to your build command and select the new target triplet with `-DVCPKG_TARGET_TRIPLET=mips32-linux`:
+Then add `-DVCPKG_OVERLAY_TRIPLETS=<path>/triplets` to your build command and select the new target triplet with `-DVCPKG_TARGET_TRIPLET=mips32-linux`:
 
 ```
 export CC="mips-gcc720-glibc226/bin/mips-linux-gnu-gcc -muclibc"
@@ -244,6 +244,7 @@ mkdir -p build/linux_mips32_crosscompile
 cd build/linux_mips32_crosscompile
 cmake -DCMAKE_TOOLCHAIN_FILE=`pwd`/../../3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake \
       -DCMAKE_MODULE_PATH=`pwd`/../../cmake/vcpkg \
+      -DVCPKG_OVERLAY_TRIPLETS=`pwd`/../../triplets \
       -DVCPKG_TARGET_TRIPLET=mips32-linux \
       -DCMAKE_INSTALL_PREFIX=`pwd`/install ../../
 make install
