@@ -61,6 +61,10 @@ void WebrtcConnection::handleOfferAnswer(const std::string& data, const nlohmann
 void WebrtcConnection::handleIce(const std::string& data)
 {
     NPLOGD << "Got ICE: " << data;
+    if (!pc_) {
+        NPLOGE << "Got ICE candidate for invalid peer connection";
+        return;
+    }
     try {
         nlohmann::json candidate = nlohmann::json::parse(data);
         rtc::Candidate cand(candidate["candidate"].get<std::string>(), candidate["sdpMid"].get<std::string>());
