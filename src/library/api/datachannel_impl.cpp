@@ -10,6 +10,9 @@ DatachannelImpl::DatachannelImpl(const std::string& label)
 
 void DatachannelImpl::sendMessage(const uint8_t* buffer, size_t length, enum Datachannel::MessageType type)
 {
+    if (!channel_->isOpen()){
+        return;
+    }
     if (type == Datachannel::MESSAGE_TYPE_STRING) {
         std::vector<std::byte> vec((const std::byte*)buffer, (const std::byte*)buffer + length);
         auto msg = rtc::make_message(vec.begin(), vec.end(), rtc::Message::String);
