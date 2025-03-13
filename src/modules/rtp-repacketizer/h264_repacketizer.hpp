@@ -43,12 +43,18 @@ public:
         depacket_.incoming(vec, nullptr);
 
         if (vec.size() > 0) {
-            rtpConf_->timestamp = vec[0]->frameInfo->timestamp;
-            packet_->outgoing(vec, nullptr);
+            auto tmp = vec[0]->data();
+            // if (tmp[10] == (std::byte)0x41) {
+            if (false) {
+                // Non-IDR slice
+            } else {
+                rtpConf_->timestamp = vec[0]->frameInfo->timestamp;
+                packet_->outgoing(vec, nullptr);
 
-            for (auto m : vec) {
-                uint8_t* src = (uint8_t*)m->data();
-                ret.push_back(std::vector<uint8_t>(src, src+m->size()));
+                for (auto m : vec) {
+                    uint8_t* src = (uint8_t*)m->data();
+                    ret.push_back(std::vector<uint8_t>(src, src+m->size()));
+                }
             }
         }
         return ret;
