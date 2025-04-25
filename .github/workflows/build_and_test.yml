@@ -18,29 +18,34 @@ jobs:
           #   build_command: cmake --build build-dir --parallel --target install
           - os: ubuntu-22.04
             # 2024-05-29: The ubuntu build started failing with: "Received request to deprovision: The request was cancelled by the remote provider." so we try make without parallellism like with macos
-            build_command: cd build-dir && make -j 8 install
+            build_command: cmake --workflow --preset release
           - os: macos-14
             # 2024-01-05: Sometimes mac fails on github actions when doing builds so we use make without parallellism directly, since we hope that fixes the unknown problem.
-            build_command: cd build-dir && make -j 1 install
+            build_command: cmake --workflow --preset release
 
     steps:
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
       - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Configure cmake
-        run: mkdir build-dir && cd build-dir && cmake -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/artifacts -Dsctp_werror=OFF ..
-
       - name: Build
+        env:
+          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
         run: ${{matrix.build_command}}
 
       - name: Test run
-        run: ${{ github.workspace }}/artifacts/bin/webrtc_unit_test --log_level=all
+        run: ${{ github.workspace }}/build/release/install/bin/webrtc_unit_test --log_level=all
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: artifacts_${{matrix.os}}
-          path: ${{ github.workspace }}/artifacts
+          path: ${{ github.workspace }}/build/release/install
           if-no-files-found: warn
