@@ -47,6 +47,7 @@ public:
 private:
 
     void createHomeDir(const std::string& homeDir);
+    bool directoryExists(const std::string& directory);
 
     bool setupIam(const char* fp);
     bool createDefaultIamState();

@@ -1,13 +1,15 @@
-include(CheckIncludeFileCXX)
 
-CHECK_INCLUDE_FILE_CXX("filesystem" HAVE_FILESYSTEM_H)
+# In gcc 8 std::filesystem::create_directories was an experimental feature so it needed to be linked with stdc++fs
+# In older gcc versions filesystem is not available at all.
+# See https://gitlab.kitware.com/cmake/cmake/-/issues/17834 for a longer discussion.
+try_compile(HAVE_FILESYSTEM_CREATE_DIRECTORIES ${CMAKE_BINARY_DIR}/compile_tests ${CMAKE_CURRENT_LIST_DIR}/filesystem_create_directories_test.cpp)
 
-if(HAVE_FILESYSTEM_H)
-  add_definitions(-DHAVE_FILESYSTEM_H)
+if(HAVE_FILESYSTEM_CREATE_DIRECTORIES)
+  add_definitions(-DHAVE_FILESYSTEM_CREATE_DIRECTORIES)
 else()
   message(
     INFO
-    "Missing std::filesystem header, the demo will NOT create directories by itself"
+    "Cannot compile a simple example using std::filesystem::create_directories, the demo will NOT create directories by itself"
   )
 endif()
 
