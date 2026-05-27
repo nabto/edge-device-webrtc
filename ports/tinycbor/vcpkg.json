@@ -1,0 +1,13 @@
+{
+  "name": "tinycbor",
+  "version-string": "0.6.1-26c63e3d",
+  "description": "Concise Binary Object Representation (CBOR) Library (overlay pinned to commit compatible with GCC 9 / uClibc)",
+  "homepage": "https://github.com/intel/tinycbor",
+  "license": "MIT",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    }
+  ]
+}
