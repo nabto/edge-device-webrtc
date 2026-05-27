@@ -29,7 +29,7 @@ std::string passwordGen(size_t len)
 bool NabtoDeviceApp::createDefaultIamState()
 {
     struct nm_iam_state* state = nm_iam_state_new();
-    std::string initialUser = "admin";
+    std::string initialUser = initialPairingUsername_;
     std::string openPassword = passwordGen(12);
     std::string openSct;
 
@@ -45,7 +45,7 @@ bool NabtoDeviceApp::createDefaultIamState()
 
     if (!nm_iam_state_set_password_open_password(state, openPassword.c_str()) ||
         !nm_iam_state_set_password_open_sct(state, openSct.c_str()) ||
-        !nm_iam_state_set_open_pairing_role(state, "Administrator") ||
+        !nm_iam_state_set_open_pairing_role(state, openPairingRole_.c_str()) ||
         !nm_iam_state_set_friendly_name(state, "Webrtc demo example") ||
         !nm_iam_state_set_initial_pairing_username(state, initialUser.c_str())
         )
@@ -54,10 +54,10 @@ bool NabtoDeviceApp::createDefaultIamState()
         return false;
     }
 
-    nm_iam_state_set_password_open_pairing(state, true);
-    nm_iam_state_set_local_open_pairing(state, true);
-    nm_iam_state_set_local_initial_pairing(state, true);
-    nm_iam_state_set_password_invite_pairing(state, true);
+    nm_iam_state_set_password_open_pairing(state, pairingPasswordOpen_);
+    nm_iam_state_set_local_open_pairing(state, pairingLocalOpen_);
+    nm_iam_state_set_local_initial_pairing(state, pairingLocalInitial_);
+    nm_iam_state_set_password_invite_pairing(state, pairingPasswordInvite_);
 
     {
         struct nm_iam_user* user = nm_iam_state_user_new(initialUser.c_str());

@@ -92,6 +92,17 @@ int main(int argc, char** argv) {
         // ignore missing optional option
     }
 
+    try {
+        bool showState = opts["showState"].get<bool>();
+        if (showState) {
+            int rc = device->showState() ? 0 : 1;
+            device->stop();
+            return rc;
+        }
+    } catch (std::exception& e) {
+        // ignore missing optional option
+    }
+
     if (device == nullptr || !device->start()) {
         std::cout << "Failed to start device" << std::endl;
         if (device) {
@@ -385,6 +396,14 @@ bool parse_options(int argc, char** argv, json& opts)
             ("c,cloud-domain", "Optional. Domain for the cloud deployment. This is used to derive JWKS URL, JWKS issuer, and frontend URL", cxxopts::value<std::string>()->default_value("smartcloud.nabto.com"))
             ("H,home-dir", "Set which dir to store IAM data", cxxopts::value<std::string>())
             ("iam-reset", "If set, will reset the IAM state and exit")
+            ("show-state", "Print the current IAM state (pairing modes, users, fingerprints) and exit")
+            ("decentral-access-control", "Use decentralised access control (paired public keys + IAM). Suppresses the portal pairing link and prints a classic pairing string instead. Implied by any --pairing-* flag.")
+            ("pairing-password-open", "Enable password-open pairing in newly created IAM state")
+            ("pairing-password-invite", "Enable password-invite pairing in newly created IAM state")
+            ("pairing-local-open", "Enable local-open pairing in newly created IAM state")
+            ("pairing-local-initial", "Enable local-initial pairing in newly created IAM state")
+            ("open-pairing-role", "Role assigned to users via open pairing (Administrator|Unpaired)", cxxopts::value<std::string>()->default_value("Administrator"))
+            ("initial-pairing-username", "Username of the initial admin user", cxxopts::value<std::string>()->default_value("admin"))
             ("create-key", "If set, will create and print a raw private key and its fingerprint. Then exit")
             /*
             * The cacert option adds an additioanl cacert file to the set of
@@ -400,6 +419,8 @@ bool parse_options(int argc, char** argv, json& opts)
 
         if (result.count("help")) {
             std::cout << options.help({ "", "Group" }) << std::endl;
+            std::cout << "If none of --pairing-* are passed when creating a fresh IAM state," << std::endl
+                      << "only password-invite pairing is enabled by default." << std::endl;
             return true;
         }
 
@@ -471,6 +492,36 @@ bool parse_options(int argc, char** argv, json& opts)
         else {
             opts["iamReset"] = false;
         }
+
+        opts["showState"] = result.count("show-state") > 0;
+
+        bool anyPairingFlag = result.count("pairing-password-open") ||
+                              result.count("pairing-password-invite") ||
+                              result.count("pairing-local-open") ||
+                              result.count("pairing-local-initial");
+
+        opts["decentralAccessControl"] = result.count("decentral-access-control") > 0 || anyPairingFlag;
+
+        if (anyPairingFlag) {
+            opts["pairingPasswordOpen"]   = result.count("pairing-password-open") > 0;
+            opts["pairingPasswordInvite"] = result.count("pairing-password-invite") > 0;
+            opts["pairingLocalOpen"]      = result.count("pairing-local-open") > 0;
+            opts["pairingLocalInitial"]   = result.count("pairing-local-initial") > 0;
+        } else {
+            opts["pairingPasswordOpen"]   = false;
+            opts["pairingPasswordInvite"] = true;
+            opts["pairingLocalOpen"]      = false;
+            opts["pairingLocalInitial"]   = false;
+        }
+
+        std::string role = result["open-pairing-role"].as<std::string>();
+        if (role != "Administrator" && role != "Unpaired") {
+            std::cout << "Invalid --open-pairing-role '" << role
+                      << "'. Allowed: Administrator, Unpaired" << std::endl;
+            return true;
+        }
+        opts["openPairingRole"] = role;
+        opts["initialPairingUsername"] = result["initial-pairing-username"].as<std::string>();
 
         if (result.count("cacert")) {
             opts["caBundle"] = result["cacert"].as<std::string>();
