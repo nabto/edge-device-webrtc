@@ -1,5 +1,10 @@
 # Edge Device Webrtc
 
+> [!WARNING]
+> **Edge WebRTC is now legacy. While it will still be maintained, no new features will be added.**
+> **All new implementations should use [Nabto WebRTC](https://www.nabto.com/docs/developer/webrtc/guides/platform-overview.html).**
+> **Browser support for Edge WebRTC Clients has been terminated. This means example clients are not available**
+
 This WebRTC example implementation for Nabto Embedded SDK allows clients to establish WebRTC connections to a target device using Nabto. This WebRTC connection can then be used to stream one-way video and two-way audio feeds. Audio and video can be ingested from RTP and RTSP sources as well as raw streams through filesystem FIFOs. WebRTC data channels can also be used to invoke CoAP endpoints in the device as well as streaming data through Nabto Streaming.
 
 In addition to WebRTC, this example also implements OAuth to authenticate connections in the IAM module.
@@ -24,8 +29,6 @@ You can see how to run the resulting executables in the [Running](#running-the-e
 
 > [!TIP]
 > **To build a binary to be installed on a camera, pick approach 5, [Cross-build for embedded systems](#cross-build-for-embedded-systems)**.
-
-For detailed documentation, including integration guidelines, motivation and background information, please refer to our official [documentation site](https://docs.nabto.com/developer/guides/webrtc/intro.html).
 
 ## Obtaining the Source
 
@@ -316,13 +319,7 @@ medias size: 1
 
 ### Connecting to the device
 
-To connect to your device, follow the `Initial user pairing link` printed by the device when first started. This will open our [WebRTC demo website](https://demo.smartcloud.nabto.com/) and initiate pairing with the device. The process is described in more detail [in the documentation](https://docs.nabto.com/developer/guides/webrtc/quickstart.html#website). Alternatively, instead of using the full website, you can use the simple [standalone static web page](https://docs.nabto.com/developer/platforms/js/webrtc-example.html).
-
-
-### Other connect options
-
-The device can also be accessed through Android/iOS Apps, Google Home, and Alexa. These functionalities are not yet finalized. For more information about these features, contact Nabto support.
-
+The demo deployment has been closed since this is now legacy. Contact Nabto for further details.
 
 ## Advanced build topics
 
