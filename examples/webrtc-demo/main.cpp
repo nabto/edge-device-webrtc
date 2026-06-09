@@ -7,6 +7,7 @@
 #include <util/util.hpp>
 #include <media-streams/media_stream.hpp>
 #include <track-negotiators/h264.hpp>
+#include <track-negotiators/h265.hpp>
 #include <track-negotiators/opus.hpp>
 #include <track-negotiators/pcmu.hpp>
 #include <rtp-packetizer/h264_packetizer.hpp>
@@ -120,7 +121,15 @@ int main(int argc, char** argv) {
     nabto::FifoFileClientPtr fifoVideo = nullptr;
     nabto::FifoFileClientPtr fifoAudio = nullptr;
     bool repacketH264 = opts["repacketH264"].get<bool>();
-    auto rtpVideoNegotiator = nabto::H264Negotiator::create();
+    std::string videoCodec = opts["videoCodec"].get<std::string>();
+    nabto::TrackNegotiatorPtr rtpVideoNegotiator;
+    if (videoCodec == "h265") {
+        rtpVideoNegotiator = nabto::H265Negotiator::create();
+        // The H264 repacketizer is codec-specific and cannot process H265 NAL units.
+        repacketH264 = false;
+    } else {
+        rtpVideoNegotiator = nabto::H264Negotiator::create();
+    }
     auto rtpAudioNegotiator = nabto::OpusNegotiator::create();
     // auto rtpAudioNegotiator = nabto::PcmuNegotiator::create();
 
@@ -413,6 +422,7 @@ bool parse_options(int argc, char** argv, json& opts)
             */
             ("cacert", "Optional. Path to a CA certificate file; overrides CURL_CA_BUNDLE env var if set.", cxxopts::value<std::string>())
             ("disable-h264-repacketizer", "If set, H264 will be forwarded as-is instead of repacketizing to proper MTU")
+            ("video-codec", "Video codec to negotiate with peers (h264|h265). H265 disables the H264 repacketizer.", cxxopts::value<std::string>()->default_value("h264"))
 
             ("h,help", "Shows this help text");
         auto result = options.parse(argc, argv);
@@ -544,6 +554,14 @@ bool parse_options(int argc, char** argv, json& opts)
         else {
             opts["repacketH264"] = true;
         }
+
+        std::string videoCodec = result["video-codec"].as<std::string>();
+        if (videoCodec != "h264" && videoCodec != "h265") {
+            std::cout << "Invalid --video-codec '" << videoCodec
+                      << "'. Allowed: h264, h265" << std::endl;
+            return true;
+        }
+        opts["videoCodec"] = videoCodec;
 
 
     } catch (const cxxopts::exceptions::exception& e)
