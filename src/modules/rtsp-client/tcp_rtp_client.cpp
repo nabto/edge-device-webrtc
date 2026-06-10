@@ -177,14 +177,17 @@ void TcpRtpClient::run()
         }
         if (pendingRtcp) {
             ssize_t ret = ::write(sockfd, rtcpWriteBuf_, pendingRtcpLen);
-            if (ret < 0 || (size_t)ret < pendingRtcpLen) {
-                // RTCP RR is best-effort. A short write or transient
-                // EAGAIN/EINTR from SO_SNDTIMEO should not tear down the
-                // receive loop; if the connection is actually dead, recv()
-                // will surface it on the next iteration.
+            if (ret < 0) {
+                const int err = errno;
+                // RTCP RR is best-effort. A transient EAGAIN/EINTR from SO_SNDTIMEO
+                // should not tear down the receive loop; if the connection is actually
+                // dead, recv() will surface it on the next iteration.
                 NPLOGE << "Failed to write RTCP RR to TCP socket; dropping. ret: "
                        << ret << " expected: " << pendingRtcpLen
-                       << " errno: " << strerror(errno);
+                       << " errno: " << strerror(err);
+            } else if (static_cast<size_t>(ret) < pendingRtcpLen) {
+                NPLOGE << "Short write while sending RTCP RR to TCP socket; dropping. ret: "
+                       << ret << " expected: " << pendingRtcpLen;
             }
         }
     }
