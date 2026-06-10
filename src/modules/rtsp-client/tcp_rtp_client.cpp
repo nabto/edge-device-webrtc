@@ -120,7 +120,10 @@ void TcpRtpClient::run()
     }
 
     // SO_RCVTIMEO lets recv() return periodically so we can check stopped_
-    // and act on pending RTCP without polling.
+    // and act on pending RTCP without polling. SO_SNDTIMEO bounds the
+    // RTCP RR write() below; if the camera's receive side stalls and our
+    // send buffer fills, an unbounded write would block this thread and
+    // stop() would hang waiting for stopped_ to be observed.
     struct timeval tv;
     tv.tv_sec = 0;
     tv.tv_usec = 500 * 1000;  // 500 ms
@@ -128,6 +131,11 @@ void TcpRtpClient::run()
                    reinterpret_cast<const char*>(&tv), sizeof(tv)) < 0) {
         NPLOGE << "setsockopt(SO_RCVTIMEO) failed: " << strerror(errno);
         // Non-fatal; recv would just block longer.
+    }
+    if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO,
+                   reinterpret_cast<const char*>(&tv), sizeof(tv)) < 0) {
+        NPLOGE << "setsockopt(SO_SNDTIMEO) failed: " << strerror(errno);
+        // Non-fatal; RTCP RR write may block longer.
     }
 
     uint8_t buf[8192];
@@ -170,10 +178,13 @@ void TcpRtpClient::run()
         if (pendingRtcp) {
             ssize_t ret = ::write(sockfd, rtcpWriteBuf_, pendingRtcpLen);
             if (ret < 0 || (size_t)ret < pendingRtcpLen) {
-                NPLOGE << "Failed to write RTCP RR to TCP socket. ret: "
+                // RTCP RR is best-effort. A short write or transient
+                // EAGAIN/EINTR from SO_SNDTIMEO should not tear down the
+                // receive loop; if the connection is actually dead, recv()
+                // will surface it on the next iteration.
+                NPLOGE << "Failed to write RTCP RR to TCP socket; dropping. ret: "
                        << ret << " expected: " << pendingRtcpLen
                        << " errno: " << strerror(errno);
-                break;
             }
         }
     }
@@ -222,14 +233,21 @@ void TcpRtpClient::drainInterleavedBuffer()
     // mutex_ must be held by caller.
     while (recvBuf_.size() >= 4) {
         // Resync: skip any non-'$' bytes (interleaved framing starts with
-        // ASCII '$'). Avoid the previous behaviour of silently consuming
-        // data and then bailing; log it instead so misuse stands out.
-        size_t skipped = 0;
-        while (!recvBuf_.empty() && recvBuf_.front() != '$') {
-            recvBuf_.erase(recvBuf_.begin());
-            ++skipped;
-        }
-        if (skipped > 0) {
+        // ASCII '$'). Locate the next '$' with memchr and erase in one
+        // shot. std::vector::erase(begin()) shifts the whole tail, so
+        // byte-by-byte erasure would be O(n^2) in the amount of garbage.
+        if (recvBuf_.front() != '$') {
+            const void* found = std::memchr(recvBuf_.data(), '$', recvBuf_.size());
+            size_t skipped;
+            if (found == nullptr) {
+                skipped = recvBuf_.size();
+                recvBuf_.clear();
+            } else {
+                skipped = static_cast<size_t>(
+                    static_cast<const uint8_t*>(found) - recvBuf_.data());
+                recvBuf_.erase(recvBuf_.begin(),
+                               recvBuf_.begin() + skipped);
+            }
             NPLOGE << "TcpRtpClient: skipped " << skipped
                    << " non-frame bytes before next '$' (resync)";
         }
@@ -271,6 +289,21 @@ void TcpRtpClient::drainInterleavedBuffer()
             // RTCP (channels 1 and 3: sender reports etc.). Build an RR
             // in rtcpWriteBuf_; the outer loop in run() will write it after
             // the current perform returns.
+            //
+            // Only build an RR from a sender report. Anything shorter than
+            // an SR header (or from a non-SR packet type) we skip without
+            // reading the payload; reinterpret_casting a too-short buffer
+            // and then reading senderSSRC()/ntpTimestamp() would be an
+            // out-of-bounds read.
+            if (dataLen < sizeof(rtc::RtcpSr)) {
+                NPLOGD << "TcpRtpClient: ignoring short RTCP frame on channel "
+                       << static_cast<int>(channel) << " (" << dataLen
+                       << " bytes)";
+                recvBuf_.erase(recvBuf_.begin(),
+                               recvBuf_.begin() + frameTotal);
+                continue;
+            }
+
             const char* buffer = reinterpret_cast<const char*>(payload);
             auto sr = reinterpret_cast<const rtc::RtcpSr*>(buffer);
 
