@@ -6,6 +6,8 @@
 
 #include <util/util.hpp>
 
+#include <vector>
+
 
 namespace nabto {
 
@@ -40,10 +42,32 @@ public:
         curl_->stop();
     }
 
+    /**
+     * Install the libcurl interleave callback on the curl handle.
+     *
+     * This must be called BEFORE the PLAY request is performed, because
+     * many embedded RTSP servers (e.g. dolphin-rtsp-server on cheap IPC
+     * camera firmwares) start pushing interleaved RTP frames in the same
+     * send() as the PLAY response. With no INTERLEAVEFUNCTION installed,
+     * those frames are dropped/misrouted and libcurl's connection state
+     * desyncs against the camera. See SC-4605.
+     */
+    bool prepareInterleave();
+
     void run();
 
 private:
     static size_t rtp_write(void* ptr, size_t size, size_t nmemb, void* userp);
+
+    /// Drain complete `$<ch><be16-len><payload>` frames from recvBuf_,
+    /// dispatching each to the matching track. Tolerates partial frames
+    /// (leftover stays in recvBuf_) and concatenated frames (loop until
+    /// the buffer holds less than one complete frame).
+    void drainInterleavedBuffer();
+
+    /// Append incoming bytes to recvBuf_ and drain.
+    /// Caller does NOT hold mutex_.
+    void processIncomingBytes(const uint8_t* data, size_t len);
 
     CurlAsyncPtr curl_;
     std::string url_;
@@ -67,7 +91,14 @@ private:
     int audioDstPt_ = 0;
 
     char rtcpWriteBuf_[64];
+    size_t rtcpWriteLen_ = 0;  ///< total bytes to write incl. $<ch><len> header
     bool sendRtcp_ = false;
+
+    /// Byte buffer holding partially-received interleaved data between
+    /// libcurl callback invocations. libcurl's INTERLEAVEFUNCTION delivers
+    /// "whatever just arrived", not "exactly one frame", so we must
+    /// reassemble.
+    std::vector<uint8_t> recvBuf_;
 };
 
 
