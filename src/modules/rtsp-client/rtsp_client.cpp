@@ -311,6 +311,18 @@ void RtspClient::setupRtsp() {
         return resolveStart("Failed to set Authorization Digest header");
     }
 
+    // SC-4605: install the interleave callback BEFORE PLAY. Many embedded
+    // RTSP servers (e.g. dolphin-rtsp-server on cheap IPC cameras) start
+    // pushing interleaved RTP frames in the same send() as the PLAY
+    // response. With no INTERLEAVEFUNCTION installed, those bytes land in
+    // libcurl's body buffer and the connection state desyncs, causing the
+    // next CURL_RTSPREQ_RECEIVE to error with CURLE_RECV_ERROR.
+    if (tcpClient_ != nullptr) {
+        if (!tcpClient_->prepareInterleave()) {
+            return resolveStart("Failed to install RTSP interleave callback");
+        }
+    }
+
     uint16_t status = 0;
     curl_->reinvokeStatus(&res, &status);
     if (res != CURLE_OK || status > 299) {
@@ -454,8 +466,24 @@ std::string RtspClient::parseControlAttribute(const std::string& att)
         return url;
     }
     else {
-        // is relative URL
-        return contentBase_ + url;
+        // is relative URL. RFC 2326 C.1.1 says to resolve against
+        // Content-Base. Strict RFC 3986 would replace the last segment of
+        // contentBase_, but in practice all working RTSP clients
+        // (VLC, ffmpeg, gst-launch) treat Content-Base as a directory and
+        // append, so SETUP URLs look like
+        // "rtsp://host/live/main/trackID=0" rather than
+        // "rtsp://host/live/trackID=0". Match that, which also means we
+        // must ensure a separating slash. Content-Base without trailing
+        // slash + bare "trackID=0" was previously concatenating into
+        // "...maintrackID=0", which dolphin-rtsp-server (and probably
+        // others) accept with 200 OK but then never start streaming on,
+        // because the SETUP didn't actually identify a known track.
+        // SC-4605.
+        std::string base = contentBase_;
+        if (!base.empty() && base.back() != '/') {
+            base += '/';
+        }
+        return base + url;
     }
 
 }
