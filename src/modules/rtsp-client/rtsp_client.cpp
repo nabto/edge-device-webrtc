@@ -210,7 +210,9 @@ bool RtspClient::start(std::function<void(std::optional<std::string> error)> cb)
     return curl_->asyncInvoke([self](CURLcode res, uint16_t statusCode) {
         if (res != CURLE_OK || statusCode > 299) {
             NPLOGE << "Failed to perform RTSP OPTIONS request: " << curl_easy_strerror(res);
-            std::string msg = res != CURLE_OK ? "Failed to send Options Request" : ("RTSP OPTIONS request failed with status code: " + statusCode);
+            std::string msg = res != CURLE_OK
+                ? "Failed to send Options Request"
+                : std::string("RTSP OPTIONS request failed with status code: ") + std::to_string(statusCode);
             return self->resolveStart(msg);
         }
         NPLOGD << "Options request complete " << curl_easy_strerror(res) << " " << statusCode;
@@ -327,7 +329,9 @@ void RtspClient::setupRtsp() {
     curl_->reinvokeStatus(&res, &status);
     if (res != CURLE_OK || status > 299) {
         NPLOGE << "Failed to perform RTSP PLAY request with: " << curl_easy_strerror(res);
-        std::string msg = res != CURLE_OK ? "Failed to send PLAY Request" : ("RTSP PLAY request failed with status code: " + status);
+        std::string msg = res != CURLE_OK
+            ? "Failed to send PLAY Request"
+            : std::string("RTSP PLAY request failed with status code: ") + std::to_string(status);
         return resolveStart(msg);
     }
 

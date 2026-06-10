@@ -290,15 +290,18 @@ void TcpRtpClient::drainInterleavedBuffer()
             // in rtcpWriteBuf_; the outer loop in run() will write it after
             // the current perform returns.
             //
-            // Only build an RR from a sender report. Anything shorter than
-            // an SR header (or from a non-SR packet type) we skip without
-            // reading the payload; reinterpret_casting a too-short buffer
-            // and then reading senderSSRC()/ntpTimestamp() would be an
-            // out-of-bounds read.
-            if (dataLen < sizeof(rtc::RtcpSr)) {
-                NPLOGD << "TcpRtpClient: ignoring short RTCP frame on channel "
-                       << static_cast<int>(channel) << " (" << dataLen
-                       << " bytes)";
+            // Only build an RR from a Sender Report. Anything shorter than
+            // an SR header, or whose RTCP PT field (byte 1 of the RTCP
+            // header) is not 200 (SR), we skip without parsing the
+            // payload. The previous size-only check let an arbitrary
+            // RR/SDES/BYE/APP packet through; reading senderSSRC() and
+            // ntpTimestamp() out of those layouts produces meaningless
+            // values, and our RR response would carry garbage.
+            if (dataLen < sizeof(rtc::RtcpSr) || payload[1] != 200) {
+                NPLOGD << "TcpRtpClient: ignoring non-SR RTCP frame on channel "
+                       << static_cast<int>(channel)
+                       << " (pt=" << (dataLen >= 2 ? static_cast<int>(payload[1]) : -1)
+                       << " len=" << dataLen << ")";
                 recvBuf_.erase(recvBuf_.begin(),
                                recvBuf_.begin() + frameTotal);
                 continue;
