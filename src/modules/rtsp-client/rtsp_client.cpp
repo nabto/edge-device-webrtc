@@ -484,7 +484,7 @@ std::string RtspClient::parseControlAttribute(const std::string& att)
         // because the SETUP didn't actually identify a known track.
         // SC-4605.
         std::string base = contentBase_;
-        if (!base.empty() && base.back() != '/') {
+        if (!base.empty() && base.back() != '/' && url.front() != '/') {
             base += '/';
         }
         return base + url;
