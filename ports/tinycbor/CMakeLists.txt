@@ -11,5 +11,5 @@ add_library(tinycbor ${sources})
 # references to a function named "static_assert".
 target_compile_definitions(tinycbor PRIVATE static_assert=_Static_assert)
 
-install(TARGETS tinycbor)
+install(TARGETS tinycbor ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(FILES src/cbor.h src/cborjson.h src/tinycbor-version.h DESTINATION include/tinycbor)
