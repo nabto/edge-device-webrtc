@@ -90,6 +90,14 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
         // ignore missing optional option
     }
 
+    try { pairingPasswordOpen_   = opts["pairingPasswordOpen"].get<bool>(); }   catch (std::exception& e) {}
+    try { pairingPasswordInvite_ = opts["pairingPasswordInvite"].get<bool>(); } catch (std::exception& e) {}
+    try { pairingLocalOpen_      = opts["pairingLocalOpen"].get<bool>(); }      catch (std::exception& e) {}
+    try { pairingLocalInitial_   = opts["pairingLocalInitial"].get<bool>(); }   catch (std::exception& e) {}
+    try { openPairingRole_       = opts["openPairingRole"].get<std::string>(); } catch (std::exception& e) {}
+    try { initialPairingUsername_ = opts["initialPairingUsername"].get<std::string>(); } catch (std::exception& e) {}
+    try { decentralAccessControl_  = opts["decentralAccessControl"].get<bool>(); }         catch (std::exception& e) {}
+
     try {
         logLevel_ = opts["logLevel"].get<std::string>();
         char* envLvl = std::getenv("NABTO_LOG_LEVEL");
@@ -230,6 +238,71 @@ bool NabtoDeviceApp::resetIam()
     return true;
 }
 
+bool NabtoDeviceApp::showState()
+{
+    std::ifstream stateFile(iamStatePath_);
+    if (!stateFile.good()) {
+        std::cout << "No IAM state file at: " << iamStatePath_ << std::endl;
+        std::cout << "Run with --iam-reset first to create one." << std::endl;
+        return false;
+    }
+    nlohmann::json state;
+    try {
+        stateFile >> state;
+    } catch (std::exception& ex) {
+        std::cout << "Failed to parse IAM state file: " << ex.what() << std::endl;
+        return false;
+    }
+
+    std::cout << "IAM state (" << iamStatePath_ << "):" << std::endl;
+    if (state.contains("FriendlyName"))           std::cout << "  Friendly name:    " << state["FriendlyName"].get<std::string>() << std::endl;
+    if (state.contains("InitialPairingUsername")) std::cout << "  Initial user:     " << state["InitialPairingUsername"].get<std::string>() << std::endl;
+    if (state.contains("OpenPairingRole"))        std::cout << "  Open-pair role:   " << state["OpenPairingRole"].get<std::string>() << std::endl;
+    if (state.contains("OpenPairingPassword"))    std::cout << "  Open password:    " << state["OpenPairingPassword"].get<std::string>() << std::endl;
+    if (state.contains("OpenPairingSct"))         std::cout << "  Open SCT:         " << state["OpenPairingSct"].get<std::string>() << std::endl;
+
+    std::cout << std::endl << "  Pairing modes enabled:" << std::endl;
+    auto modeLine = [&](const char* key, const char* label) {
+        bool on = state.contains(key) && state[key].is_boolean() && state[key].get<bool>();
+        std::cout << "    [" << (on ? "x" : " ") << "] " << label << std::endl;
+    };
+    modeLine("PasswordInvitePairing", "password-invite");
+    modeLine("PasswordOpenPairing",   "password-open");
+    modeLine("LocalInitialPairing",   "local-initial");
+    modeLine("LocalOpenPairing",      "local-open");
+
+    if (state.contains("Users") && state["Users"].is_array()) {
+        std::cout << std::endl << "  Users (" << state["Users"].size() << "):" << std::endl;
+        for (const auto& u : state["Users"]) {
+            std::string name = u.value("Username", "(unnamed)");
+            std::string role = u.value("Role", "(no role)");
+            std::cout << "    - " << name << "  role=" << role;
+            if (u.contains("DisplayName")) std::cout << "  display=" << u["DisplayName"].get<std::string>();
+            if (u.contains("OauthSubject")) std::cout << "  oauth=" << u["OauthSubject"].get<std::string>();
+            std::cout << std::endl;
+            if (u.contains("Password"))   std::cout << "        password:    " << u["Password"].get<std::string>() << std::endl;
+            if (u.contains("Sct"))        std::cout << "        sct:         " << u["Sct"].get<std::string>() << std::endl;
+            if (u.contains("Fingerprints") && u["Fingerprints"].is_array()) {
+                if (u["Fingerprints"].empty()) {
+                    std::cout << "        fingerprints: (none - not yet paired)" << std::endl;
+                } else {
+                    std::cout << "        fingerprints:" << std::endl;
+                    for (const auto& fp : u["Fingerprints"]) {
+                        std::string fpHex = fp.value("Fingerprint", "");
+                        std::string fpName = fp.value("Name", "");
+                        std::cout << "          " << fpHex;
+                        if (!fpName.empty()) std::cout << "  (" << fpName << ")";
+                        std::cout << std::endl;
+                    }
+                }
+            }
+        }
+    } else {
+        std::cout << std::endl << "  Users: (none)" << std::endl;
+    }
+    return true;
+}
+
 bool NabtoDeviceApp::setupIam(const char* fp)
 {
     try {
@@ -279,20 +352,58 @@ bool NabtoDeviceApp::setupIam(const char* fp)
         try {
             auto initialUsername = iamState["InitialPairingUsername"].get<std::string>();
             auto user = nm_iam_state_find_user_by_username(state, initialUsername.c_str());
-            if (user && (nn_llist_empty(&user->fingerprints) && user->oauthSubject == NULL)) {
-                // We have an initial user and it is unpaired
-                // Creating invite link
-                std::cout << "################################################################" << std::endl << "# Initial user pairing link:    " << std::endl << "# " << frontendUrl_ << "?p=" << productId_ << "&d=" << deviceId_ << "&u=" << initialUsername;
+            bool initialNeedsPairing =
+                user && nn_llist_empty(&user->fingerprints) && user->oauthSubject == NULL;
+
+            if (decentralAccessControl_) {
+                bool openPairing = iamState.value("PasswordOpenPairing", false) &&
+                                   iamState.contains("OpenPairingPassword") &&
+                                   iamState.contains("OpenPairingSct");
+
+                if (initialNeedsPairing || openPairing) {
+                    std::cout << "################################################################" << std::endl;
+                }
+                if (initialNeedsPairing) {
+                    std::cout << "# Initial user '" << initialUsername
+                              << "' (role: " << (user->role ? user->role : "")
+                              << ") has not been paired yet." << std::endl;
+                    std::cout << "# Initial pairing string:" << std::endl;
+                    std::cout << "#   p=" << productId_ << ",d=" << deviceId_
+                              << ",u=" << initialUsername;
+                    if (user->password != NULL) {
+                        std::cout << ",pwd=" << user->password;
+                    }
+                    if (user->sct != NULL) {
+                        std::cout << ",sct=" << user->sct;
+                    }
+                    std::cout << ",fp=" << fp << std::endl;
+                }
+                if (openPairing) {
+                    std::cout << "# Password-open pairing is enabled. Open pairing string:" << std::endl;
+                    std::cout << "#   p=" << productId_ << ",d=" << deviceId_
+                              << ",pwd=" << iamState["OpenPairingPassword"].get<std::string>()
+                              << ",sct=" << iamState["OpenPairingSct"].get<std::string>()
+                              << ",fp=" << fp << std::endl;
+                }
+                if (initialNeedsPairing || openPairing) {
+                    std::cout << "################################################################" << std::endl;
+                }
+            } else if (initialNeedsPairing) {
+                std::cout << "################################################################" << std::endl
+                          << "# Initial user pairing link:    " << std::endl
+                          << "# " << frontendUrl_ << "?p=" << productId_
+                          << "&d=" << deviceId_ << "&u=" << initialUsername;
 
                 if (user->password != NULL) {
                     std::cout << "&pwd=" << user->password;
                 }
 
                 if (user->sct != NULL) {
-                  std::cout << "&sct=" << user->sct;
-                 }
+                    std::cout << "&sct=" << user->sct;
+                }
 
-                 std::cout << "&fp=" << fp << std::endl << "################################################################" << std::endl;
+                std::cout << "&fp=" << fp << std::endl
+                          << "################################################################" << std::endl;
             }
         } catch (std::exception& ex) {
             // Ignore

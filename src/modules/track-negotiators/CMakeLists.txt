@@ -1,6 +1,7 @@
 
 set(src
     h264.cpp
+    h265.cpp
     pcmu.cpp
     opus.cpp
     vp8.cpp
@@ -25,6 +26,7 @@ target_sources(track_negotiators PUBLIC
     BASE_DIRS ..
     FILES
         h264.hpp
+        h265.hpp
         opus.hpp
         pcmu.hpp
         track_negotiator.hpp

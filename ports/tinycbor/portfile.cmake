@@ -1,0 +1,19 @@
+vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
+
+vcpkg_from_github(
+    OUT_SOURCE_PATH SOURCE_PATH
+    REPO intel/tinycbor
+    REF 26c63e3d5977f77a6483edde4519489254670375
+    SHA512 0d0b1c70f6d56009b36d0f37b0ccabd42931e218bbaf19b78f8527c5db68b0d902b92157b10d5597263f205a54c9c2b731b42f79ca5f8558b5a2c51b222aeee7
+    HEAD_REF master
+)
+
+file(COPY "${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt" DESTINATION "${SOURCE_PATH}")
+
+vcpkg_cmake_configure(SOURCE_PATH "${SOURCE_PATH}")
+
+vcpkg_cmake_install()
+
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
+
+file(INSTALL "${SOURCE_PATH}/LICENSE" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)

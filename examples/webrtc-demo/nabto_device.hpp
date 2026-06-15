@@ -43,6 +43,7 @@ public:
     struct nm_iam* getIam() { return &iam_; }
 
     bool resetIam();
+    bool showState();
 
 private:
 
@@ -101,6 +102,18 @@ private:
 
     std::string frontendUrl_ = "https://smartcloud.tk.dev.nabto.com/";
     bool iamReset_ = false;
+
+    // Initial IAM state seed values, applied only when a fresh iam_state.json
+    // is being created (no existing file, or --iam-reset). Once the state file
+    // exists, runtime changes are persisted by the IAM state-changed callback
+    // and these values are ignored.
+    bool pairingPasswordOpen_ = false;
+    bool pairingPasswordInvite_ = true;
+    bool pairingLocalOpen_ = false;
+    bool pairingLocalInitial_ = false;
+    std::string openPairingRole_ = "Administrator";
+    std::string initialPairingUsername_ = "admin";
+    bool decentralAccessControl_ = false;
 
 };
 
