@@ -250,6 +250,37 @@ cmake -DCMAKE_TOOLCHAIN_FILE=`pwd`/../../3rdparty/vcpkg/scripts/buildsystems/vcp
 make install
 ```
 
+### Cross-build for Sigmastar
+
+This repository ships a pre-configured triplet pair plus a small overlay port for the Sigmastar `arm-sigmastar-linux-uclibcgnueabihf` toolchain (ARMv7-A with NEON and hard-float, GCC 9.1, uClibc-ng):
+
+- `triplets/arm-sigmastar-linux.cmake`: vcpkg triplet. Sets the architecture and the arch-specific CFLAGS, restricts to release builds and chains to the CMake toolchain file below via `VCPKG_CHAINLOAD_TOOLCHAIN_FILE`.
+- `triplets/arm-sigmastar-linux.toolchain.cmake`: CMake toolchain file naming the cross-compilers by their toolchain executable names (`arm-sigmastar-linux-uclibcgnueabihf-gcc` and friends).
+- `ports/tinycbor/`: overlay port that aliases the C11 `static_assert` macro to the GCC builtin `_Static_assert`. uClibc's `<assert.h>` does not define `static_assert`, so the upstream port fails to link without this shim.
+
+The Sigmastar cross-toolchain (`arm-sigmastar-linux-uclibcgnueabihf-9.1.0.tar.xz`) is not bundled. Obtain it separately, extract it and put its `bin/` directory on `PATH`. Because the triplet pair names the compilers directly and sets the `-march=armv7-a -mfpu=neon -mfloat-abi=hard` flags itself, no `CC`/`CXX`/`CFLAGS` export is required.
+
+```
+tar xJf arm-sigmastar-linux-uclibcgnueabihf-9.1.0.tar.xz
+export PATH="`pwd`/arm-sigmastar-linux-uclibcgnueabihf-9.1.0/bin:$PATH"
+
+mkdir -p build/sigmastar
+cd build/sigmastar
+cmake -DCMAKE_TOOLCHAIN_FILE=`pwd`/../../3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake \
+      -DCMAKE_MODULE_PATH=`pwd`/../../cmake/vcpkg \
+      -DVCPKG_OVERLAY_TRIPLETS=`pwd`/../../triplets \
+      -DVCPKG_OVERLAY_PORTS=`pwd`/../../ports \
+      -DVCPKG_TARGET_TRIPLET=arm-sigmastar-linux \
+      -DCMAKE_INSTALL_PREFIX=`pwd`/install ../../
+make install
+```
+
+The binary lands at `build/sigmastar/install/bin/edge_device_webrtc`. It supports both H.264 and H.265 video; pass `--video-codec h265` at launch to negotiate H.265 with the peer.
+
+The toolchain binaries are Linux ELF and only run on a Linux host. If your development machine is macOS or Windows, use the `cross_build/sigmastar/Dockerfile` reference image which wraps the same flow in a Debian builder.
+
+If you only need the Nabto libraries built for Sigmastar (so you can link them into your own application instead of running the bundled demo), use the separate `nabto-sigmastar-libraries` repository. It shares the same triplet pair and overlay port as the setup above but skips the example apps and produces a `vcpkg_installed/arm-sigmastar-linux/` tree of static libraries and headers.
+
 ## Provide dependencies manually
 
 It is easiest to cross compile using the `vcpkg` package manager (see [above](#cross-build-for-embedded-systems)) as all dependencies are then built automatically. But for more advanced builds, it is also possible to cross-compile the software without using the `vcpkg` package manager at all, then you just need to provide all the dependencies yourself, including openssl, curl and boost.
