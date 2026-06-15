@@ -279,8 +279,6 @@ The binary lands at `build/sigmastar/install/bin/edge_device_webrtc`. It support
 
 The toolchain binaries are Linux ELF and only run on a Linux host. If your development machine is macOS or Windows, use the `cross_build/sigmastar/Dockerfile` reference image which wraps the same flow in a Debian builder.
 
-If you only need the Nabto libraries built for Sigmastar (so you can link them into your own application instead of running the bundled demo), use the separate `nabto-sigmastar-libraries` repository. It shares the same triplet pair and overlay port as the setup above but skips the example apps and produces a `vcpkg_installed/arm-sigmastar-linux/` tree of static libraries and headers.
-
 ## Provide dependencies manually
 
 It is easiest to cross compile using the `vcpkg` package manager (see [above](#cross-build-for-embedded-systems)) as all dependencies are then built automatically. But for more advanced builds, it is also possible to cross-compile the software without using the `vcpkg` package manager at all, then you just need to provide all the dependencies yourself, including openssl, curl and boost.
