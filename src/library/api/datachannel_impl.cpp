@@ -10,7 +10,11 @@ DatachannelImpl::DatachannelImpl(const std::string& label)
 
 void DatachannelImpl::sendMessage(const uint8_t* buffer, size_t length, enum Datachannel::MessageType type)
 {
-    auto channel = channel_;
+    std::shared_ptr<rtc::DataChannel> channel = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        channel = channel_;
+    }
     if (channel == nullptr || !channel->isOpen()){
         return;
     }
@@ -36,6 +40,7 @@ void DatachannelImpl::sendMessage(const uint8_t* buffer, size_t length, enum Dat
 
 void DatachannelImpl::setCloseCallback(std::function<void()> cb)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     closeCb_ = cb;
 }
 
