@@ -275,6 +275,10 @@ public:
     /**
      * Send a message on this datachannel
      *
+     * If the datachannel is not open or sending fails, eg. because the client
+     * closed the connection, the message is dropped. This function does not
+     * throw exceptions.
+     *
      * @param buffer [in] Data buffer to send
      * @param length [in] Length of data buffer
      * @param type [in]   Type of message to send
