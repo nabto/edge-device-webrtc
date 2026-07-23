@@ -125,7 +125,11 @@ private:
             if (ec != NABTO_DEVICE_EC_OK) {
                 return;
             }
-            uint32_t l = *((uint32_t*)buff);
+            // Length prefix is little endian, see jsonToStreamBuffer()
+            uint32_t l = (uint32_t)buff[0] |
+                ((uint32_t)buff[1] << 8) |
+                ((uint32_t)buff[2] << 16) |
+                ((uint32_t)buff[3] << 24);
             self->stream_->readAll(l, [self](NabtoDeviceError ec, uint8_t* buff, size_t len) {
                 if (ec != NABTO_DEVICE_EC_OK) {
                     return;
@@ -210,25 +214,33 @@ BOOST_AUTO_TEST_CASE(send_during_abrupt_client_disconnect_does_not_throw, *boost
     NabtoDeviceVirtualConnection* conn = NULL;
 
     td->makeConnectionSigStream([&](NabtoDeviceVirtualConnection* c, std::shared_ptr<nabto::test::VirtualStream> stream) {
-        conn = c;
-        client = nabto::test::TestWebrtcClient::create(stream);
-        client->start();
+        auto cli = nabto::test::TestWebrtcClient::create(stream);
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            conn = c;
+            client = cli;
+        }
+        cli->start();
     });
 
     std::string sendError;
+    std::atomic<bool> sendFailed(false);
 
     std::thread orchestrator([&]() {
         // Wait for the datachannel to be open on both peers
         bool deviceReady = false;
+        std::shared_ptr<nabto::test::TestWebrtcClient> cli = nullptr;
         {
             std::unique_lock<std::mutex> lock(mutex);
             deviceReady = cond.wait_for(lock, std::chrono::seconds(30), [&]() { return deviceChannel != nullptr; });
+            cli = client;
         }
         BOOST_TEST(deviceReady);
-        bool clientReady = client->waitForChannelOpen(std::chrono::seconds(30));
+        BOOST_TEST(cli != nullptr);
+        bool clientReady = deviceReady && cli != nullptr && cli->waitForChannelOpen(std::chrono::seconds(30));
         BOOST_TEST(clientReady);
 
-        if (deviceReady && clientReady) {
+        if (clientReady) {
             // Send messages from an application thread like an application
             // feeding data to a client
             std::atomic<bool> stopSending(false);
@@ -238,8 +250,11 @@ BOOST_AUTO_TEST_CASE(send_during_abrupt_client_disconnect_does_not_throw, *boost
                     try {
                         deviceChannel->sendMessage(buffer.data(), buffer.size());
                     } catch (std::exception& ex) {
-                        std::lock_guard<std::mutex> lock(mutex);
-                        sendError = ex.what();
+                        {
+                            std::lock_guard<std::mutex> lock(mutex);
+                            sendError = ex.what();
+                        }
+                        sendFailed = true;
                         return;
                     }
                 }
@@ -247,16 +262,16 @@ BOOST_AUTO_TEST_CASE(send_during_abrupt_client_disconnect_does_not_throw, *boost
 
             // Let some data flow, then let the client hang up mid-stream
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            client->hangup();
+            cli->hangup();
 
             // Keep sending through the teardown window
             auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-            while (std::chrono::steady_clock::now() < deadline && sendError.empty() && !deviceChannelClosed) {
+            while (std::chrono::steady_clock::now() < deadline && !sendFailed && !deviceChannelClosed) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             stopSending = true;
             sender.join();
-            client->destroy();
+            cli->destroy();
         }
 
         td->close([]() {
@@ -268,8 +283,13 @@ BOOST_AUTO_TEST_CASE(send_during_abrupt_client_disconnect_does_not_throw, *boost
 
     BOOST_TEST(sendError == "", "Datachannel::sendMessage() threw an exception: " + sendError);
 
-    if (conn != NULL) {
-        nabto_device_virtual_connection_free(conn);
+    NabtoDeviceVirtualConnection* connLocal = NULL;
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        connLocal = conn;
+    }
+    if (connLocal != NULL) {
+        nabto_device_virtual_connection_free(connLocal);
     }
 }
 

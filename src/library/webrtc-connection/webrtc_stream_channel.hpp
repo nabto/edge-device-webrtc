@@ -7,6 +7,7 @@
 #include <rtc/rtc.hpp>
 
 #include <memory>
+#include <mutex>
 
 namespace nabto {
 
@@ -34,6 +35,9 @@ private:
     void startRead();
     static void streamReadCb(NabtoDeviceFuture* fut, NabtoDeviceError ec, void* data);
 
+    // channelMutex_ protects channel_ as it is accessed from the event queue
+    // and cleared from libdatachannel callbacks.
+    std::mutex channelMutex_;
     std::shared_ptr<rtc::DataChannel> channel_;
     NabtoDevicePtr device_;
     NabtoDeviceVirtualConnection* nabtoConnection_;

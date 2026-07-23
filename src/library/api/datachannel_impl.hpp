@@ -2,6 +2,8 @@
 
 #include <rtc/rtc.hpp>
 
+#include <mutex>
+
 namespace nabto {
 
 class DatachannelImpl : public std::enable_shared_from_this <DatachannelImpl> {
@@ -11,19 +13,29 @@ public:
 
     void setMessageCallback(Datachannel::DatachannelMessageCallback cb)
     {
+        std::lock_guard<std::mutex> lock(mutex_);
         cb_ = cb;
     };
     void sendMessage(const uint8_t* buffer, size_t length, enum Datachannel::MessageType type);
 
     void setRtcChannel(std::shared_ptr<rtc::DataChannel> channel)
     {
-        channel_ = channel;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            channel_ = channel;
+        }
         auto self = shared_from_this();
-        channel_->onMessage([self](rtc::binary data) {
-            self->cb_(Datachannel::MessageType::MESSAGE_TYPE_BINARY, (uint8_t*)data.data(), data.size());
+        channel->onMessage([self](rtc::binary data) {
+            auto cb = self->messageCallback();
+            if (cb) {
+                cb(Datachannel::MessageType::MESSAGE_TYPE_BINARY, (uint8_t*)data.data(), data.size());
+            }
         },
         [self](std::string data) {
-                self->cb_(Datachannel::MessageType::MESSAGE_TYPE_STRING, (uint8_t*)data.data(), data.size());
+            auto cb = self->messageCallback();
+            if (cb) {
+                cb(Datachannel::MessageType::MESSAGE_TYPE_STRING, (uint8_t*)data.data(), data.size());
+            }
         });
     }
 
@@ -31,12 +43,17 @@ public:
 
     void connectionClosed()
     {
-        if (closeCb_) {
-            closeCb_();
+        std::function<void()> closeCb = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            closeCb = closeCb_;
+            cb_ = nullptr;
+            closeCb_ = nullptr;
+            channel_ = nullptr;
         }
-        cb_ = nullptr;
-        closeCb_ = nullptr;
-        channel_ = nullptr;
+        if (closeCb) {
+            closeCb();
+        }
     }
 
     std::string getLabel() {
@@ -44,7 +61,16 @@ public:
     }
 
 private:
+    Datachannel::DatachannelMessageCallback messageCallback()
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return cb_;
+    }
+
     std::string label_;
+    // mutex_ protects channel_, cb_ and closeCb_ as they are accessed from
+    // application threads, the event queue and libdatachannel callbacks.
+    std::mutex mutex_;
     std::shared_ptr<rtc::DataChannel> channel_;
     Datachannel::DatachannelMessageCallback cb_;
     std::function<void()> closeCb_ = nullptr;
@@ -52,4 +78,3 @@ private:
 };
 
 } // namespace nabto
-
