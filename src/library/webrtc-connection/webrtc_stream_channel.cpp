@@ -80,7 +80,16 @@ void WebrtcFileStreamChannel::streamReadCb(NabtoDeviceFuture* fut, NabtoDeviceEr
     NPLOGD << "Read " << self->readLen_ << "bytes from nabto stream";
     // TODO: consider handling return value and react to buffered messages
     self->queue_->post([self]() {
-        self->channel_->send((rtc::byte*)self->readBuffer_, self->readLen_);
+        auto channel = self->channel_;
+        if (channel != nullptr) {
+            try {
+                channel->send((rtc::byte*)self->readBuffer_, self->readLen_);
+            } catch (std::exception& ex) {
+                // The channel can die under us if the client closes the
+                // connection while we are sending.
+                NPLOGD << "Failed to send stream data to data channel: " << ex.what();
+            }
+        }
         self->startRead();
     });
 }
