@@ -31,6 +31,7 @@ void WebrtcFileStreamChannel::init()
 
     channel_->onClosed([self]() {
         NPLOGD << "Stream Channel Closed";
+        std::lock_guard<std::mutex> lock(self->channelMutex_);
         self->channel_ = nullptr;
     });
 
@@ -68,8 +69,15 @@ void WebrtcFileStreamChannel::streamReadCb(NabtoDeviceFuture* fut, NabtoDeviceEr
     if (ec == NABTO_DEVICE_EC_EOF) {
         NPLOGD << "Reached EOF";
         self->queue_->post([self]() {
-            self->channel_->close();
-            self->channel_ = nullptr;
+            std::shared_ptr<rtc::DataChannel> channel = nullptr;
+            {
+                std::lock_guard<std::mutex> lock(self->channelMutex_);
+                channel = self->channel_;
+                self->channel_ = nullptr;
+            }
+            if (channel != nullptr) {
+                channel->close();
+            }
         });
         return;
     } else if (ec != NABTO_DEVICE_EC_OK) {
@@ -80,7 +88,20 @@ void WebrtcFileStreamChannel::streamReadCb(NabtoDeviceFuture* fut, NabtoDeviceEr
     NPLOGD << "Read " << self->readLen_ << "bytes from nabto stream";
     // TODO: consider handling return value and react to buffered messages
     self->queue_->post([self]() {
-        self->channel_->send((rtc::byte*)self->readBuffer_, self->readLen_);
+        std::shared_ptr<rtc::DataChannel> channel = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(self->channelMutex_);
+            channel = self->channel_;
+        }
+        if (channel != nullptr) {
+            try {
+                channel->send((rtc::byte*)self->readBuffer_, self->readLen_);
+            } catch (std::exception& ex) {
+                // The channel can die under us if the client closes the
+                // connection while we are sending.
+                NPLOGD << "Failed to send stream data to data channel: " << ex.what();
+            }
+        }
         self->startRead();
     });
 }

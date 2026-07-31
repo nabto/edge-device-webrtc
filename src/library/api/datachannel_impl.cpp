@@ -10,24 +10,37 @@ DatachannelImpl::DatachannelImpl(const std::string& label)
 
 void DatachannelImpl::sendMessage(const uint8_t* buffer, size_t length, enum Datachannel::MessageType type)
 {
-    if (!channel_->isOpen()){
+    std::shared_ptr<rtc::DataChannel> channel = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        channel = channel_;
+    }
+    if (channel == nullptr || !channel->isOpen()){
         return;
     }
-    if (type == Datachannel::MESSAGE_TYPE_STRING) {
-        std::vector<std::byte> vec((const std::byte*)buffer, (const std::byte*)buffer + length);
-        auto msg = rtc::make_message(vec.begin(), vec.end(), rtc::Message::String);
-        channel_->send(rtc::to_variant(*msg));
-    } else if (type == Datachannel::MESSAGE_TYPE_BINARY) {
-        std::vector<std::byte> vec((const std::byte*)buffer, (const std::byte*)buffer + length);
-        auto msg = rtc::make_message(vec.begin(), vec.end(), rtc::Message::Binary);
-        channel_->send(rtc::to_variant(*msg));
-    } else {
-        channel_->send((const std::byte*)buffer, length);
+    try {
+        if (type == Datachannel::MESSAGE_TYPE_STRING) {
+            std::vector<std::byte> vec((const std::byte*)buffer, (const std::byte*)buffer + length);
+            auto msg = rtc::make_message(vec.begin(), vec.end(), rtc::Message::String);
+            channel->send(rtc::to_variant(*msg));
+        } else if (type == Datachannel::MESSAGE_TYPE_BINARY) {
+            std::vector<std::byte> vec((const std::byte*)buffer, (const std::byte*)buffer + length);
+            auto msg = rtc::make_message(vec.begin(), vec.end(), rtc::Message::Binary);
+            channel->send(rtc::to_variant(*msg));
+        } else {
+            channel->send((const std::byte*)buffer, length);
+        }
+    } catch (std::exception& ex) {
+        // The channel can die between the isOpen() check and the send, eg. if
+        // the client closes the connection while we are sending. The message
+        // is lost, just like a message sent moments later would be.
+        NPLOGD << "Failed to send datachannel message: " << ex.what();
     }
 }
 
 void DatachannelImpl::setCloseCallback(std::function<void()> cb)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     closeCb_ = cb;
 }
 
