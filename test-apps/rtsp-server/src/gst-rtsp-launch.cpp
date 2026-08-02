@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <vector>
+#include <cstring>
 #include <gst/gst.h>
 #include <gst/rtsp-server/rtsp-server.h>
 
@@ -14,6 +16,34 @@
 #define DEFAULT_RTSP_USER "user"
 #define DEFAULT_RTSP_PASSWORD "password"
 #define DEFAULT_RTSP_AUTH "none"
+#define DEFAULT_PATH_PATTERN "/live/%%CHANNEL%%/1"
+#define CHANNEL_PLACEHOLDER "%%CHANNEL%%"
+
+// Helper function to replace %%CHANNEL%% with channel number
+std::string make_mount_path(const char* pattern, int channel) {
+    std::string path(pattern);
+    size_t pos = path.find(CHANNEL_PLACEHOLDER);
+    if (pos != std::string::npos) {
+        path.replace(pos, strlen(CHANNEL_PLACEHOLDER), std::to_string(channel));
+    }
+    return path;
+}
+
+// Helper to inject textoverlay into pipeline for channel identification
+std::string make_pipeline(const char* base_pipeline, int channel, int total_streams) {
+    std::string pipeline(base_pipeline);
+    // Only add textoverlay if we have multiple streams
+    if (total_streams > 1) {
+        // Find videotestsrc or first element and inject textoverlay after first !
+        size_t pos = pipeline.find("!");
+        if (pos != std::string::npos) {
+            std::string overlay = " textoverlay text=\"Stream " + std::to_string(channel) +
+                "\" valignment=top halignment=left font-desc=\"Sans, 24\" !";
+            pipeline.insert(pos + 1, overlay);
+        }
+    }
+    return pipeline;
+}
 
 std::string url_encode(const std::string& value);
 
@@ -33,6 +63,8 @@ int main(int argc, char** argv) {
         char* auth = nullptr;
         char* username = nullptr;
         char* password = nullptr;
+        int streams = 1;
+        char* path_pattern = nullptr;
     } opts;
 
     GOptionEntry entries[] = {
@@ -41,6 +73,8 @@ int main(int argc, char** argv) {
         {"auth", 'a', 0, G_OPTION_ARG_STRING, &opts.auth, "Auth (none, basic, digest) (default: " DEFAULT_RTSP_AUTH ")", "AUTH"},
         {"username", 'u', 0, G_OPTION_ARG_STRING, &opts.username, "Username (default: " DEFAULT_RTSP_USER ")", "USER"},
         {"password", 'P', 0, G_OPTION_ARG_STRING, &opts.password, "Password (default: " DEFAULT_RTSP_PASSWORD ")", "PASSWORD"},
+        {"streams", 's', 0, G_OPTION_ARG_INT, &opts.streams, "Number of streams to create (default: 1)", "N"},
+        {"path-pattern", 0, 0, G_OPTION_ARG_STRING, &opts.path_pattern, "Path pattern with %%CHANNEL%% placeholder (default: /live/%%CHANNEL%%/1)", "PATTERN"},
         {nullptr}
     };
 
@@ -107,28 +141,56 @@ int main(int argc, char** argv) {
     server = gst_rtsp_server_new();
     gst_rtsp_server_set_service(server, opts.port);
     mounts = gst_rtsp_server_get_mount_points(server);
-    factory = gst_rtsp_media_factory_new();
 
-    gst_rtsp_media_factory_set_launch(factory, argv[1]);
-    gst_rtsp_media_factory_set_shared(factory, TRUE);
+    // Determine if using multi-stream mode (--streams) or legacy single stream (--endpoint)
+    bool use_multi_stream = (opts.streams > 1) || (opts.path_pattern != nullptr);
+    const char* path_pattern = opts.path_pattern ? opts.path_pattern : DEFAULT_PATH_PATTERN;
 
-    g_print("Using pipeline (as parsed): %s\n", gst_rtsp_media_factory_get_launch(factory));
-    std::string mount = "/";
-    mount += opts.endpoint;
-    gst_rtsp_mount_points_add_factory(mounts, mount.c_str(), factory);
+    g_print("Using base pipeline: %s\n", argv[1]);
+    g_print("Creating %d stream(s)\n", opts.streams);
 
+    // Store factories for auth configuration
+    std::vector<GstRTSPMediaFactory*> factories;
+
+    for (int i = 1; i <= opts.streams; i++) {
+        factory = gst_rtsp_media_factory_new();
+
+        // Create pipeline with optional stream identifier overlay
+        std::string pipeline = make_pipeline(argv[1], i, opts.streams);
+        gst_rtsp_media_factory_set_launch(factory, pipeline.c_str());
+        gst_rtsp_media_factory_set_shared(factory, TRUE);
+
+        // Determine mount path
+        std::string mount;
+        if (use_multi_stream) {
+            mount = make_mount_path(path_pattern, i);
+        } else {
+            mount = "/";
+            mount += opts.endpoint;
+        }
+
+        gst_rtsp_mount_points_add_factory(mounts, mount.c_str(), factory);
+        factories.push_back(factory);
+
+        g_print("Stream %d ready at rtsp://127.0.0.1:%s%s\n", i, opts.port, mount.c_str());
+    }
+
+    // Configure authentication
     if (std::string(opts.auth).compare("none") == 0) {
         g_print("Using auth none\n");
     }
     else if (std::string(opts.auth).compare("digest") == 0) {
         g_print("Using auth digest\n");
-        /* allow user and admin to access this resource */
-        gst_rtsp_media_factory_add_role(factory, "user",
-            GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
-            GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE, NULL);
-        gst_rtsp_media_factory_add_role(factory, "anonymous",
-            GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
-            GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, FALSE, NULL);
+
+        // Add roles to all factories
+        for (auto* f : factories) {
+            gst_rtsp_media_factory_add_role(f, "user",
+                GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
+                GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE, NULL);
+            gst_rtsp_media_factory_add_role(f, "anonymous",
+                GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
+                GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, FALSE, NULL);
+        }
 
         /* make a new authentication manager */
         auth = gst_rtsp_auth_new();
@@ -156,13 +218,16 @@ int main(int argc, char** argv) {
     else if (std::string(opts.auth).compare("basic") == 0) {
         gchar* basic;
         g_print("Using auth basic\n");
-        /* allow user and admin to access this resource */
-        gst_rtsp_media_factory_add_role(factory, "user",
-            GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
-            GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE, NULL);
-        gst_rtsp_media_factory_add_role(factory, "anonymous",
-            GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
-            GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, FALSE, NULL);
+
+        // Add roles to all factories
+        for (auto* f : factories) {
+            gst_rtsp_media_factory_add_role(f, "user",
+                GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
+                GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE, NULL);
+            gst_rtsp_media_factory_add_role(f, "anonymous",
+                GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
+                GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, FALSE, NULL);
+        }
 
         /* make a new authentication manager */
         auth = gst_rtsp_auth_new();
@@ -194,7 +259,7 @@ int main(int argc, char** argv) {
 
     gst_rtsp_server_attach(server, NULL);
 
-    g_print("Stream ready at rtsp://%s:%s@127.0.0.1:%s/%s\n", url_encode(opts.username).c_str(), url_encode(opts.password).c_str(), opts.port, opts.endpoint);
+    g_print("Server running on port %s\n", opts.port);
     g_main_loop_run(loop);
 
     return 0;
