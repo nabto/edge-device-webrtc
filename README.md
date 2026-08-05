@@ -153,6 +153,14 @@ as they are running ARMv6 which is not the target for the 32 bit build.
 
 First install prerequisites, the [build prequisites](#prerequisites) section has an exact example for Raspberry Pi you can use.
 
+The 32bit cross-builds requires the following compilers
+`arm-linux-gnueabihf-gcc` and `arm-linux-gnueabihf-g++` they can be installed
+with `apt-get install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf`
+
+The 64bit cross-builds requires the compilers `aarch64-linux-gnu-gcc` and
+`aarch64-linux-gnu-g++` they can be installed with `apt-get install
+gcc-aarch64-linux-gnu g++-aarch64-linux-gnu`
+
 We have prepared specifc targets for a simple build experience.
 
 Build for 32-bit ARM, including Raspberry Pi 32-bit:
