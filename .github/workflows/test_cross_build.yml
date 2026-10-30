@@ -3,6 +3,9 @@ name: Build And Test
 on:
   push:
 
+permissions:
+  contents: read
+
 jobs:
   test-cross-build:
     timeout-minutes: 30
