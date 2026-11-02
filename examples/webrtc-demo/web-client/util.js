@@ -38,14 +38,6 @@ function setSignalingReq() {
   updateUi();
 }
 
-function setOauthReq() {
-  document.getElementById("coapmethod").value = "POST";
-  document.getElementById("coappath").value = "/webrtc/oauth";
-  document.getElementById("coapct").value = 0;
-  document.getElementById("coappayload").value = document.getElementById("oauthtoken").value;
-  updateUi();
-}
-
 function boxLog(msg) {
   var listElem = document.querySelector(".logbox");
 

@@ -15,17 +15,14 @@ set(src main.cpp nabto_device.cpp iam_util.cpp)
 
 add_executable(edge_device_webrtc "${src}")
 
-find_package(CURL REQUIRED)
 find_package(NabtoEmbeddedSDK REQUIRED)
 find_package(cxxopts REQUIRED)
-find_package(OpenSSL REQUIRED)
 
 target_link_libraries(
   edge_device_webrtc PRIVATE
   NabtoEmbeddedSDK::nabto_device
   NabtoEmbeddedSDK::nm_iam
   nabto_device_webrtc
-  CURL::libcurl
   webrtc_util
   event_queue_impl
   rtp_client
@@ -33,7 +30,6 @@ target_link_libraries(
   fifo_file_client
   rtp_packetizers
   cxxopts::cxxopts
-  OpenSSL::Crypto
   )
 
 install(TARGETS edge_device_webrtc RUNTIME DESTINATION bin)

@@ -1,6 +1,6 @@
 #include "nabto_device.hpp"
 
-#include "oauth_validator.hpp"
+#include <util/util.hpp>
 
 #include <nabto/nabto_device_experimental.h>
 #include <nabto/nabto_device_virtual.h>
@@ -11,9 +11,6 @@
 #endif
 
 namespace example {
-
-const char* coapOauthPath[] = { "webrtc", "oauth", NULL };
-const char* coapChallengePath[] = { "webrtc", "challenge", NULL };
 
 NabtoDeviceAppPtr NabtoDeviceApp::create(nlohmann::json& opts, nabto::EventQueuePtr queue)
 {
@@ -37,8 +34,6 @@ NabtoDeviceApp::~NabtoDeviceApp()
     if (fileStreamFut_ != NULL) {
         nabto_device_future_free(fileStreamFut_);
     }
-    coapOauthListener_.reset();
-    coapChallengeListener_.reset();
     eventsListener_.reset();
 }
 
@@ -49,9 +44,6 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
         productId_ = opts["productId"].get<std::string>();
         deviceId_ = opts["deviceId"].get<std::string>();
         rawPrivateKey_ = opts["rawPrivateKey"].get<std::string>();
-        if (opts.contains("caBundle")) {
-            caBundle_ = opts["caBundle"].get<std::string>();
-        }
     } catch (std::exception& e ) {
         NPLOGE << "Missing input option. Options must include: productId, deviceId, rawPrivateKey";
         return false;
@@ -64,12 +56,6 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
 
     try {
         serverUrl_ = opts["serverUrl"].get<std::string>();
-    } catch (std::exception& e) {
-        // ignore missing optional option
-    }
-
-    try {
-        frontendUrl_ = opts["frontendUrl"].get<std::string>();
     } catch (std::exception& e) {
         // ignore missing optional option
     }
@@ -96,7 +82,6 @@ bool NabtoDeviceApp::init(nlohmann::json& opts)
     try { pairingLocalInitial_   = opts["pairingLocalInitial"].get<bool>(); }   catch (std::exception& e) {}
     try { openPairingRole_       = opts["openPairingRole"].get<std::string>(); } catch (std::exception& e) {}
     try { initialPairingUsername_ = opts["initialPairingUsername"].get<std::string>(); } catch (std::exception& e) {}
-    try { decentralAccessControl_  = opts["decentralAccessControl"].get<bool>(); }         catch (std::exception& e) {}
 
     try {
         logLevel_ = opts["logLevel"].get<std::string>();
@@ -191,18 +176,6 @@ bool NabtoDeviceApp::start()
     }
 
     auto self = shared_from_this();
-    coapOauthListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapOauthPath, evQueue_);
-
-    coapOauthListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
-        self->handleOauthRequest(coap);
-    });
-
-    coapChallengeListener_ = NabtoDeviceCoapListener::create(self, NABTO_DEVICE_COAP_POST, coapChallengePath, evQueue_);
-
-    coapChallengeListener_->setCoapCallback([self](NabtoDeviceCoapRequest* coap) {
-        self->handleChallengeRequest(coap);
-    });
-
     eventsListener_ = NabtoDeviceEventsListener::create(self, evQueue_);
     eventsListener_->setEventCallback([self](NabtoDeviceEvent event) {
         if (event == NABTO_DEVICE_EVENT_CLOSED) {
@@ -278,7 +251,6 @@ bool NabtoDeviceApp::showState()
             std::string role = u.value("Role", "(no role)");
             std::cout << "    - " << name << "  role=" << role;
             if (u.contains("DisplayName")) std::cout << "  display=" << u["DisplayName"].get<std::string>();
-            if (u.contains("OauthSubject")) std::cout << "  oauth=" << u["OauthSubject"].get<std::string>();
             std::cout << std::endl;
             if (u.contains("Password"))   std::cout << "        password:    " << u["Password"].get<std::string>() << std::endl;
             if (u.contains("Sct"))        std::cout << "        sct:         " << u["Sct"].get<std::string>() << std::endl;
@@ -352,58 +324,39 @@ bool NabtoDeviceApp::setupIam(const char* fp)
         try {
             auto initialUsername = iamState["InitialPairingUsername"].get<std::string>();
             auto user = nm_iam_state_find_user_by_username(state, initialUsername.c_str());
-            bool initialNeedsPairing =
-                user && nn_llist_empty(&user->fingerprints) && user->oauthSubject == NULL;
+            bool initialNeedsPairing = user && nn_llist_empty(&user->fingerprints);
 
-            if (decentralAccessControl_) {
-                bool openPairing = iamState.value("PasswordOpenPairing", false) &&
-                                   iamState.contains("OpenPairingPassword") &&
-                                   iamState.contains("OpenPairingSct");
+            bool openPairing = iamState.value("PasswordOpenPairing", false) &&
+                               iamState.contains("OpenPairingPassword") &&
+                               iamState.contains("OpenPairingSct");
 
-                if (initialNeedsPairing || openPairing) {
-                    std::cout << "################################################################" << std::endl;
-                }
-                if (initialNeedsPairing) {
-                    std::cout << "# Initial user '" << initialUsername
-                              << "' (role: " << (user->role ? user->role : "")
-                              << ") has not been paired yet." << std::endl;
-                    std::cout << "# Initial pairing string:" << std::endl;
-                    std::cout << "#   p=" << productId_ << ",d=" << deviceId_
-                              << ",u=" << initialUsername;
-                    if (user->password != NULL) {
-                        std::cout << ",pwd=" << user->password;
-                    }
-                    if (user->sct != NULL) {
-                        std::cout << ",sct=" << user->sct;
-                    }
-                    std::cout << ",fp=" << fp << std::endl;
-                }
-                if (openPairing) {
-                    std::cout << "# Password-open pairing is enabled. Open pairing string:" << std::endl;
-                    std::cout << "#   p=" << productId_ << ",d=" << deviceId_
-                              << ",pwd=" << iamState["OpenPairingPassword"].get<std::string>()
-                              << ",sct=" << iamState["OpenPairingSct"].get<std::string>()
-                              << ",fp=" << fp << std::endl;
-                }
-                if (initialNeedsPairing || openPairing) {
-                    std::cout << "################################################################" << std::endl;
-                }
-            } else if (initialNeedsPairing) {
-                std::cout << "################################################################" << std::endl
-                          << "# Initial user pairing link:    " << std::endl
-                          << "# " << frontendUrl_ << "?p=" << productId_
-                          << "&d=" << deviceId_ << "&u=" << initialUsername;
-
+            if (initialNeedsPairing || openPairing) {
+                std::cout << "################################################################" << std::endl;
+            }
+            if (initialNeedsPairing) {
+                std::cout << "# Initial user '" << initialUsername
+                          << "' (role: " << (user->role ? user->role : "")
+                          << ") has not been paired yet." << std::endl;
+                std::cout << "# Initial pairing string:" << std::endl;
+                std::cout << "#   p=" << productId_ << ",d=" << deviceId_
+                          << ",u=" << initialUsername;
                 if (user->password != NULL) {
-                    std::cout << "&pwd=" << user->password;
+                    std::cout << ",pwd=" << user->password;
                 }
-
                 if (user->sct != NULL) {
-                    std::cout << "&sct=" << user->sct;
+                    std::cout << ",sct=" << user->sct;
                 }
-
-                std::cout << "&fp=" << fp << std::endl
-                          << "################################################################" << std::endl;
+                std::cout << ",fp=" << fp << std::endl;
+            }
+            if (openPairing) {
+                std::cout << "# Password-open pairing is enabled. Open pairing string:" << std::endl;
+                std::cout << "#   p=" << productId_ << ",d=" << deviceId_
+                          << ",pwd=" << iamState["OpenPairingPassword"].get<std::string>()
+                          << ",sct=" << iamState["OpenPairingSct"].get<std::string>()
+                          << ",fp=" << fp << std::endl;
+            }
+            if (initialNeedsPairing || openPairing) {
+                std::cout << "################################################################" << std::endl;
             }
         } catch (std::exception& ex) {
             // Ignore
@@ -541,130 +494,6 @@ uint32_t NabtoDeviceApp::getFileStreamPort()
 
 void NabtoDeviceApp::stop() {
     return nabto_device_stop(device_.get());
-}
-
-void NabtoDeviceApp::handleOauthRequest(NabtoDeviceCoapRequest* coap) {
-    uint16_t cf; // expect content format text/plain: cf == 0
-    NabtoDeviceError ec;
-    if ((ec = nabto_device_coap_request_get_content_format(coap, &cf)) != NABTO_DEVICE_EC_OK || cf != 0) {
-        NPLOGE << "  Invalid content format: " << cf << " ec: " << nabto_device_error_get_message(ec);
-        nabto_device_coap_error_response(coap, 400, "invalid content format");
-        nabto_device_coap_request_free(coap);
-        return;
-    }
-
-    char* payload;
-    size_t payloadLen;
-
-    if (nabto_device_coap_request_get_payload(coap, (void**)&payload, &payloadLen) != NABTO_DEVICE_EC_OK) {
-        nabto_device_coap_error_response(coap, 400, "missing payload");
-        nabto_device_coap_request_free(coap);
-        return;
-
-    }
-
-    std::string token(payload, payloadLen);
-
-    auto self = shared_from_this();
-
-    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_, caBundle_);
-
-    if (!oauth->validateToken(token, [self, coap](bool valid, std::string subject) {
-        if (valid) {
-            NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
-
-            nm_iam_state* state = nm_iam_dump_state(&self->iam_);
-            nm_iam_user* user = nm_iam_state_find_user_by_oauth_subject(state, subject.c_str());
-
-            if (user &&
-                nm_iam_authorize_connection(&self->iam_, ref, user->username) == NM_IAM_ERROR_OK) {
-                nabto_device_coap_response_set_code(coap, 201);
-                nabto_device_coap_response_ready(coap);
-            } else {
-                nabto_device_coap_error_response(coap, 404, "no such user");
-            }
-            nm_iam_state_free(state);
-        } else {
-            nabto_device_coap_error_response(coap, 401, "Invalid token");
-        }
-        nabto_device_coap_request_free(coap);
-    })) {
-        nabto_device_coap_error_response(coap, 500, "Internal Error");
-        nabto_device_coap_request_free(coap);
-    }
-
-}
-
-
-void NabtoDeviceApp::handleChallengeRequest(NabtoDeviceCoapRequest* coap) {
-    uint16_t cf; // expect content format application/json: cf == 50
-    NabtoDeviceError ec;
-    if ((ec = nabto_device_coap_request_get_content_format(coap, &cf)) != NABTO_DEVICE_EC_OK || cf != NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON) {
-        NPLOGE << "  Invalid content format: " << cf << " ec: " << nabto_device_error_get_message(ec);
-        nabto_device_coap_error_response(coap, 400, "invalid content format");
-        nabto_device_coap_request_free(coap);
-        return;
-    }
-
-    char* payload;
-    size_t payloadLen;
-
-    if (nabto_device_coap_request_get_payload(coap, (void**)&payload, &payloadLen) != NABTO_DEVICE_EC_OK) {
-        nabto_device_coap_error_response(coap, 400, "missing payload");
-        nabto_device_coap_request_free(coap);
-        return;
-    }
-
-    std::string payloadStr(payload, payloadLen);
-    std::string nonce;
-    try {
-        nlohmann::json challenge = nlohmann::json::parse(payloadStr);
-        nonce = challenge["challenge"].get<std::string>();
-    } catch (std::exception& e ) {
-        NPLOGE << "Failed to parse json payload: " << payloadStr;
-        nabto_device_coap_error_response(coap, 400, "Invalid JSON");
-        nabto_device_coap_request_free(coap);
-        return;
-    }
-
-    char* deviceFp = NULL;
-    char* clientFp = NULL;
-
-    NabtoDeviceConnectionRef ref = nabto_device_coap_request_get_connection_ref(coap);
-
-    if (nabto_device_connection_get_client_fingerprint(device_.get(), ref, &clientFp) != NABTO_DEVICE_EC_OK) {
-        NPLOGE << "Failed to get client fingerprint";
-        nabto_device_coap_error_response(coap, 400, "Invalid Connection");
-        nabto_device_coap_request_free(coap);
-        return;
-    }
-
-    if (nabto_device_connection_get_device_fingerprint(device_.get(), ref, &deviceFp) != NABTO_DEVICE_EC_OK) {
-        nabto_device_string_free(clientFp);
-        NPLOGE << "Failed to get device fingerprint";
-        nabto_device_coap_error_response(coap, 400, "Invalid Connection");
-        nabto_device_coap_request_free(coap);
-        return;
-    }
-
-    // TODO: dont require jwksurl, issuer, product id, device id for this
-    NabtoOauthValidatorPtr oauth = std::make_shared<NabtoOauthValidator>(jwksUrl_, jwksIssuer_, productId_, deviceId_, caBundle_);
-
-    std::string devFp(deviceFp, 64);
-    std::string cliFp(clientFp, 64);
-
-    auto token = oauth->createChallengeResponse(rawPrivateKey_, cliFp, devFp, nonce);
-
-    nlohmann::json resp = {{"response", token}};
-    NPLOGD << "Sending info response: " << resp.dump();
-    auto respPayload = resp.dump(); //nlohmann::json::to_cbor(resp);
-    nabto_device_coap_response_set_code(coap, 205);
-    nabto_device_coap_response_set_content_format(coap, NABTO_DEVICE_COAP_CONTENT_FORMAT_APPLICATION_JSON);
-    nabto_device_coap_response_set_payload(coap, respPayload.data(), respPayload.size());
-    nabto_device_coap_response_ready(coap);
-    nabto_device_coap_request_free(coap);
-    nabto_device_string_free(clientFp);
-    nabto_device_string_free(deviceFp);
 }
 
 void NabtoDeviceApp::iamLogger(void* data, enum nn_log_severity severity, const char* module,

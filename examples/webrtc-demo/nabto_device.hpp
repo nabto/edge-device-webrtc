@@ -33,7 +33,6 @@ public:
 
     void setIamConfigFile(std::string& path) { iamConfPath_ = path; }
     void setIamStateFile(std::string& path) { iamStatePath_ = path; }
-    void setJwksConfig(std::string& url, std::string& issuer) { jwksUrl_ = url; jwksIssuer_ = issuer; }
 
     bool start();
     void stop();
@@ -65,9 +64,6 @@ private:
     static void writeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
     static void closeFileStreamCb(NabtoDeviceFuture* future, NabtoDeviceError ec, void* userData);
 
-    void handleOauthRequest(NabtoDeviceCoapRequest* req);
-    void handleChallengeRequest(NabtoDeviceCoapRequest* req);
-
     nabto::EventQueuePtr evQueue_;
     std::vector<char> fileBuffer_;
     nabto::NabtoDevicePtr device_;
@@ -75,7 +71,6 @@ private:
     std::string deviceId_;
     std::string rawPrivateKey_;
     std::string logLevel_ = "info";
-    std::optional<std::string> caBundle_;
 
     enum nn_log_severity iamLogLevel_ = NN_LOG_SEVERITY_INFO;
     std::string serverUrl_;
@@ -84,9 +79,6 @@ private:
     std::ifstream inputFile_;
     NabtoDeviceFuture* fileStreamFut_ = NULL;
     NabtoDeviceStream* fileStream_ = NULL;
-
-    NabtoDeviceCoapListenerPtr coapOauthListener_ = nullptr;
-    NabtoDeviceCoapListenerPtr coapChallengeListener_ = nullptr;
 
     NabtoDeviceEventsListenerPtr eventsListener_ = nullptr;
 
@@ -97,10 +89,6 @@ private:
     std::string iamConfPath_ = "iam_config.json";
     std::string iamStatePath_ = "iam_state.json";
 
-    std::string jwksUrl_ = "http://localhost:3000/jwks";
-    std::string jwksIssuer_ = "http://localhost:3000";
-
-    std::string frontendUrl_ = "https://smartcloud.tk.dev.nabto.com/";
     bool iamReset_ = false;
 
     // Initial IAM state seed values, applied only when a fresh iam_state.json
@@ -113,7 +101,6 @@ private:
     bool pairingLocalInitial_ = false;
     std::string openPairingRole_ = "Administrator";
     std::string initialPairingUsername_ = "admin";
-    bool decentralAccessControl_ = false;
 
 };
 

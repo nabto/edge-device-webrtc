@@ -112,10 +112,6 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    auto url = opts["jwksUrl"].get<std::string>();
-    auto issuer = opts["jwksIssuer"].get<std::string>();
-    device->setJwksConfig(url, issuer);
-
     std::vector<nabto::MediaStreamPtr> medias;
     nabto::RtspStreamPtr rtsp = nullptr;
     nabto::FifoFileClientPtr fifoVideo = nullptr;
@@ -402,11 +398,9 @@ bool parse_options(int argc, char** argv, json& opts)
             ("rtp-port", "Port number to use if NOT using RTSP", cxxopts::value<uint16_t>()->default_value("6000"))
             ("f,fifo", "Use FIFO file descriptor at the provided path for video instead of RTP", cxxopts::value<std::string>())
             ("fifo-audio", "Use FIFO file descriptor at the provided path for audio instead of RTP", cxxopts::value<std::string>())
-            ("c,cloud-domain", "Optional. Domain for the cloud deployment. This is used to derive JWKS URL, JWKS issuer, and frontend URL", cxxopts::value<std::string>()->default_value("smartcloud.nabto.com"))
             ("H,home-dir", "Set which dir to store IAM data", cxxopts::value<std::string>())
             ("iam-reset", "If set, will reset the IAM state and exit")
             ("show-state", "Print the current IAM state (pairing modes, users, fingerprints) and exit")
-            ("decentral-access-control", "Use decentralised access control (paired public keys + IAM). Suppresses the portal pairing link and prints a classic pairing string instead. Implied by any --pairing-* flag.")
             ("pairing-password-open", "Enable password-open pairing in newly created IAM state")
             ("pairing-password-invite", "Enable password-invite pairing in newly created IAM state")
             ("pairing-local-open", "Enable local-open pairing in newly created IAM state")
@@ -414,17 +408,14 @@ bool parse_options(int argc, char** argv, json& opts)
             ("open-pairing-role", "Role assigned to users via open pairing (Administrator|Unpaired)", cxxopts::value<std::string>()->default_value("Administrator"))
             ("initial-pairing-username", "Username of the initial admin user", cxxopts::value<std::string>()->default_value("admin"))
             ("create-key", "If set, will create and print a raw private key and its fingerprint. Then exit")
-            /*
-            * The cacert option adds an additioanl cacert file to the set of
-            * files used by curl. Setting the CURLOPT_CAINFO does not override
-            * CURLOPT_CAPATH. The combined set of certificates in use will be
-            * both the certificates in CAPATH and the certificates in CAINFO.
-            */
-            ("cacert", "Optional. Path to a CA certificate file; overrides CURL_CA_BUNDLE env var if set.", cxxopts::value<std::string>())
             ("disable-h264-repacketizer", "If set, H264 will be forwarded as-is instead of repacketizing to proper MTU")
             ("video-codec", "Video codec to negotiate with peers (h264|h265). H265 disables the H264 repacketizer.", cxxopts::value<std::string>()->default_value("h264"))
 
             ("h,help", "Shows this help text");
+        // Accepted for backwards compatibility but ignored, decentralized
+        // access control is now the only mode. Not shown in the help text.
+        options.add_options("Deprecated")
+            ("decentral-access-control", "Ignored. Decentralized access control is always used.");
         auto result = options.parse(argc, argv);
 
         if (result.count("help")) {
@@ -490,12 +481,6 @@ bool parse_options(int argc, char** argv, json& opts)
             std::cout << "fifo-audio was provided without fifo which is not supported! Will revert to RTP/RTSP" << std::endl;
         }
 
-        std::string domain = result["cloud-domain"].as<std::string>();
-
-        opts["jwksUrl"] = "https://sts." + domain + "/sts/.well-known/jwks.json";
-        opts["jwksIssuer"] = "https://sts." + domain + "/sts";
-
-        opts["frontendUrl"] = "https://demo." + domain;
         if (result.count("iam-reset")) {
             opts["iamReset"] = true;
         }
@@ -509,8 +494,6 @@ bool parse_options(int argc, char** argv, json& opts)
                               result.count("pairing-password-invite") ||
                               result.count("pairing-local-open") ||
                               result.count("pairing-local-initial");
-
-        opts["decentralAccessControl"] = result.count("decentral-access-control") > 0 || anyPairingFlag;
 
         if (anyPairingFlag) {
             opts["pairingPasswordOpen"]   = result.count("pairing-password-open") > 0;
@@ -533,21 +516,6 @@ bool parse_options(int argc, char** argv, json& opts)
         opts["openPairingRole"] = role;
         opts["initialPairingUsername"] = result["initial-pairing-username"].as<std::string>();
 
-        if (result.count("cacert")) {
-            opts["caBundle"] = result["cacert"].as<std::string>();
-        } else {
-            const char* curlCaBundle = std::getenv("CURL_CA_BUNDLE");
-            if (curlCaBundle != nullptr) {
-                opts["caBundle"] = std::string(curlCaBundle);
-            }
-        }
-        if (opts.contains("caBundle")) {
-            std::ifstream f(opts["caBundle"].get<std::string>());
-            if (!f.good()) {
-                std::cout << "CA certificate bundle file does not exist: " << opts["caBundle"].get<std::string>() << std::endl;
-                return true;
-            }
-        }
         if (result.count("disable-h264-repacketizer")) {
             opts["repacketH264"] = false;
         }
