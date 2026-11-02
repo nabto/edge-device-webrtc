@@ -182,8 +182,8 @@ bool initDevice(nabto::NabtoDevicePtr device, json& opts)
     }
 
     std::cout << "################################################################" << std::endl
-        << "# Device configuration string: " << std::endl
-        << "# productid:" << opts["productId"].get<std::string>() << ",deviceId:" << opts["deviceId"].get<std::string>() << ",sct:" << opts["sct"].get<std::string>() << std::endl
+        << "# Pairing string: " << std::endl
+        << "#   p=" << opts["productId"].get<std::string>() << ",d=" << opts["deviceId"].get<std::string>() << ",sct=" << opts["sct"].get<std::string>() << ",fp=" << fp << std::endl
         << "################################################################" << std::endl
         << "The device fingerprint: [" << fp << "]" << std::endl;
     nabto_device_string_free(fp);
