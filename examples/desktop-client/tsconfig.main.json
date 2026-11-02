@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["src/main/**/*.ts", "src/shared/**/*.ts", "src/cli/**/*.ts", "src/test/**/*.ts"]
+}

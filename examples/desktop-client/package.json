@@ -1,0 +1,78 @@
+{
+  "name": "nabto-edge-webrtc-desktop-client",
+  "version": "0.1.0",
+  "description": "Desktop demo client for Nabto Edge WebRTC devices using decentralized IAM pairing",
+  "main": "dist/main/main.js",
+  "private": true,
+  "license": "MIT",
+  "author": "Nabto",
+  "scripts": {
+    "postinstall": "node scripts/fetch-nabto-sdk.js",
+    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
+    "start": "npm run build && electron .",
+    "dist": "npm run build && electron-builder",
+    "test:unit": "npm run build && node --test \"dist/test/**/*.test.js\"",
+    "test:device": "npm run build && node dist/cli/device-smoke.js"
+  },
+  "dependencies": {
+    "cbor-x": "^1.6.9",
+    "koffi": "^3.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0",
+    "typescript": "^7.0.2"
+  },
+  "build": {
+    "appId": "com.nabto.edge.webrtc.desktopclient",
+    "productName": "Nabto Edge WebRTC Client",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/main/**",
+      "dist/shared/**",
+      "dist/web/**",
+      "static/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "vendor/${platform}-${arch}",
+        "to": "nabto",
+        "filter": [
+          "*"
+        ]
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Video"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.video"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "asarUnpack": [
+      "node_modules/koffi/**",
+      "node_modules/@koromix/**"
+    ],
+    "npmRebuild": false
+  },
+  "allowScripts": {
+    "koffi": true,
+    "electron-winstaller": true,
+    "cbor-extract": false
+  }
+}
