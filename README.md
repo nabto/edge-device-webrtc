@@ -349,7 +349,12 @@ medias size: 1
 
 The device uses decentralized access control: users are stored in the device's local IAM state and clients are authenticated by their public key fingerprints. There is no central user database.
 
-To connect to your device, use the Nabto Edge WebRTC iOS app with decentralized authentication. Paste the `Initial pairing string` printed by the device on first start into the app to pair as the initial `admin` user. Once paired, the user is persisted in the IAM state in the home dir and the pairing string is no longer printed.
+To connect to your device, use one of these clients:
+
+* **Desktop (Windows, Linux, macOS):** the Electron based [desktop client](examples/desktop-client) in this repo. It pairs with the device, discovers devices on the local network and shows the video and audio feeds together with connection diagnostics.
+* **iOS:** the Nabto Edge WebRTC iOS app with decentralized authentication.
+
+Paste the `Initial pairing string` printed by the device on first start into the client to pair as the initial `admin` user. Once paired, the user is persisted in the IAM state in the home dir and the pairing string is no longer printed.
 
 By default only password-invite pairing is enabled in a newly created IAM state. Other pairing modes can be enabled with the `--pairing-password-open`, `--pairing-password-invite`, `--pairing-local-open` and `--pairing-local-initial` arguments. These only take effect when the IAM state is created, so combine them with `--iam-reset` to change an existing device. Use `--show-state` to print the current IAM state, including pairing modes and paired users.
 
@@ -454,7 +459,7 @@ The device can be started using the file path:
 You can now connect to the device from a client and see the feed.
 The Gstreamer/FFMPEG commands will only write to the FIFO when the device is reading it. This also means when the client connection is closed and the device stops reading the FIFO, the Gstreamer/FFMPEG will exit and new client connections will not be able to see the feed before the streamer is started again (`mkfifo` does not need to be run again, only the streamer command).
 
-To use the 2-way audio feature, you must use a client with 2-way audio support. For a browser client, use the `examples/webrtc-demo/web-client`. With this client, once you have opened a connection and the feed from the device, you must click `Add Upstream Audio` before the browser will start sending audio data to the device.
+The device accepts upstream audio from clients (2-way audio), but none of the clients above send audio to the device yet. The desktop client plays the downstream audio track.
 
 
 ## Building the NabtoWebRTCSDK components

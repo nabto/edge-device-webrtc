@@ -1,5 +1,6 @@
 # WebRTC demo device
 
+The demo device application `edge_device_webrtc`. See the [top level README](../../README.md#running-the-example) for how to run it, and use the [desktop client](../desktop-client) to pair with it and view the feeds.
 
 
 ## CoAP endpoints
