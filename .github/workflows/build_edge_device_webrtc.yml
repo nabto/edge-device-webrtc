@@ -15,58 +15,66 @@ jobs:
     strategy:
       matrix:
         include:
-        - os: ubuntu-22.04
+        - os: ubuntu-24.04
           preset: linux_arm_crosscompile
           executable_name: edge_device_webrtc_linux_arm
-        - os: ubuntu-22.04
+        - os: ubuntu-24.04
           preset: linux_arm64_crosscompile
           executable_name: edge_device_webrtc_linux_arm64
-        - os: ubuntu-22.04
+        - os: ubuntu-24.04
           preset: release
           executable_name: edge_device_webrtc_linux_x86_64
-        - os: macos-14
+        - os: macos-15
           preset: mac_arm64
           executable_name: edge_device_webrtc_mac_arm64
-        - os: macos-14
+        - os: macos-15
           preset: mac_x86_64
           executable_name: edge_device_webrtc_mac_x86_64
 
     steps:
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      - if: matrix.os == 'ubuntu-22.04'
+      - if: matrix.os == 'ubuntu-24.04'
         name: Install extra software
         run: sudo apt-get update && sudo apt-get install -y ninja-build build-essential curl zip unzip tar pkg-config g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
-      - if: matrix.os == 'macos-14'
+      - if: matrix.os == 'macos-15'
         name: Install Ninja
         run: brew install ninja
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
 
+      # vcpkg removed the x-gha binary cache, so cache its file based binary cache instead.
+      # vcpkg verifies each package by ABI hash, so restoring an older cache is safe.
+      - name: Get vcpkg revision
+        id: vcpkg-rev
+        run: echo "rev=$(git rev-parse HEAD:3rdparty/vcpkg)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.vcpkg-binary-cache
+          key: vcpkg-${{ matrix.os }}-${{ matrix.preset }}-${{ steps.vcpkg-rev.outputs.rev }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'build-scripts/vcpkg/ports/**') }}
+          restore-keys: vcpkg-${{ matrix.os }}-${{ matrix.preset }}-
+
       - name: Build
         env:
-          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-        run: cmake --workflow --preset ${{ matrix.preset }}
+          VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite"
+        run: |
+          mkdir -p "${{ github.workspace }}/.vcpkg-binary-cache"
+          cmake --workflow --preset ${{ matrix.preset }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{matrix.executable_name}}
           path: ${{ github.workspace }}/build/${{ matrix.preset }}/install/bin/edge_device_webrtc
           if-no-files-found: warn
+      # actions/upload-release-asset is archived, so upload with the gh cli.
       - if: github.event_name == 'release'
-        uses: actions/upload-release-asset@v1
+        name: Upload release asset
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ github.workspace }}/build/${{ matrix.preset }}/install/bin/edge_device_webrtc
-          asset_name: ${{ matrix.executable_name }}
-          asset_content_type: application/zip
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp "${{ github.workspace }}/build/${{ matrix.preset }}/install/bin/edge_device_webrtc" "${{ runner.temp }}/${{ matrix.executable_name }}"
+          gh release upload "${{ github.event.release.tag_name }}" "${{ runner.temp }}/${{ matrix.executable_name }}" --clobber
