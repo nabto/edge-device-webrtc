@@ -28,6 +28,9 @@
   "build": {
     "appId": "com.nabto.edge.webrtc.desktopclient",
     "productName": "Nabto Edge WebRTC Client",
+    "toolsets": {
+      "appimage": "1.0.3"
+    },
     "directories": {
       "output": "release"
     },
