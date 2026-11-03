@@ -12,8 +12,6 @@ gst-launch-1.0 -v udpsrc uri=udp://127.0.0.1:6003 caps="application/x-rtp,media=
 
 ./examples/simple-webrtc-send-audio-from-browser/simple_webrtc_device_send_audio_from_browser -p ... -d ... -k ...
 
-## Open the webpage
+## Client
 
-First build the page. `cd web-client && npm install`
-
-`file:///<path to index.html>`
+This test app was used with a browser client built on the retired Nabto cloud signaling service, and that client has been removed. There is currently no client for it: the [desktop client](../../examples/desktop-client) only requests tracks through `POST /webrtc/tracks` and has no support for sending microphone audio to the device.

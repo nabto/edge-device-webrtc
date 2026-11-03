@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob: mediastream:">
+  <title>Nabto Edge WebRTC Client</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="../dist/web/renderer/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <span>Nabto Edge WebRTC</span>
+    </div>
+    <span class="muted small" id="sdk-version"></span>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <button class="primary wide" id="add-device">+ Add device</button>
+
+      <section>
+        <h2>Paired devices</h2>
+        <ul class="device-list" id="bookmarks"></ul>
+        <p class="muted small empty" id="bookmarks-empty">No devices yet. Paste a pairing string printed by the device to add one.</p>
+      </section>
+
+      <section>
+        <h2>On this network <span class="pulse" title="Scanning with mDNS"></span></h2>
+        <ul class="device-list" id="discovered"></ul>
+        <p class="muted small empty" id="discovered-empty">No unpaired Nabto devices found on the local network.</p>
+      </section>
+    </aside>
+
+    <main id="content"></main>
+  </div>
+
+  <template id="tpl-welcome">
+    <div class="welcome">
+      <h1>Connect to a Nabto Edge WebRTC device</h1>
+      <p>Pair this computer with a device running <code>edge_device_webrtc</code>, then watch its video feed.</p>
+      <ol>
+        <li>Start the device. On first start it prints an <strong>initial pairing string</strong> like <code>p=pr-…,d=de-…,u=admin,pwd=…,sct=…,fp=…</code></li>
+        <li>Click <strong>Add device</strong> and paste the string, or pick the device under <em>On this network</em>.</li>
+        <li>Once paired, select the device and press <strong>Connect</strong>.</li>
+      </ol>
+    </div>
+  </template>
+
+  <template id="tpl-add">
+    <form class="panel add-form" autocomplete="off">
+      <h1>Add device</h1>
+      <label class="field">
+        <span>Pairing string</span>
+        <textarea name="pairingString" rows="3" spellcheck="false"
+                  placeholder="p=pr-xxxxxxxx,d=de-xxxxxxxx,u=admin,pwd=…,sct=…,fp=…"></textarea>
+      </label>
+      <p class="error small" data-role="parse-error" hidden></p>
+
+      <details data-role="details">
+        <summary>Pairing details</summary>
+        <div class="grid">
+          <label class="field"><span>Product ID</span><input name="productId" required spellcheck="false"></label>
+          <label class="field"><span>Device ID</span><input name="deviceId" required spellcheck="false"></label>
+          <label class="field"><span>Username <em class="muted">(invite)</em></span><input name="username" spellcheck="false"></label>
+          <label class="field"><span>Password</span><input name="password" spellcheck="false"></label>
+          <label class="field"><span>Server connect token</span><input name="sct" spellcheck="false"></label>
+          <label class="field"><span>Device fingerprint</span><input name="deviceFingerprint" spellcheck="false"></label>
+        </div>
+      </details>
+
+      <label class="field">
+        <span>Your username on the device <em class="muted">(used by open pairing modes)</em></span>
+        <input name="desiredUsername" spellcheck="false">
+      </label>
+
+      <div class="actions">
+        <button type="submit" class="primary" data-role="pair">Pair device</button>
+        <span class="status small" data-role="status"></span>
+      </div>
+    </form>
+  </template>
+
+  <template id="tpl-device">
+    <div class="device-view">
+      <div class="device-header">
+        <div>
+          <h1 data-role="name"></h1>
+          <div class="muted small mono" data-role="ids"></div>
+        </div>
+        <div class="header-actions">
+          <span class="badge" data-role="state">idle</span>
+          <button class="danger subtle" data-role="remove">Remove</button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label class="field inline grow">
+          <span>Tracks</span>
+          <input data-role="tracks" spellcheck="false" placeholder="device defaults (frontdoor-video, frontdoor-audio)">
+        </label>
+        <button class="primary" data-role="connect">Connect</button>
+      </div>
+
+      <div class="stage">
+        <div class="main-col">
+          <div class="video-wrap">
+            <video data-role="video" autoplay playsinline muted></video>
+            <div class="video-overlay" data-role="overlay">Not connected</div>
+            <audio data-role="audio" autoplay></audio>
+            <button class="audio-toggle" data-role="audio-toggle" hidden>Unmute audio</button>
+          </div>
+          <section class="card">
+            <h2>Log</h2>
+            <ol class="log mono small" data-role="log"></ol>
+          </section>
+        </div>
+
+        <section class="card">
+          <h2>Diagnostics</h2>
+          <dl class="kv" data-role="diag"></dl>
+        </section>
+      </div>
+    </div>
+  </template>
+</body>
+</html>

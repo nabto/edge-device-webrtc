@@ -16,15 +16,6 @@ The *Raw key* must be used when starting the example, the *Fingerprint* should b
 
 If you do not already have a device in the Nabto Cloud Console, follow our [general guide for embedded applications](https://docs.nabto.com/developer/platforms/embedded/applications.html#console).
 
-## Prepare the client
-
-This example includes a website used to connect to the device. Before using the client its dependencies must be installed. This requires [npm](https://github.com/npm/cli) to be installed on your system. Navigate to the `web-client` subdirectory of this example and install the dependencies:
-
-```
-cd web-client
-npm install
-```
-
 ## Usage
 
 To start the device, use the device configuration created previously to start the device:
@@ -32,23 +23,15 @@ To start the device, use the device configuration created previously to start th
 ```
 ./simple_webrtc_device -p <PRODUCT_ID> -d <DEVICE_ID> -k <RAW_PRIVATE_KEY>
 ################################################################
-# Device configuration string:
-# productid:<PRODUCT_ID>,deviceId:<DEVICE_ID>,sct:demosct
+# Pairing string:
+#   p=<PRODUCT_ID>,d=<DEVICE_ID>,sct=demosct,fp=1cf5fdb1d1e6c2d6be5aba35043f4a211002f608a1749bac12313c33480c52bc
 ################################################################
 The device fingerprint: [1cf5fdb1d1e6c2d6be5aba35043f4a211002f608a1749bac12313c33480c52bc]
 2024-02-23 10:56:41.312 ...sdk/src/core/nc_device.c(399)[_INFO] Starting Nabto Device
 2024-02-23 10:56:41.628 ...k/src/core/nc_attacher.c(747)[_INFO] Device attached to basestation
 ```
 
-Note the *Device configuration string*. This will be used to configure the client.
+Note the *Pairing string*. This example has no IAM module, so any client may connect and no pairing is needed.
 
-To start the client, open the `index.html` file from the `web-client` subdirectory of this example in a browser.
-
-```
-file:///PATH/TO/REPO/examples/simple-webrtc/web-client/index.html
-```
-
-Copy the *Device configuration string* into the website and press the *parse* button to fill in the device configuration.
-
-Finally, press the *Connect* button to connect to the device.
+To connect, start the [desktop client](../desktop-client), click *Add device*, paste the pairing string and press *Pair device*. The client detects that the device has no IAM and saves it right away. Then press *Connect* to see the `frontdoor-video` feed.
 
