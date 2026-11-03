@@ -284,7 +284,6 @@ function updateUi() {
   document.getElementById("login").value = connected ? "Disconnect" : "Connect";
   document.getElementById("passauth").disabled = (!connected || !username || !password);
   document.getElementById("fpvalid").disabled = (!connected || !fingerprint);
-  document.getElementById("oauth").disabled = document.getElementById("oauthtoken").value.length == 0;
   document.getElementById("audioup").disabled = !connected;
   document.getElementById("videoup").disabled = !connected;
   canCoap(connected);

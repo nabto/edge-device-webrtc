@@ -151,7 +151,6 @@ bool NabtoDeviceApp::createDefaultIamConfig()
         nm_iam_configuration_statement_add_action(s, "IAM:CreateUser");
         nm_iam_configuration_statement_add_action(s, "IAM:SetUserPassword");
         nm_iam_configuration_statement_add_action(s, "IAM:SetUserDisplayName");
-        nm_iam_configuration_statement_add_action(s, "IAM:SetUserOauthSubject");
         nm_iam_configuration_statement_add_action(s, "IAM:SetSettings");
         nm_iam_configuration_statement_add_action(s, "IAM:GetSettings");
         nm_iam_configuration_statement_add_action(s, "IAM:SetDeviceInfo");
@@ -167,7 +166,6 @@ bool NabtoDeviceApp::createDefaultIamConfig()
             nm_iam_configuration_statement_add_action(s, "IAM:GetUser");
             nm_iam_configuration_statement_add_action(s, "IAM:DeleteUser");
             nm_iam_configuration_statement_add_action(s, "IAM:SetUserDisplayName");
-            nm_iam_configuration_statement_add_action(s, "IAM:SetUserOauthSubject");
             nm_iam_configuration_statement_add_action(s, "IAM:SetUserPassword");
 
             // Create a condition such that only connections where the

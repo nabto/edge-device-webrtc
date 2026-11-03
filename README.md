@@ -2,7 +2,7 @@
 
 This WebRTC example implementation for Nabto Embedded SDK allows clients to establish WebRTC connections to a target device using Nabto. This WebRTC connection can then be used to stream one-way video and two-way audio feeds. Audio and video can be ingested from RTP and RTSP sources as well as raw streams through filesystem FIFOs. WebRTC data channels can also be used to invoke CoAP endpoints in the device as well as streaming data through Nabto Streaming.
 
-In addition to WebRTC, this example also implements OAuth to authenticate connections in the IAM module.
+Access to the device is controlled using decentralized access control: clients pair with the device and are authenticated by their public keys through the IAM module of the Nabto Embedded SDK.
 
 Note that the example applications use the RTP client in `./src/modules/rtp-client`. This is used to relay RTP packets between a UDP socket and WebRTC. This implementation is based on Unix sockets, and will not work on Windows.
 
@@ -319,8 +319,9 @@ Assuming your RTP feeds are running on the default ports, the device is started 
 ```
 ./edge_device_webrtc -d <YOUR_DEVICE_ID> -p <YOUR_PRODUCT_ID> -k <RAW_KEY_CREATED_ABOVE>
 ################################################################
-# Initial user pairing link:
-# https://demo.smartcloud.nabto.com?p=pr-f4nqpowq&d=de-jseuziej&u=admin&pwd=tyMYx9dgAygC&sct=m8ntwSkKkbcf&fp=73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54
+# Initial user 'admin' (role: Administrator) has not been paired yet.
+# Initial pairing string:
+#   p=pr-f4nqpowq,d=de-jseuziej,u=admin,pwd=tyMYx9dgAygC,sct=m8ntwSkKkbcf,fp=73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54
 ################################################################
 Device: pr-f4nqpowq.de-jseuziej with fingerprint: [73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54]
 2023-11-03 07:32:30.620 ...sdk/src/core/nc_device.c(399)[_INFO] Starting Nabto Device
@@ -334,8 +335,9 @@ To use an RTSP server the `--rtsp` argument is used to set the RTSP URL to use. 
 ```
 ./edge_device_webrtc -d <YOUR_DEVICE_ID> -p <YOUR_PRODUCT_ID> -k <RAW_KEY_CREATED_ABOVE> --rtsp rtsp://127.0.0.1:8554/video
 ################################################################
-# Initial user pairing link:
-# https://demo.smartcloud.nabto.com?p=pr-f4nqpowq&d=de-jseuziej&u=admin&pwd=tyMYx9dgAygC&sct=m8ntwSkKkbcf&fp=73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54
+# Initial user 'admin' (role: Administrator) has not been paired yet.
+# Initial pairing string:
+#   p=pr-f4nqpowq,d=de-jseuziej,u=admin,pwd=tyMYx9dgAygC,sct=m8ntwSkKkbcf,fp=73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54
 ################################################################
 Device: pr-f4nqpowq.de-jseuziej with fingerprint: [73e53042551c128a492cfd910b9ba67fffd2cab6c023b50c10992289f4c23d54]
 2023-11-03 07:32:30.620 ...sdk/src/core/nc_device.c(399)[_INFO] Starting Nabto Device
@@ -345,12 +347,11 @@ medias size: 1
 
 ### Connecting to the device
 
-To connect to your device, follow the `Initial user pairing link` printed by the device when first started. This will open our [WebRTC demo website](https://demo.smartcloud.nabto.com/) and initiate pairing with the device. The process is described in more detail [in the documentation](https://docs.nabto.com/developer/guides/webrtc/quickstart.html#website). Alternatively, instead of using the full website, you can use the simple [standalone static web page](https://docs.nabto.com/developer/platforms/js/webrtc-example.html).
+The device uses decentralized access control: users are stored in the device's local IAM state and clients are authenticated by their public key fingerprints. There is no central user database.
 
+To connect to your device, use the Nabto Edge WebRTC iOS app with decentralized authentication. Paste the `Initial pairing string` printed by the device on first start into the app to pair as the initial `admin` user. Once paired, the user is persisted in the IAM state in the home dir and the pairing string is no longer printed.
 
-### Other connect options
-
-The device can also be accessed through Android/iOS Apps, Google Home, and Alexa. These functionalities are not yet finalized. For more information about these features, contact Nabto support.
+By default only password-invite pairing is enabled in a newly created IAM state. Other pairing modes can be enabled with the `--pairing-password-open`, `--pairing-password-invite`, `--pairing-local-open` and `--pairing-local-initial` arguments. These only take effect when the IAM state is created, so combine them with `--iam-reset` to change an existing device. Use `--show-state` to print the current IAM state, including pairing modes and paired users.
 
 
 ## Advanced build topics
@@ -374,23 +375,19 @@ software can be compiled without tests, this can be done using the cmake flag
 
 ### Building without Curl
 
-Curl is used in the RTSP client and when validating OAuth tokens. It's currently
-not configurable to build the project without the curl dependency, but the
-software components defined inside `nabto/nabto_device_webrtc.hpp` does not
-depend on libcurl. It is currently not possible to build the software without
-libcurl being present. It is possible to build a binary which does not depend on
-libcurl. e.g. a binary which does not validate oauth tokens or use the rtsp
-client.
+Curl is used in the RTSP client. It's currently not configurable to build the
+project without the curl dependency, but the software components defined inside
+`nabto/nabto_device_webrtc.hpp` does not depend on libcurl. It is currently not
+possible to build the software without libcurl being present. It is possible to
+build a binary which does not depend on libcurl. e.g. a binary which does not
+use the rtsp client.
 
 ### Building without JWT
-JWT-cpp is used when validating OAuth tokens in the `edge_device_webrtc` example. It is currently not configurable to build the project without this dependency.
-
-The RTSP client module also depends on JWT-cpp for base64 encoding in Basic authentication. This can be disabled with the CMake option `-DRTSP_HAS_BASIC_AUTH=OFF`
+The RTSP client module depends on JWT-cpp for base64 encoding in Basic authentication. This can be disabled with the CMake option `-DRTSP_HAS_BASIC_AUTH=OFF`
 
 ### Building without OpenSSL
 
-OpenSSL is used when validating OAuth tokens, when challenge response validating
-device fingerprints and in libdatachannels dependencies. It is currently not
+OpenSSL is used in libdatachannels dependencies. It is currently not
 configurable to build the project without OpenSSL. The components defined inside
 `nabto/nabto_device_webrtc.hpp` does not directly depend on OpenSSL only
 through dependencies which can be configured to use e.g. MbedTLS instead.
@@ -457,7 +454,7 @@ The device can be started using the file path:
 You can now connect to the device from a client and see the feed.
 The Gstreamer/FFMPEG commands will only write to the FIFO when the device is reading it. This also means when the client connection is closed and the device stops reading the FIFO, the Gstreamer/FFMPEG will exit and new client connections will not be able to see the feed before the streamer is started again (`mkfifo` does not need to be run again, only the streamer command).
 
-To use the 2-way audio feature, you must use a client with 2-way audio support. The demo website does NOT have this support. For a browser client, use the `examples/webrtc-demo/web-client`. With this client, once you have opened a connection and the feed from the device, you must click `Add Upstream Audio` before the browser will start sending audio data to the device.
+To use the 2-way audio feature, you must use a client with 2-way audio support. For a browser client, use the `examples/webrtc-demo/web-client`. With this client, once you have opened a connection and the feed from the device, you must click `Add Upstream Audio` before the browser will start sending audio data to the device.
 
 
 ## Building the NabtoWebRTCSDK components
