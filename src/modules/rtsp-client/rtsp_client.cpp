@@ -5,11 +5,12 @@
 #if defined(NABTO_WEBRTC_CXX_STD_ROUND_FIX)
 #include <util/cxx_std_round_fix.hpp>
 #endif
-#include <jwt-cpp/jwt.h>
+#include <jwt-cpp/base.h>
 #endif
 
 #ifdef NABTO_RTSP_HAS_DIGEST_AUTH
 #include <openssl/md5.h>
+#include <openssl/evp.h>
 #endif
 
 #include <sstream>
