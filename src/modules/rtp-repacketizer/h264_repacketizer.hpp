@@ -40,7 +40,8 @@ public:
         rtc::message_vector vec;
         vec.push_back(msg);
 
-        depacket_.incoming(vec, nullptr);
+        // libdatachannel >= 0.24 makes incoming() private in VideoRtpDepacketizer, it is still public through MediaHandler.
+        static_cast<rtc::MediaHandler&>(depacket_).incoming(vec, nullptr);
 
         if (vec.size() > 0) {
             rtpConf_->timestamp = vec[0]->frameInfo->timestamp;

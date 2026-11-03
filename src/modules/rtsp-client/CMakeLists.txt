@@ -32,6 +32,10 @@ if (RTSP_HAS_BASIC_AUTH)
     find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
     target_include_directories(rtsp_client PRIVATE ${JWT_CPP_INCLUDE_DIRS})
 endif()
+if (RTSP_HAS_DIGEST_AUTH)
+    find_package(OpenSSL REQUIRED)
+    target_link_libraries(rtsp_client PRIVATE OpenSSL::Crypto)
+endif()
 
 
 target_include_directories(rtsp_client

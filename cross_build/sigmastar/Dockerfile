@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 debian:bookworm
+FROM --platform=linux/amd64 debian:trixie
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \

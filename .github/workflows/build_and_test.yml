@@ -15,39 +15,48 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ macos-14, ubuntu-22.04 ] #, windows-2022
+        os: [ macos-15, ubuntu-24.04 ] #, windows-2025
         include:
-          # - os: windows-2022
+          # - os: windows-2025
           #   build_command: cmake --build build-dir --parallel --target install
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             # 2024-05-29: The ubuntu build started failing with: "Received request to deprovision: The request was cancelled by the remote provider." so we try make without parallellism like with macos
             build_command: cmake --workflow --preset release
-          - os: macos-14
+          - os: macos-15
             # 2024-01-05: Sometimes mac fails on github actions when doing builds so we use make without parallellism directly, since we hope that fixes the unknown problem.
             build_command: cmake --workflow --preset release
 
     steps:
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
 
+      # vcpkg removed the x-gha binary cache, so cache its file based binary cache instead.
+      # vcpkg verifies each package by ABI hash, so restoring an older cache is safe.
+      - name: Get vcpkg revision
+        id: vcpkg-rev
+        run: echo "rev=$(git rev-parse HEAD:3rdparty/vcpkg)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.vcpkg-binary-cache
+          key: vcpkg-${{ matrix.os }}-release-${{ steps.vcpkg-rev.outputs.rev }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'build-scripts/vcpkg/ports/**') }}
+          restore-keys: vcpkg-${{ matrix.os }}-release-
+
       - name: Build
         env:
-          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-        run: ${{matrix.build_command}}
+          VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite"
+        run: |
+          mkdir -p "${{ github.workspace }}/.vcpkg-binary-cache"
+          ${{matrix.build_command}}
 
       - name: Test run
         run: ${{ github.workspace }}/build/release/install/bin/webrtc_unit_test --log_level=all
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: artifacts_${{matrix.os}}
           path: ${{ github.workspace }}/build/release/install
