@@ -43,7 +43,7 @@
     ],
     "extraResources": [
       {
-        "from": "vendor/${platform}-${arch}",
+        "from": "vendor/${os}-${arch}",
         "to": "nabto",
         "filter": [
           "*"

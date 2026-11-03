@@ -8,7 +8,7 @@
 //   node scripts/fetch-nabto-sdk.js          # current platform only
 //   node scripts/fetch-nabto-sdk.js --all    # every supported platform
 //
-// The <platform>-<arch> directory names match electron-builder's ${platform}-${arch}
+// The <os>-<arch> directory names (linux, mac, win) match electron-builder's ${os}-${arch}
 // macros so packaging can pick the right library up as an extraResource.
 
 'use strict';

@@ -51,3 +51,10 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npx electron-builder --dir --publish never
+
+      - name: Check the packaged app contains the Nabto Client SDK
+        shell: bash
+        run: |
+          lib=$(find release -path '*/nabto/*' \( -name 'libnabto_client.so' -o -name 'libnabto_client.dylib' -o -name 'nabto_client.dll' \))
+          if [ -z "$lib" ]; then echo "Nabto Client SDK library missing from the packaged app"; exit 1; fi
+          echo "$lib"
